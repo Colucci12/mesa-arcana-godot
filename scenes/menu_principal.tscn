@@ -1,0 +1,73 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/scripts_de_cena/menu_principal.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/fundo_mesa.tscn" id="2"]
+[ext_resource type="FontFile" path="res://images/BarlowCondensed-Bold.ttf" id="3"]
+
+[node name="MenuPrincipal" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1")
+
+[node name="PlanoFundo" parent="." instance=ExtResource("2")]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Centro" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Opcoes" type="VBoxContainer" parent="Centro"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Titulo" type="Label" parent="Centro/Opcoes"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.956863, 0.945098, 0.909804, 1)
+theme_override_fonts/font = ExtResource("3")
+theme_override_font_sizes/font_size = 96
+text = "JUNO"
+horizontal_alignment = 1
+
+[node name="Espaco" type="Control" parent="Centro/Opcoes"]
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Jogar" type="Button" parent="Centro/Opcoes"]
+custom_minimum_size = Vector2(280, 52)
+layout_mode = 2
+focus_neighbor_bottom = NodePath("../Sair")
+theme_override_colors/font_color = Color(0.956863, 0.945098, 0.909804, 1)
+theme_override_colors/font_hover_color = Color(0.94902, 0.788235, 0.298039, 1)
+theme_override_colors/font_focus_color = Color(0.94902, 0.788235, 0.298039, 1)
+theme_override_colors/font_pressed_color = Color(0.94902, 0.788235, 0.298039, 1)
+theme_override_fonts/font = ExtResource("3")
+theme_override_font_sizes/font_size = 36
+text = "JOGAR"
+flat = true
+
+[node name="Sair" type="Button" parent="Centro/Opcoes"]
+custom_minimum_size = Vector2(280, 52)
+layout_mode = 2
+focus_neighbor_top = NodePath("../Jogar")
+theme_override_colors/font_color = Color(0.956863, 0.945098, 0.909804, 1)
+theme_override_colors/font_hover_color = Color(0.94902, 0.788235, 0.298039, 1)
+theme_override_colors/font_focus_color = Color(0.94902, 0.788235, 0.298039, 1)
+theme_override_colors/font_pressed_color = Color(0.94902, 0.788235, 0.298039, 1)
+theme_override_fonts/font = ExtResource("3")
+theme_override_font_sizes/font_size = 36
+text = "SAIR"
+flat = true

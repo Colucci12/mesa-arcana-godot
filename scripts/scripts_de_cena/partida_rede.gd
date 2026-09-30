@@ -25,6 +25,7 @@ func _ready() -> void:
 	_iniciar.pressed.connect(GameManager.match_endpoint.iniciar_partida)
 	$Sair.pressed.connect(GameManager.network_manager.sair)
 	$VoltarSala.pressed.connect(_voltar_sala)
+	$VoltarMenu.pressed.connect(_voltar_menu)
 
 func _hospedar() -> void:
 	var porta := _obter_porta()
@@ -58,6 +59,7 @@ func _obter_porta() -> int:
 
 func _bloquear_formulario() -> void:
 	$Sair.show()
+	$VoltarMenu.hide()
 	_nome.editable = false
 	_ip.editable = false
 	_porta.editable = false
@@ -66,6 +68,7 @@ func _bloquear_formulario() -> void:
 
 func _liberar_formulario() -> void:
 	$Sair.hide()
+	$VoltarMenu.show()
 	_iniciar.hide()
 	_jogadores.text = ""
 	_nome.editable = true
@@ -122,3 +125,6 @@ func _voltar_sala() -> void:
 	_tela.hide()
 	_painel.show()
 	$VoltarSala.hide()
+
+func _voltar_menu() -> void:
+	get_tree().change_scene_to_file("res://scenes/menu_principal.tscn")

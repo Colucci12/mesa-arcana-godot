@@ -22,6 +22,14 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
+[node name="VoltarMenu" type="Button" parent="."]
+layout_mode = 1
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 176.0
+offset_bottom = 52.0
+text = "Voltar ao menu"
+
 [node name="MesaPartida" parent="." instance=ExtResource("2")]
 visible = false
 layout_mode = 1
@@ -52,7 +60,7 @@ theme_override_constants/separation = 12
 [node name="Titulo" type="Label" parent="PainelConexao/Conteudo"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 30
-text = "UNO em rede"
+text = "JUNO em rede"
 horizontal_alignment = 1
 
 [node name="Instrucao" type="Label" parent="PainelConexao/Conteudo"]

@@ -10,8 +10,8 @@ config_version=5
 
 [application]
 
-config/name="UNO"
-run/main_scene="res://scenes/partida_rede.tscn"
+config/name="JUNO"
+run/main_scene="res://scenes/menu_principal.tscn"
 config/features=PackedStringArray("4.6", "Forward Plus")
 config/icon="res://icon.svg"
 

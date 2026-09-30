@@ -11,6 +11,6 @@ func criar_carta(dados_carta: Variant = null) -> Carta:
 		carta.setup_dados(dados_carta)
 		
 	add_child(carta)
-	carta.teleportar(Vector2(20,20), 0.0)
+	carta.teleportar((size - Carta.SIZE) / 2.0, 0.0)
 	
 	return carta

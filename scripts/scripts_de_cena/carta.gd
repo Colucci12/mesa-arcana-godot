@@ -181,10 +181,10 @@ func teleportar(p_posicao:Vector2 = Vector2(0,0), p_rotacao:float = 0.0) -> void
 
 #SETUP LOGICO
 const MAP_CORES = {
-	Carta_Base.Cores.AZUL: Color.NAVY_BLUE,
-	Carta_Base.Cores.VERDE: Color.WEB_GREEN,
-	Carta_Base.Cores.AMARELO: Color.GOLDENROD,
-	Carta_Base.Cores.VERMELHO: Color.DARK_RED,
+	Carta_Base.Cores.AZUL: Color("#4287F5"),
+	Carta_Base.Cores.VERDE: Color("#42B883"),
+	Carta_Base.Cores.AMARELO: Color("#F2C94C"),
+	Carta_Base.Cores.VERMELHO: Color("#E84A5F"),
 	Carta_Base.Cores.PRETO: Color.BLACK}
 
 const COORDENADAS_PLANILHA = {

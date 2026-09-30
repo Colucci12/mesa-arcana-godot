@@ -12,6 +12,7 @@ class_name MaoVisual
 
 var _ids_jogaveis: Array[int] = []
 var _exibir_jogabilidade: bool = false
+var _carta_recebida_do_monte: Carta
 
 #FUNÇÕES TRIGGER
 func _ready() -> void:
@@ -22,10 +23,20 @@ func _recebeu_uma_carta(carta:Node) -> void:
 	var carta_visual := carta as Carta
 	if not carta_visual: return
 	
-	_atualizar_leque()
+	if carta_visual != _carta_recebida_do_monte:
+		_atualizar_leque()
 	
 	carta_visual.verso = mao_adversaria
 	_aplicar_jogabilidade(carta_visual)
+
+func receber_carta_do_monte(carta: Carta) -> void:
+	var origem := carta.global_position
+	_carta_recebida_do_monte = carta
+	carta.reparent(self, true)
+	_carta_recebida_do_monte = null
+	carta.rotation = -get_global_transform().get_rotation()
+	carta.global_position = origem
+	_atualizar_leque()
 
 func _entregou_uma_carta(carta:Node) -> void:
 	await carta.tree_exited

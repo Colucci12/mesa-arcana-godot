@@ -5,6 +5,7 @@ signal comando_solicitado(comando: StringName, dados: Dictionary)
 
 @export var id_jogador_local: int = 1
 @export var intervalo_entre_cartas: float = 0.25
+@export var intervalo_distribuicao_inicial: float = 0.09
 @export var intervalo_troca_maos: float = 1.0
 
 @onready var _mao_oponente: MaoVisual = $MaoOponente
@@ -69,7 +70,9 @@ func _processar_fila() -> void:
 		var evento: Dictionary = _fila_eventos.pop_front()
 		_aplicar_evento(evento)
 		if evento.get("tipo", "") == "CartaRecebida":
-			await get_tree().create_timer(intervalo_entre_cartas).timeout
+			var origem: String = evento.get("publico", {}).get("origem", "")
+			var intervalo := intervalo_distribuicao_inicial if origem == "inicial" else intervalo_entre_cartas
+			await get_tree().create_timer(intervalo).timeout
 		elif evento.get("tipo", "") == "MaoAtualizada":
 			await get_tree().create_timer(intervalo_troca_maos).timeout
 		if geracao != _geracao_fila:
@@ -269,7 +272,7 @@ func _aplicar_mao_atualizada(evento: Dictionary) -> void:
 	var cartas: Array = privado.get("cartas", [])
 	while _mao_jogador.get_child_count() < cartas.size():
 		var carta_nova := _monte.criar_carta()
-		carta_nova.reparent(_mao_jogador, true)
+		_mao_jogador.receber_carta_do_monte(carta_nova)
 	while _mao_jogador.get_child_count() > cartas.size():
 		var carta_excedente: Node = _mao_jogador.get_child(_mao_jogador.get_child_count() - 1)
 		_mao_jogador.remove_child(carta_excedente)
@@ -290,14 +293,14 @@ func _aplicar_compra_penalidade(publico: Dictionary) -> void:
 func _adicionar_carta_local(dados_carta: Dictionary) -> void:
 	var carta := _monte.criar_carta(dados_carta)
 	carta.selecionada.connect(_solicitar_jogada)
-	carta.reparent(_mao_jogador, true)
+	_mao_jogador.receber_carta_do_monte(carta)
 
 func _definir_quantidade_oponente(id_jogador: int, quantidade: int) -> void:
 	var mao_oponente: MaoVisual = _maos[id_jogador]
 	var quantidade_segura := maxi(quantidade, 0)
 	while mao_oponente.get_child_count() < quantidade_segura:
 		var carta := _monte.criar_carta()
-		carta.reparent(mao_oponente, true)
+		mao_oponente.receber_carta_do_monte(carta)
 	while mao_oponente.get_child_count() > quantidade_segura:
 		var carta: Node = mao_oponente.get_child(mao_oponente.get_child_count() - 1)
 		mao_oponente.remove_child(carta)
