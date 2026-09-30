@@ -1,9 +1,11 @@
-[gd_scene format=3 uid="uid://dmky5d0asw4u8"]
+[gd_scene load_steps=7 format=3 uid="uid://dmky5d0asw4u8"]
 
 [ext_resource type="Script" uid="uid://dglnfaj2yc0tk" path="res://scripts/scripts_de_cena/mesa_partida.gd" id="1"]
 [ext_resource type="PackedScene" uid="uid://c2h4odean45qd" path="res://scenes/mao.tscn" id="2"]
 [ext_resource type="PackedScene" uid="uid://bypqjeoqphjfc" path="res://scenes/monte.tscn" id="3"]
 [ext_resource type="PackedScene" path="res://scenes/descarte.tscn" id="4"]
+[ext_resource type="PackedScene" path="res://scenes/fundo_mesa.tscn" id="5"]
+[ext_resource type="FontFile" path="res://images/BarlowCondensed-Bold.ttf" id="6"]
 
 [node name="MesaPartida" type="Control" unique_id=1815636156]
 layout_mode = 3
@@ -15,15 +17,13 @@ grow_vertical = 2
 script = ExtResource("1")
 intervalo_entre_cartas = 0.15
 
-[node name="PlanoFundo" type="ColorRect" parent="." unique_id=1714349624]
+[node name="PlanoFundo" parent="." unique_id=1714349624 instance=ExtResource("5")]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 2
-color = Color(0.055, 0.22, 0.17, 1)
 
 [node name="Titulo" type="Label" parent="." unique_id=1759817237]
 layout_mode = 1
@@ -45,7 +45,8 @@ offset_left = 48.0
 offset_top = 40.0
 offset_right = 300.0
 offset_bottom = 72.0
-theme_override_font_sizes/font_size = 22
+theme_override_fonts/font = ExtResource("6")
+theme_override_font_sizes/font_size = 26
 text = "Oponente"
 
 [node name="QuantidadeOponente" type="Label" parent="." unique_id=712030316]
@@ -209,7 +210,8 @@ offset_right = -120.0
 offset_bottom = -164.0
 grow_horizontal = 2
 grow_vertical = 0
-theme_override_font_sizes/font_size = 22
+theme_override_fonts/font = ExtResource("6")
+theme_override_font_sizes/font_size = 26
 text = "Você"
 
 [node name="QuantidadeJogador" type="Label" parent="." unique_id=1481410693]
@@ -274,6 +276,8 @@ offset_left = 16.0
 offset_top = -240.0
 offset_right = 215.0
 offset_bottom = -210.0
+theme_override_fonts/font = ExtResource("6")
+theme_override_font_sizes/font_size = 24
 text = "Jogador"
 
 [node name="QuantidadeEsquerda" type="Label" parent="."]
@@ -299,6 +303,8 @@ offset_top = -240.0
 offset_right = -16.0
 offset_bottom = -210.0
 horizontal_alignment = 2
+theme_override_fonts/font = ExtResource("6")
+theme_override_font_sizes/font_size = 24
 text = "Jogador"
 
 [node name="QuantidadeDireita" type="Label" parent="."]
