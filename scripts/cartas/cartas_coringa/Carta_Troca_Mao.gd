@@ -5,5 +5,5 @@ func _init() -> void:
 	super._init("TROCAMAO")
 
 func aplicar_efeito(api_efeitos: Efeitos_Api) -> void:
-	api_efeitos.solicitar_troca_de_mao()
+	api_efeitos.trocar_maos()
 	super.aplicar_efeito(api_efeitos)

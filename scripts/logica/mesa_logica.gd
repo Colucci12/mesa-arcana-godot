@@ -80,7 +80,7 @@ func encerrar_partida() -> void:
 func preparar_nova_partida() -> void:
 	for jogador in _lista_jogadores.obter_elementos():
 		jogador.limpar_mao()
-	_baralho.criar_baralho_sem_troca_mao()
+	_baralho.criar_baralho()
 	_descarte.limpar()
 	_compra_acumulada = 0
 	_jogador_escolhendo_cor_id = -1
@@ -223,6 +223,12 @@ func obter_estado_publico_jogadores() -> Array[Dictionary]:
 		})
 	return resumo
 
+func obter_jogador_sem_cartas() -> Jogador_Logico:
+	for jogador in _lista_jogadores.obter_elementos():
+		if jogador.retorna_quantidade_cartas() == 0:
+			return jogador
+	return null
+
 func reatribuir_carta_do_jogador(pid_carta: int, nome_p1: String, nome_p2: String) -> void:
 	var jogador1 := consultar_jogador(nome_p1)
 	var jogador2 := consultar_jogador(nome_p2)
@@ -232,12 +238,13 @@ func reatribuir_carta_do_jogador(pid_carta: int, nome_p1: String, nome_p2: Strin
 	if carta:
 		jogador2.recebe_carta(carta)
 
-func trocar_maos(nome_p1: String, nome_p2: String) -> void:
-	var j1 := consultar_jogador(nome_p1)
-	var j2 := consultar_jogador(nome_p2)
+func trocar_maos(id_jogador: int, id_alvo: int) -> bool:
+	var j1 := consultar_jogador_por_id(id_jogador)
+	var j2 := consultar_jogador_por_id(id_alvo)
 	if not j1 or not j2 or j1 == j2:
-		return
+		return false
 	var mao1 := j1.entregar_mao()
 	var mao2 := j2.entregar_mao()
 	j1.receber_mao(mao2)
 	j2.receber_mao(mao1)
+	return true

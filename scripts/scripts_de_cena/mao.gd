@@ -44,6 +44,14 @@ func limpar_jogabilidade() -> void:
 	_exibir_jogabilidade = false
 	_atualizar_jogabilidade()
 
+func trocar_cartas_com(outra_mao: MaoVisual) -> void:
+	var cartas_proprias := get_children()
+	var cartas_da_outra_mao := outra_mao.get_children()
+	for carta in cartas_proprias:
+		carta.reparent(outra_mao, true)
+	for carta in cartas_da_outra_mao:
+		carta.reparent(self, true)
+
 func carta_permitida(id_carta: int) -> bool:
 	return not _exibir_jogabilidade or _ids_jogaveis.has(id_carta)
 

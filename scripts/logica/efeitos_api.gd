@@ -49,5 +49,20 @@ func solicitar_escolha_cor() -> void:
 		}
 	})
 
-func solicitar_troca_de_mao() -> void:
-	pass
+func trocar_maos() -> void:
+	var jogador := _mesa.obter_jogador_atual()
+	for alvo in _mesa.obter_jogadores():
+		if alvo.get_id() == jogador.get_id():
+			continue
+		if not _mesa.trocar_maos(jogador.get_id(), alvo.get_id()):
+			return
+		_fatos.append({
+			"tipo": "MaosTrocadas",
+			"publico": {
+				"jogador_id": jogador.get_id(),
+				"alvo_id": alvo.get_id(),
+				"quantidade_jogador": jogador.retorna_quantidade_cartas(),
+				"quantidade_alvo": alvo.retorna_quantidade_cartas()
+			}
+		})
+		return

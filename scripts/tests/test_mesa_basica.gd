@@ -43,7 +43,7 @@ func _testar_comandos_e_eventos() -> void:
 	_verificar(mesa.obter_jogador_atual().get_id() == 1, "primeiro jogador cadastrado inicia")
 	_verificar(jogador1.retorna_quantidade_cartas() == 7 and jogador2.retorna_quantidade_cartas() == 7, "cada jogador recebe sete cartas")
 	_verificar(mesa.consultar_carta_descarte() is Carta_Numerica, "descarte inicial é numérico")
-	_verificar(mesa.obter_quantidade_monte() == 53, "monte inicia com as cartas restantes")
+	_verificar(mesa.obter_quantidade_monte() == 55, "monte inicia com as cartas restantes")
 	_verificar(eventos_inicio.size() == 16 and eventos_inicio[0]["tipo"] == "PartidaIniciada", "início produz resumo público e entregas individuais")
 	_verificar(eventos_inicio[15]["tipo"] == "DistribuicaoConcluida", "distribuição termina antes de liberar a vez")
 	for indice in range(1, 15):
@@ -94,9 +94,7 @@ func _testar_comandos_e_eventos() -> void:
 	var compra_reposta := api.comprar_carta(1)
 	_verificar(compra_reposta["sucesso"], "baralho é reposto quando o monte esgota")
 	_verificar(mesa.consultar_carta_descarte().get_id() == topo_antes_reposicao, "reposição mantém o descarte inteiro")
-	_verificar(mesa.obter_quantidade_monte() == 67, "reposição usa a composição atual da partida")
-	for carta in mesa._baralho._pilha_principal_de_cartas:
-		_verificar(not (carta is Carta_Troca_Mao), "reposição não inclui cartas ainda fora da partida")
+	_verificar(mesa.obter_quantidade_monte() == 69, "reposição usa a composição atual da partida")
 
 func _testar_fim_de_partida() -> void:
 	var jogo := _criar_jogo_com_mao_mista()

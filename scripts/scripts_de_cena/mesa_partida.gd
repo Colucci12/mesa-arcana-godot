@@ -5,6 +5,7 @@ signal comando_solicitado(comando: StringName, dados: Dictionary)
 
 @export var id_jogador_local: int = 1
 @export var intervalo_entre_cartas: float = 0.25
+@export var intervalo_troca_maos: float = 1.0
 
 @onready var _mao_oponente: MaoVisual = $MaoOponente
 @onready var _mao_jogador: MaoVisual = $MaoJogador
@@ -62,6 +63,8 @@ func _processar_fila() -> void:
 		_aplicar_evento(evento)
 		if evento.get("tipo", "") == "CartaRecebida":
 			await get_tree().create_timer(intervalo_entre_cartas).timeout
+		elif evento.get("tipo", "") == "MaoAtualizada":
+			await get_tree().create_timer(intervalo_troca_maos).timeout
 	_processando_eventos = false
 	_atualizar_controles()
 
@@ -92,6 +95,10 @@ func _aplicar_evento(evento: Dictionary) -> void:
 			_mensagem.text = _mensagem_turno()
 		"CartaJogada":
 			_aplicar_carta_jogada(publico)
+		"MaosTrocadas":
+			_aplicar_maos_trocadas(publico)
+		"MaoAtualizada":
+			_aplicar_mao_atualizada(evento)
 		"CompraPenalidadeRealizada":
 			_aplicar_compra_penalidade(publico)
 		"CompraAcumulada":
@@ -234,6 +241,43 @@ func _aplicar_carta_jogada(dados: Dictionary) -> void:
 	_descarte.receber_carta(carta)
 	_mensagem_efeito = ""
 	_mensagem.text = ""
+
+func _aplicar_maos_trocadas(dados: Dictionary) -> void:
+	var id_autor := int(dados.get("jogador_id", -1))
+	var id_alvo := int(dados.get("alvo_id", -1))
+	if id_autor != id_jogador_local and id_alvo != id_jogador_local:
+		return
+	_mao_jogador.limpar_jogabilidade()
+	_mao_jogador.trocar_cartas_com(_mao_oponente)
+	var quantidade_autor := int(dados.get("quantidade_jogador", 0))
+	var quantidade_alvo := int(dados.get("quantidade_alvo", 0))
+	if id_autor == id_jogador_local:
+		_quantidade_jogador.text = "%d cartas" % quantidade_autor
+		_quantidade_oponente.text = "%d cartas" % quantidade_alvo
+	else:
+		_quantidade_jogador.text = "%d cartas" % quantidade_alvo
+		_quantidade_oponente.text = "%d cartas" % quantidade_autor
+	_registrar_mensagem_efeito("%s trocou as mãos." % _nome_do_jogador(id_autor))
+
+func _aplicar_mao_atualizada(evento: Dictionary) -> void:
+	var publico: Dictionary = evento.get("publico", {})
+	if int(publico.get("jogador_id", -1)) != id_jogador_local:
+		return
+	var privado: Dictionary = evento.get("privado", {})
+	var cartas: Array = privado.get("cartas", [])
+	while _mao_jogador.get_child_count() < cartas.size():
+		var carta_nova := _monte.criar_carta()
+		carta_nova.reparent(_mao_jogador, true)
+	while _mao_jogador.get_child_count() > cartas.size():
+		var carta_excedente: Node = _mao_jogador.get_child(_mao_jogador.get_child_count() - 1)
+		_mao_jogador.remove_child(carta_excedente)
+		carta_excedente.queue_free()
+	for indice in range(cartas.size()):
+		var carta := _mao_jogador.get_child(indice) as Carta
+		carta.setup_dados(cartas[indice])
+		if not carta.selecionada.is_connected(_solicitar_jogada):
+			carta.selecionada.connect(_solicitar_jogada)
+	_quantidade_jogador.text = "%d cartas" % cartas.size()
 
 func _aplicar_compra_penalidade(publico: Dictionary) -> void:
 	_compra_acumulada = 0
