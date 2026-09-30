@@ -1,6 +1,6 @@
 # Arquitetura multiplayer do UNO
 
-> Rascunho para discussão. O diagrama registra a direção atual da arquitetura; detalhes ainda podem mudar durante a implementação.
+> Arquitetura do recorte jogável atual. O roteamento para um menu elaborado permanece como evolução futura.
 
 ```mermaid
 %%{init: {"theme":"dark","themeVariables":{"background":"#0B1020","lineColor":"#94A3B8","textColor":"#E2E8F0"}}}%%
@@ -9,10 +9,10 @@ flowchart LR
 
     subgraph APP["GameManager · Autoload em cada peer"]
         direction TB
-        ROUTER["SceneRouter<br/>troca as telas"]:::local
+        ROUTER["SceneRouter · futuro<br/>troca as telas"]:::local
         BUS["EventBus<br/>comandos e eventos locais"]:::local
 
-        subgraph NETWORK["NetworkManager"]
+        subgraph NETWORK["Rede · nodes separados"]
             direction TB
             PEER["Conexão e ciclo dos peers<br/>entrada / saída"]:::network
             CHAT["ChatEndpoint<br/>Node · RPCs do chat"]:::network
@@ -36,11 +36,12 @@ flowchart LR
     RPC["Godot RPC / ENet<br/>comunicação entre os peers"]:::network
     PLAYERS["Todos os peers<br/>incluindo quem enviou a ação"]:::peers
 
-    UI -->|"mensagem de chat"| CHAT
+    UI -->|"mensagem de chat"| BUS
+    BUS -->|"solicita envio"| CHAT
     UI -->|"jogar · comprar · passar"| BUS
     BUS -->|"encaminha comandos"| MATCH
 
-    PEER -->|"entrada / saída de jogador"| API
+    PEER -->|"participantes / interrupção"| MATCH
     MATCH -->|"pedido recebido no servidor"| API
     API -->|"resultado + eventos ordenados"| MATCH
 
@@ -63,7 +64,7 @@ flowchart LR
 
 ## Ideias registradas
 
-- `GameManager` permanece entre cenas e contém o roteamento de telas, o `EventBus` local e o `NetworkManager`.
+- `GameManager` permanece entre cenas e contém `EventBus`, `NetworkManager`, `MatchEndpoint` e `ChatEndpoint`. Um roteador de cenas poderá ser adicionado quando houver outras telas.
 - `ChatEndpoint` e `MatchEndpoint` separam os RPCs de chat dos RPCs da partida.
 - O servidor valida e altera o estado autoritativo da partida. A `Mesa_Logica` guarda jogadores, mãos, descarte e turno; `Mesa_Api` recebe comandos e coordena as regras.
 - As cartas chamam operações de efeito pelo `Efeitos_Api`. Essa classe participa da lógica local e não transmite pela rede.
@@ -72,15 +73,39 @@ flowchart LR
 
 ## Estado da implementação
 
-- `GameManager` é um autoload com `EventBus`, `NetworkManager` e `MatchEndpoint` em caminhos iguais nas duas instâncias.
-- `NetworkManager` abre ou conecta por ENet, apresenta o cliente e associa o peer remoto ao jogador 2. O anfitrião participa como jogador 1.
-- `MatchEndpoint` encaminha comandos à `Mesa_Api` somente no anfitrião. Cada evento volta aos dois jogadores na mesma ordem; os dados privados são incluídos apenas na entrega ao dono da mão.
-- `VisibilidadeEventos` aplica a mesma filtragem por jogador na rede e na prévia local. Eventos destinados apenas a uma pessoa não são enviados ao outro jogador.
-- `partida_rede.tscn` oferece uma entrada simples por nome, IP e porta. A partida começa assim que o segundo jogador confirma a conexão.
+- `GameManager` é um autoload com `EventBus`, `NetworkManager`, `MatchEndpoint` e `ChatEndpoint` em caminhos iguais em todas as instâncias.
+- `NetworkManager` abre ou conecta por ENet, apresenta cada cliente e associa o peer remoto a um ID estável de jogador. O anfitrião participa como jogador 1; os demais IDs são atribuídos pelo servidor e não dependem dos IDs de conexão do Godot.
+- `MatchEndpoint` encaminha comandos à `Mesa_Api` somente no anfitrião. Cada evento volta aos participantes na mesma ordem; os dados privados são incluídos apenas na entrega ao dono da mão.
+- `VisibilidadeEventos` aplica a mesma filtragem por jogador na rede e na prévia local. Eventos destinados apenas a uma pessoa não são enviados aos demais jogadores.
+- `partida_rede.tscn` oferece uma entrada simples por nome, IP e porta e uma sala para dois a quatro jogadores. O anfitrião inicia manualmente quando todos os participantes confirmam a entrada.
+- A interface distribui as mãos em relação ao jogador local: ele fica embaixo; os oponentes ocupam o topo e as laterais conforme a quantidade de participantes. As mãos laterais reutilizam a cena `mao.tscn` rotacionada.
+- A saída de um participante durante a partida interrompe a rodada e devolve os restantes à sala. Eles podem iniciar outra partida; quem saiu pode entrar novamente na sala. A saída do anfitrião encerra a conexão dos clientes. Não há retomada da rodada nem migração de anfitrião.
+- O chat usa o próprio endpoint e um painel recolhível, disponível na sala e durante a partida. As recusas de mensagens ficam nesse painel; as recusas de jogadas continuam na interface da mesa.
 - A cena local `scenes/tests/previa_mesa_partida.tscn` continua disponível para revisar a interface sem rede.
 - A cena `teste.tscn` é o laboratório de objetos e usa o baralho completo por padrão. A partida configura o mesmo `Baralho_Logico` com as cartas já implementadas; ambos usam `comprar_carta()`, que repõe a composição configurada quando o monte esgota.
 - A partida básica entre duas instâncias em localhost foi validada manualmente no Godot.
-- As cartas especiais coloridas `PULA`, `INVERTE` e `+2` e os coringas `TROCACOR`, `+4` e `TROCAMAO` participam do baralho. Chat, lobby completo e reconexão permanecem para as próximas etapas.
+- As cartas especiais coloridas `PULA`, `INVERTE` e `+2` e os coringas `TROCACOR`, `+4` e `TROCAMAO` participam do baralho.
+
+## Planejamento e pendências
+
+- [x] Etapa 1: lógica de partida, turnos, jogadas, compra e vitória.
+- [x] Etapa 2: interface conectada ao estado real da mesa.
+- [x] Etapa 3: anfitrião participante, conexão por IP e resultados distribuídos aos jogadores.
+- [x] Etapa 4: efeitos coloridos, compras acumuladas e escolhas de cor e alvo.
+- [x] Etapa 5, recorte básico: sala, chat, mensagens de erro e interrupção por desconexão.
+- [ ] Validar uma partida completa com amigos em computadores diferentes, pela rede pretendida.
+
+Menu elaborado, pontuação e retomada após reconexão continuam fora deste recorte.
+
+## Chat
+
+- A interface solicita o envio por `mensagem_chat_solicitada`. `GameManager` encaminha a solicitação ao `ChatEndpoint`.
+- O cliente envia apenas o texto. O servidor identifica o autor pela conexão e usa o nome cadastrado na sala; participantes que ainda não concluíram a entrada não podem publicar mensagens.
+- O servidor remove espaços nas extremidades, substitui quebras de linha por espaços e recusa mensagens vazias ou com mais de 280 caracteres. A recusa é enviada apenas ao remetente.
+- Mensagens aceitas chegam aos participantes confirmados, incluindo o próprio autor e o anfitrião. O endpoint emite `mensagem_chat_recebida` no barramento local.
+- O painel mostra o texto literalmente, sem interpretar BBCode, conserva as últimas 50 mensagens recebidas e indica mensagens novas quando está recolhido. A entrada é limpa após a confirmação do servidor.
+- O histórico é local à sessão da sala: permanece entre rodadas e é limpo ao desconectar. Quem entra depois recebe as novas mensagens, sem recuperar mensagens anteriores.
+- Chat não altera o estado da mesa e não depende da fila de animações das cartas.
 
 ## Regra de compra da partida básica
 
@@ -117,6 +142,7 @@ flowchart LR
 ## Troca de mãos
 
 - Com dois jogadores, `TROCAMAO` troca automaticamente as mãos de quem jogou e do adversário. Depois, quem jogou escolhe a cor do coringa.
+- Com três ou quatro jogadores, quem jogou escolhe primeiro o alvo. `EscolhaAlvoSolicitada` informa publicamente quem está escolhendo; as jogadas ficam bloqueadas até a escolha válida. Depois da troca, quem jogou escolhe a cor.
 - A mesa transfere os objetos de carta entre os jogadores. `MaosTrocadas` informa publicamente quem trocou e as novas quantidades; cada `MaoAtualizada` entrega as identidades da nova mão apenas ao respectivo dono.
 - A interface move as cartas visuais entre as duas mãos com `reparent`. A `MaoVisual` cuida do leque e da virada; a mão local recebe seus novos dados privados após o movimento.
 - A vitória é verificada para todos após a escolha de cor. Se a carta de troca foi a última da mão de quem jogou, a mão vazia passa ao adversário e ele vence.

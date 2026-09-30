@@ -58,6 +58,9 @@ func sair() -> void:
 	partida_interrompida.emit("Você saiu da sala.")
 	status_alterado.emit("Você saiu da sala.", true)
 
+func esta_conectado() -> bool:
+	return _conectado
+
 func obter_jogador_por_peer(peer_id: int) -> int:
 	return int(_participantes.get(peer_id, {}).get("id", -1))
 

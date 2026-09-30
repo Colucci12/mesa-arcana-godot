@@ -5,6 +5,7 @@ var _porta: int = 19994
 var _id_local: int = -1
 var _partidas: int = 0
 var _entregas: int = 0
+var _mensagens_chat: int = 0
 var _interrupcoes: int = 0
 var _iniciando: bool = false
 var _falhou: bool = false
@@ -22,6 +23,7 @@ func _ready() -> void:
 	bus.evento_partida.connect(_evento)
 	bus.partida_interrompida.connect(_interrompida)
 	bus.erro_comando.connect(_falhar)
+	bus.mensagem_chat_recebida.connect(_ao_receber_chat)
 	get_tree().create_timer(25.0).timeout.connect(func(): _falhar("Tempo esgotado"))
 	var resultado: Dictionary
 	if _papel == 0:
@@ -34,13 +36,21 @@ func _ready() -> void:
 func _sala(jogadores: Array, pode_iniciar: bool) -> void:
 	if _papel == 0 and jogadores.size() == 4 and pode_iniciar and not _iniciando:
 		_iniciando = true
+		GameManager.chat_endpoint.enviar_mensagem("Sala com quatro")
 		GameManager.match_endpoint.iniciar_partida.call_deferred()
+
+func _ao_receber_chat(mensagem: Dictionary) -> void:
+	_mensagens_chat += 1
+	if mensagem["jogador_id"] != 1 or mensagem["nome"] != "Teste0" or mensagem["texto"] != "Sala com quatro":
+		_falhar("Mensagem do chat não corresponde ao anfitrião")
 
 func _evento(evento: Dictionary) -> void:
 	var publico: Dictionary = evento["publico"]
 	match evento["tipo"]:
 		"PartidaIniciada":
 			_partidas += 1
+			if _mensagens_chat != _partidas:
+				_falhar("O chat não chegou a todos antes de iniciar a partida")
 			_entregas = 0
 			if publico["jogadores"].size() != 4:
 				_falhar("Quantidade de jogadores incorreta")

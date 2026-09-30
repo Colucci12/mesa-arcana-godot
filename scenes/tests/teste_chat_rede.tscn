@@ -1,0 +1,9 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/tests/teste_chat_rede.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/partida_rede.tscn" id="2"]
+
+[node name="TesteChatRede" type="Node"]
+script = ExtResource("1")
+
+[node name="PartidaRede" parent="." instance=ExtResource("2")]
