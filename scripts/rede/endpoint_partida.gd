@@ -5,23 +5,28 @@ var _mesa_api: Mesa_Api = Mesa_Api.new()
 var _gerenciador_rede: GerenciadorRede
 var _barramento: BarramentoEventos
 var _partida_iniciada: bool = false
+var _id_partida: int = 0
 
 func configurar(gerenciador_rede: GerenciadorRede, barramento: BarramentoEventos) -> void:
 	_gerenciador_rede = gerenciador_rede
 	_barramento = barramento
 
-func registrar_jogador(id_jogador: int, nome: String) -> void:
-	if multiplayer.is_server():
-		_mesa_api.obter_mesa().adicionar_jogador(id_jogador, nome)
+func interromper(_motivo: String) -> void:
+	_partida_iniciada = false
+	_mesa_api = Mesa_Api.new()
 
 func iniciar_partida() -> void:
-	if not multiplayer.is_server() or _partida_iniciada:
+	if not _gerenciador_rede.pode_iniciar() or _partida_iniciada:
 		return
+	_mesa_api = Mesa_Api.new()
+	for jogador in _gerenciador_rede.obter_jogadores():
+		_mesa_api.obter_mesa().adicionar_jogador(jogador["id"], jogador["nome"])
 	var resultado := _mesa_api.iniciar_partida()
 	if not resultado["sucesso"]:
 		_barramento.erro_comando.emit(resultado["mensagem"])
 		return
 	_partida_iniciada = true
+	_id_partida += 1
 	_gerenciador_rede.bloquear_entradas()
 	_distribuir_eventos(resultado["eventos"])
 
@@ -29,11 +34,11 @@ func enviar_comando(comando: StringName, dados: Dictionary) -> void:
 	if multiplayer.is_server():
 		_executar_comando(1, comando, dados)
 	else:
-		_solicitar_comando.rpc_id(1, String(comando), dados)
+		_solicitar_comando.rpc_id(1, _id_partida, String(comando), dados)
 
 @rpc("any_peer", "reliable")
-func _solicitar_comando(comando: String, dados: Dictionary) -> void:
-	if not multiplayer.is_server():
+func _solicitar_comando(id_partida: int, comando: String, dados: Dictionary) -> void:
+	if not multiplayer.is_server() or id_partida != _id_partida:
 		return
 	var peer_id := multiplayer.get_remote_sender_id()
 	var id_jogador := _gerenciador_rede.obter_jogador_por_peer(peer_id)
@@ -42,6 +47,8 @@ func _solicitar_comando(comando: String, dados: Dictionary) -> void:
 	_executar_comando(id_jogador, StringName(comando), dados)
 
 func _executar_comando(id_jogador: int, comando: StringName, dados: Dictionary) -> void:
+	if not _partida_iniciada:
+		return
 	var resultado: Dictionary
 	match comando:
 		&"jogar_carta":
@@ -62,6 +69,12 @@ func _executar_comando(id_jogador: int, comando: StringName, dados: Dictionary) 
 				_enviar_erro(id_jogador, "Cor inválida.")
 				return
 			resultado = _mesa_api.escolher_cor(id_jogador, cor)
+		&"escolher_alvo":
+			var alvo = dados.get("alvo_id", null)
+			if not (alvo is int):
+				_enviar_erro(id_jogador, "Jogador inválido.")
+				return
+			resultado = _mesa_api.escolher_alvo(id_jogador, alvo)
 		_:
 			_enviar_erro(id_jogador, "Comando desconhecido.")
 			return
@@ -75,23 +88,27 @@ func _distribuir_eventos(eventos: Array) -> void:
 		var evento_anfitriao := VisibilidadeEventos.para_jogador(evento, 1)
 		if not evento_anfitriao.is_empty():
 			_barramento.evento_partida.emit(evento_anfitriao)
-		var peer_cliente := _gerenciador_rede.obter_peer_cliente()
-		if peer_cliente > 0:
-			var evento_cliente := VisibilidadeEventos.para_jogador(evento, 2)
+		for peer_cliente in _gerenciador_rede.obter_peers_prontos():
+			var jogador_id := _gerenciador_rede.obter_jogador_por_peer(peer_cliente)
+			var evento_cliente := VisibilidadeEventos.para_jogador(evento, jogador_id)
 			if not evento_cliente.is_empty():
-				_receber_evento.rpc_id(peer_cliente, evento_cliente)
+				_receber_evento.rpc_id(peer_cliente, _id_partida, evento_cliente)
+		if evento.get("tipo", "") == "PartidaEncerrada":
+			_partida_iniciada = false
+			_gerenciador_rede.concluir_partida()
 
 func _enviar_erro(id_jogador: int, mensagem: String) -> void:
 	if id_jogador == 1:
 		_barramento.erro_comando.emit(mensagem)
 		return
-	var peer_cliente := _gerenciador_rede.obter_peer_cliente()
+	var peer_cliente := _gerenciador_rede.obter_peer_por_jogador(id_jogador)
 	if peer_cliente > 0:
 		_receber_erro.rpc_id(peer_cliente, mensagem)
 
 @rpc("authority", "reliable")
-func _receber_evento(evento: Dictionary) -> void:
+func _receber_evento(id_partida: int, evento: Dictionary) -> void:
 	if not multiplayer.is_server():
+		_id_partida = id_partida
 		_barramento.evento_partida.emit(evento)
 
 @rpc("authority", "reliable")

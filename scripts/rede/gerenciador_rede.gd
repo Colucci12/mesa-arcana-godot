@@ -1,16 +1,18 @@
 extends Node
 class_name GerenciadorRede
 
-signal jogador_registrado(id_jogador: int, nome: String)
 signal identidade_confirmada(id_jogador: int)
-signal cliente_pronto
 signal status_alterado(mensagem: String, permitir_nova_tentativa: bool)
+signal sala_atualizada(jogadores: Array, pode_iniciar: bool)
+signal partida_interrompida(motivo: String)
+
+const LIMITE_JOGADORES := 4
 
 var _nome_local: String = ""
-var _nome_anfitriao: String = ""
-var _peer_cliente: int = 0
-var _jogadores_por_peer: Dictionary = {}
-var _aceitando_conexoes: bool = true
+var _participantes: Dictionary = {}
+var _proximo_id: int = 2
+var _em_partida: bool = false
+var _conectado: bool = false
 
 func _ready() -> void:
 	multiplayer.connected_to_server.connect(_ao_conectar_no_servidor)
@@ -20,50 +22,78 @@ func _ready() -> void:
 
 func hospedar(nome: String, porta: int) -> Dictionary:
 	var nome_limpo := nome.strip_edges()
-	if nome_limpo.is_empty():
-		return _falha("Informe seu nome.")
+	if nome_limpo.is_empty() or nome_limpo.length() > 24:
+		return _falha("Escolha um nome com até 24 caracteres.")
 	var peer := ENetMultiplayerPeer.new()
-	var erro := peer.create_server(porta, 1)
+	var erro := peer.create_server(porta, LIMITE_JOGADORES - 1)
 	if erro != OK:
 		return _falha("Não foi possível abrir a porta %d (erro %d)." % [porta, erro])
+	_encerrar_conexao()
 	multiplayer.multiplayer_peer = peer
+	_conectado = true
 	_nome_local = nome_limpo
-	_nome_anfitriao = nome_limpo
-	_aceitando_conexoes = true
-	_jogadores_por_peer[1] = 1
-	jogador_registrado.emit(1, nome_limpo)
+	_participantes[1] = {"id": 1, "nome": nome_limpo, "pronto": true}
 	identidade_confirmada.emit(1)
-	status_alterado.emit("Aguardando outro jogador...", false)
+	_publicar_sala()
 	return {"sucesso": true, "mensagem": ""}
 
 func entrar(nome: String, endereco: String, porta: int) -> Dictionary:
 	var nome_limpo := nome.strip_edges()
-	if nome_limpo.is_empty():
-		return _falha("Informe seu nome.")
-	var endereco_limpo := endereco.strip_edges()
-	if endereco_limpo.is_empty():
+	if nome_limpo.is_empty() or nome_limpo.length() > 24:
+		return _falha("Escolha um nome com até 24 caracteres.")
+	if endereco.strip_edges().is_empty():
 		return _falha("Informe o IP do anfitrião.")
 	var peer := ENetMultiplayerPeer.new()
-	var erro := peer.create_client(endereco_limpo, porta)
+	var erro := peer.create_client(endereco.strip_edges(), porta)
 	if erro != OK:
 		return _falha("Não foi possível iniciar a conexão (erro %d)." % erro)
+	_encerrar_conexao()
 	_nome_local = nome_limpo
 	multiplayer.multiplayer_peer = peer
-	status_alterado.emit("Conectando a %s:%d..." % [endereco_limpo, porta], false)
+	status_alterado.emit("Conectando...", false)
 	return {"sucesso": true, "mensagem": ""}
 
-func obter_jogador_por_peer(peer_id: int) -> int:
-	return int(_jogadores_por_peer.get(peer_id, -1))
+func sair() -> void:
+	_encerrar_conexao()
+	partida_interrompida.emit("Você saiu da sala.")
+	status_alterado.emit("Você saiu da sala.", true)
 
-func obter_peer_cliente() -> int:
-	return _peer_cliente
+func obter_jogador_por_peer(peer_id: int) -> int:
+	return int(_participantes.get(peer_id, {}).get("id", -1))
+
+func obter_peer_por_jogador(id_jogador: int) -> int:
+	for peer_id in _participantes:
+		if obter_jogador_por_peer(peer_id) == id_jogador:
+			return peer_id
+	return 0
+
+func obter_peers_prontos() -> Array[int]:
+	var peers: Array[int] = []
+	for peer_id in _participantes:
+		if peer_id != 1 and bool(_participantes[peer_id]["pronto"]):
+			peers.append(peer_id)
+	return peers
+
+func obter_jogadores() -> Array[Dictionary]:
+	var jogadores: Array[Dictionary] = []
+	for dados in _participantes.values():
+		if bool(dados["pronto"]):
+			jogadores.append({"id": dados["id"], "nome": dados["nome"]})
+	return jogadores
+
+func pode_iniciar() -> bool:
+	return _conectado and multiplayer.is_server() and not _em_partida and obter_jogadores().size() >= 2 and obter_jogadores().size() == _participantes.size()
 
 func bloquear_entradas() -> void:
-	_aceitando_conexoes = false
+	_em_partida = true
+	_publicar_sala()
+
+func concluir_partida() -> void:
+	_em_partida = false
+	_publicar_sala()
 
 func _ao_conectar_no_servidor() -> void:
 	_apresentar.rpc_id(1, _nome_local)
-	status_alterado.emit("Conectado. Aguardando confirmação...", false)
 
 func _ao_falhar_conexao() -> void:
 	_encerrar_conexao()
@@ -71,48 +101,55 @@ func _ao_falhar_conexao() -> void:
 
 func _ao_servidor_desconectar() -> void:
 	_encerrar_conexao()
+	partida_interrompida.emit("O anfitrião se desconectou.")
 	status_alterado.emit("O anfitrião se desconectou.", true)
 
 func _ao_peer_desconectar(peer_id: int) -> void:
-	if not multiplayer.is_server() or peer_id != _peer_cliente:
+	if not multiplayer.is_server() or not _participantes.has(peer_id):
 		return
-	_jogadores_por_peer.erase(peer_id)
-	_peer_cliente = 0
-	status_alterado.emit("O outro jogador se desconectou.", true)
+	var nome := String(_participantes[peer_id]["nome"])
+	_participantes.erase(peer_id)
+	if _em_partida:
+		_em_partida = false
+		_interromper_partida.rpc("%s saiu. A partida foi interrompida." % nome)
+	_publicar_sala()
+
+@rpc("authority", "call_local", "reliable")
+func _interromper_partida(motivo: String) -> void:
+	partida_interrompida.emit(motivo)
 
 @rpc("any_peer", "reliable")
 func _apresentar(nome: String) -> void:
 	if not multiplayer.is_server():
 		return
 	var peer_id := multiplayer.get_remote_sender_id()
+	if _participantes.has(peer_id):
+		return
 	var nome_limpo := nome.strip_edges()
 	var motivo := ""
-	if nome_limpo.is_empty() or nome_limpo.length() > 24:
+	if _em_partida:
+		motivo = "A partida já começou. Aguarde a próxima."
+	elif _participantes.size() >= LIMITE_JOGADORES:
+		motivo = "A sala já tem quatro jogadores."
+	elif nome_limpo.is_empty() or nome_limpo.length() > 24:
 		motivo = "Escolha um nome com até 24 caracteres."
-	elif not _aceitando_conexoes:
-		motivo = "A partida já começou."
-	elif nome_limpo.to_lower() == _nome_anfitriao.to_lower():
-		motivo = "Esse nome já está em uso."
-	elif _peer_cliente != 0:
-		motivo = "A partida já tem dois jogadores."
+	else:
+		for dados in _participantes.values():
+			if String(dados["nome"]).to_lower() == nome_limpo.to_lower():
+				motivo = "Esse nome já está em uso."
 	if not motivo.is_empty():
 		_entrada_recusada.rpc_id(peer_id, motivo)
-		await get_tree().create_timer(0.2).timeout
-		if multiplayer.is_server():
-			multiplayer.multiplayer_peer.disconnect_peer(peer_id)
 		return
-	_peer_cliente = peer_id
-	_jogadores_por_peer[peer_id] = 2
-	jogador_registrado.emit(2, nome_limpo)
-	_identidade_confirmada.rpc_id(peer_id, 2)
-	status_alterado.emit("%s entrou. Preparando partida..." % nome_limpo, false)
+	var id_jogador := _proximo_id
+	_proximo_id += 1
+	_participantes[peer_id] = {"id": id_jogador, "nome": nome_limpo, "pronto": false}
+	_identidade_confirmada.rpc_id(peer_id, id_jogador)
+	_publicar_sala()
 
 @rpc("authority", "reliable")
 func _identidade_confirmada(id_jogador: int) -> void:
-	if multiplayer.is_server():
-		return
+	_conectado = true
 	identidade_confirmada.emit(id_jogador)
-	status_alterado.emit("Registrado. Aguardando partida...", false)
 	_confirmar_pronto.rpc_id(1)
 
 @rpc("any_peer", "reliable")
@@ -120,20 +157,31 @@ func _confirmar_pronto() -> void:
 	if not multiplayer.is_server():
 		return
 	var peer_id := multiplayer.get_remote_sender_id()
-	if peer_id == _peer_cliente and obter_jogador_por_peer(peer_id) == 2:
-		cliente_pronto.emit()
+	if not _participantes.has(peer_id):
+		return
+	_participantes[peer_id]["pronto"] = true
+	_publicar_sala()
+
+func _publicar_sala() -> void:
+	_receber_sala.rpc(obter_jogadores(), pode_iniciar())
+
+@rpc("authority", "call_local", "reliable")
+func _receber_sala(jogadores: Array, inicio_liberado: bool) -> void:
+	sala_atualizada.emit(jogadores, inicio_liberado and multiplayer.is_server())
 
 @rpc("authority", "reliable")
 func _entrada_recusada(motivo: String) -> void:
-	if multiplayer.is_server():
-		return
 	_encerrar_conexao()
 	status_alterado.emit(motivo, true)
 
 func _encerrar_conexao() -> void:
+	if multiplayer.multiplayer_peer:
+		multiplayer.multiplayer_peer.close()
 	multiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()
-	_peer_cliente = 0
-	_jogadores_por_peer.clear()
+	_participantes.clear()
+	_proximo_id = 2
+	_em_partida = false
+	_conectado = false
 
 func _falha(mensagem: String) -> Dictionary:
 	return {"sucesso": false, "mensagem": mensagem}

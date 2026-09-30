@@ -6,8 +6,9 @@ extends Node
 
 func _ready() -> void:
 	match_endpoint.configurar(network_manager, event_bus)
-	network_manager.jogador_registrado.connect(match_endpoint.registrar_jogador)
-	network_manager.cliente_pronto.connect(match_endpoint.iniciar_partida)
+	network_manager.partida_interrompida.connect(match_endpoint.interromper)
+	network_manager.partida_interrompida.connect(event_bus.partida_interrompida.emit)
+	network_manager.sala_atualizada.connect(event_bus.sala_atualizada.emit)
 	network_manager.identidade_confirmada.connect(_ao_confirmar_identidade)
 	network_manager.status_alterado.connect(_ao_alterar_status)
 	event_bus.comando_solicitado.connect(match_endpoint.enviar_comando)

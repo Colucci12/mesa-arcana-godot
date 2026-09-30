@@ -6,4 +6,3 @@ func _init() -> void:
 
 func aplicar_efeito(api_efeitos: Efeitos_Api) -> void:
 	api_efeitos.trocar_maos()
-	super.aplicar_efeito(api_efeitos)

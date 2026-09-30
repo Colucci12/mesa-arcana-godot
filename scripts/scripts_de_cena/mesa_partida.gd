@@ -21,7 +21,13 @@ signal comando_solicitado(comando: StringName, dados: Dictionary)
 @onready var _legenda_monte: Label = $LegendaMonte
 @onready var _botao_passar: Button = $PassarVez
 
-var _id_jogador_oponente: int = -1
+var _maos: Dictionary = {}
+var _nomes: Dictionary = {}
+var _contagens: Dictionary = {}
+var _geracao_fila: int = 0
+var _jogador_escolhendo_alvo_id: int = -1
+var _alvo_enviado: bool = false
+@onready var _escolha_alvo: VBoxContainer = $EscolhaAlvo
 var _jogador_da_vez_id: int = -1
 var _partida_ativa: bool = false
 var _compra_acumulada: int = 0
@@ -56,6 +62,7 @@ func aplicar_eventos(eventos: Array) -> void:
 		_processar_fila()
 
 func _processar_fila() -> void:
+	var geracao := _geracao_fila
 	_processando_eventos = true
 	_atualizar_controles()
 	while not _fila_eventos.is_empty():
@@ -65,13 +72,21 @@ func _processar_fila() -> void:
 			await get_tree().create_timer(intervalo_entre_cartas).timeout
 		elif evento.get("tipo", "") == "MaoAtualizada":
 			await get_tree().create_timer(intervalo_troca_maos).timeout
+		if geracao != _geracao_fila:
+			return
 	_processando_eventos = false
 	_atualizar_controles()
 
 func mostrar_erro(mensagem: String) -> void:
+	_alvo_enviado = false
+	_escolha_cor_enviada = false
+	_atualizar_controles()
 	_mensagem.text = mensagem
 
 func interromper_partida(mensagem: String) -> void:
+	_geracao_fila += 1
+	_processando_eventos = false
+	_jogador_escolhendo_alvo_id = -1
 	_partida_ativa = false
 	_interacoes_liberadas = false
 	_jogador_escolhendo_cor_id = -1
@@ -103,6 +118,8 @@ func _aplicar_evento(evento: Dictionary) -> void:
 			_aplicar_compra_penalidade(publico)
 		"CompraAcumulada":
 			_compra_acumulada = int(publico.get("quantidade", 0))
+		"EscolhaAlvoSolicitada":
+			_mostrar_escolha_alvo(int(publico.get("jogador_id", -1)))
 		"EscolhaCorSolicitada":
 			_jogador_escolhendo_cor_id = int(publico.get("jogador_id", -1))
 			_escolha_cor_enviada = false
@@ -159,25 +176,15 @@ func _iniciar_exibicao(dados: Dictionary) -> void:
 	_jogador_escolhendo_cor_id = -1
 	_escolha_cor_enviada = false
 	_jogador_da_vez_id = int(dados.get("jogador_atual_id", -1))
-	_id_jogador_oponente = -1
 	_compra_acumulada = int(dados.get("compra_acumulada", 0))
 	_pode_comprar = bool(dados.get("pode_comprar", true))
 	_comprou_neste_turno = false
 	_carta_comprada_jogavel_id = -1
 	_mensagem_efeito = ""
 	_mao_jogador.limpar_jogabilidade()
-	_limpar_mao(_mao_jogador)
-	_limpar_mao(_mao_oponente)
+	_jogador_escolhendo_alvo_id = -1
+	_configurar_jogadores(dados.get("jogadores", []))
 	_descarte.limpar()
-	for jogador in dados.get("jogadores", []):
-		var id_jogador := int(jogador.get("id", -1))
-		if id_jogador == id_jogador_local:
-			_nome_jogador.text = String(jogador.get("nome", "Você"))
-			_quantidade_jogador.text = "%d cartas" % int(jogador.get("quantidade_cartas", 0))
-		else:
-			_id_jogador_oponente = id_jogador
-			_nome_oponente.text = String(jogador.get("nome", "Oponente"))
-			_quantidade_oponente.text = "%d cartas" % int(jogador.get("quantidade_cartas", 0))
 	_mostrar_carta_inicial(dados.get("carta_topo", {}))
 	_mensagem.text = "Distribuindo cartas..."
 	_indicador_turno.text = "Distribuindo cartas..."
@@ -190,7 +197,7 @@ func _aplicar_carta_recebida(evento: Dictionary, publico: Dictionary) -> void:
 		_adicionar_carta_local(dados_privados.get("carta", {}))
 		_quantidade_jogador.text = "%d cartas" % int(publico.get("quantidade_cartas", 0))
 	else:
-		_definir_quantidade_oponente(int(publico.get("quantidade_cartas", 0)))
+		_definir_quantidade_oponente(id_jogador, int(publico.get("quantidade_cartas", 0)))
 	match publico.get("origem", ""):
 		"inicial":
 			if id_jogador == id_jogador_local and _jogador_da_vez_id == id_jogador_local:
@@ -217,11 +224,11 @@ func _aplicar_carta_comprada(evento: Dictionary, publico: Dictionary) -> void:
 			_mensagem.text = "Monte esgotado: passe a vez."
 	else:
 		if carta_jogavel:
-			_mensagem.text = "%s está decidindo se joga ou passa." % _nome_oponente.text
+			_mensagem.text = "%s está decidindo se joga ou passa." % _nome_do_jogador(int(publico.get("jogador_id", -1)))
 		elif _pode_comprar:
-			_mensagem.text = "%s continua comprando." % _nome_oponente.text
+			_mensagem.text = "%s continua comprando." % _nome_do_jogador(int(publico.get("jogador_id", -1)))
 		else:
-			_mensagem.text = "%s ficou sem cartas para comprar." % _nome_oponente.text
+			_mensagem.text = "%s ficou sem cartas para comprar." % _nome_do_jogador(int(publico.get("jogador_id", -1)))
 
 func _aplicar_carta_jogada(dados: Dictionary) -> void:
 	var id_jogador := int(dados.get("jogador_id", -1))
@@ -231,8 +238,8 @@ func _aplicar_carta_jogada(dados: Dictionary) -> void:
 		carta = _procurar_carta_local(int(dados_carta.get("id", -1)))
 		_quantidade_jogador.text = "%d cartas" % int(dados.get("quantidade_cartas", 0))
 	else:
-		carta = _obter_carta_oponente()
-		_quantidade_oponente.text = "%d cartas" % int(dados.get("quantidade_cartas", 0))
+		carta = _obter_carta_oponente(id_jogador)
+		_atualizar_quantidade(id_jogador, int(dados.get("quantidade_cartas", 0)))
 	if not carta:
 		carta = _monte.criar_carta(dados_carta)
 	else:
@@ -245,19 +252,14 @@ func _aplicar_carta_jogada(dados: Dictionary) -> void:
 func _aplicar_maos_trocadas(dados: Dictionary) -> void:
 	var id_autor := int(dados.get("jogador_id", -1))
 	var id_alvo := int(dados.get("alvo_id", -1))
-	if id_autor != id_jogador_local and id_alvo != id_jogador_local:
-		return
+	var mao_autor: MaoVisual = _maos[id_autor]
+	var mao_alvo: MaoVisual = _maos[id_alvo]
 	_mao_jogador.limpar_jogabilidade()
-	_mao_jogador.trocar_cartas_com(_mao_oponente)
-	var quantidade_autor := int(dados.get("quantidade_jogador", 0))
-	var quantidade_alvo := int(dados.get("quantidade_alvo", 0))
-	if id_autor == id_jogador_local:
-		_quantidade_jogador.text = "%d cartas" % quantidade_autor
-		_quantidade_oponente.text = "%d cartas" % quantidade_alvo
-	else:
-		_quantidade_jogador.text = "%d cartas" % quantidade_alvo
-		_quantidade_oponente.text = "%d cartas" % quantidade_autor
-	_registrar_mensagem_efeito("%s trocou as mãos." % _nome_do_jogador(id_autor))
+	mao_autor.trocar_cartas_com(mao_alvo)
+	_atualizar_quantidade(id_autor, int(dados.get("quantidade_jogador", 0)))
+	_atualizar_quantidade(id_alvo, int(dados.get("quantidade_alvo", 0)))
+	_jogador_escolhendo_alvo_id = -1
+	_registrar_mensagem_efeito("%s trocou as mãos com %s." % [_nome_do_jogador(id_autor), _nome_do_jogador(id_alvo)])
 
 func _aplicar_mao_atualizada(evento: Dictionary) -> void:
 	var publico: Dictionary = evento.get("publico", {})
@@ -290,16 +292,17 @@ func _adicionar_carta_local(dados_carta: Dictionary) -> void:
 	carta.selecionada.connect(_solicitar_jogada)
 	carta.reparent(_mao_jogador, true)
 
-func _definir_quantidade_oponente(quantidade: int) -> void:
+func _definir_quantidade_oponente(id_jogador: int, quantidade: int) -> void:
+	var mao_oponente: MaoVisual = _maos[id_jogador]
 	var quantidade_segura := maxi(quantidade, 0)
-	while _mao_oponente.get_child_count() < quantidade_segura:
+	while mao_oponente.get_child_count() < quantidade_segura:
 		var carta := _monte.criar_carta()
-		carta.reparent(_mao_oponente, true)
-	while _mao_oponente.get_child_count() > quantidade_segura:
-		var carta: Node = _mao_oponente.get_child(_mao_oponente.get_child_count() - 1)
-		_mao_oponente.remove_child(carta)
+		carta.reparent(mao_oponente, true)
+	while mao_oponente.get_child_count() > quantidade_segura:
+		var carta: Node = mao_oponente.get_child(mao_oponente.get_child_count() - 1)
+		mao_oponente.remove_child(carta)
 		carta.queue_free()
-	_quantidade_oponente.text = "%d cartas" % quantidade_segura
+	_atualizar_quantidade(id_jogador, quantidade_segura)
 
 func _procurar_carta_local(id_carta: int) -> Carta:
 	for filho in _mao_jogador.get_children():
@@ -308,10 +311,11 @@ func _procurar_carta_local(id_carta: int) -> Carta:
 			return carta
 	return null
 
-func _obter_carta_oponente() -> Carta:
-	if _mao_oponente.get_child_count() == 0:
+func _obter_carta_oponente(id_jogador: int) -> Carta:
+	var mao_oponente: MaoVisual = _maos[id_jogador]
+	if mao_oponente.get_child_count() == 0:
 		return null
-	return _mao_oponente.get_child(_mao_oponente.get_child_count() - 1) as Carta
+	return mao_oponente.get_child(mao_oponente.get_child_count() - 1) as Carta
 
 func _limpar_mao(mao: Control) -> void:
 	for carta in mao.get_children():
@@ -372,6 +376,7 @@ func _ao_clicar_monte(evento: InputEvent) -> void:
 		_monte.accept_event()
 
 func _atualizar_controles() -> void:
+	_escolha_alvo.visible = _partida_ativa and not _processando_eventos and not _alvo_enviado and _jogador_escolhendo_alvo_id == id_jogador_local
 	var pode_agir := _pode_agir()
 	_escolha_cor.visible = _partida_ativa and _interacoes_liberadas and not _processando_eventos and not _escolha_cor_enviada and _jogador_escolhendo_cor_id == id_jogador_local
 	var compra_liberada := pode_agir and (_compra_acumulada > 0 or (_pode_comprar and _carta_comprada_jogavel_id <= 0))
@@ -384,7 +389,7 @@ func _atualizar_controles() -> void:
 	_botao_passar.visible = pode_agir and _compra_acumulada == 0 and (_carta_comprada_jogavel_id > 0 or not _pode_comprar)
 
 func _pode_agir() -> bool:
-	return _partida_ativa and _interacoes_liberadas and not _processando_eventos and _jogador_escolhendo_cor_id < 0 and _jogador_da_vez_id == id_jogador_local
+	return _partida_ativa and _interacoes_liberadas and not _processando_eventos and _jogador_escolhendo_cor_id < 0 and _jogador_escolhendo_alvo_id < 0 and _jogador_da_vez_id == id_jogador_local
 
 func _registrar_mensagem_efeito(mensagem: String) -> void:
 	if _mensagem_efeito.is_empty():
@@ -409,8 +414,61 @@ func _atualizar_indicador_turno(nome_jogador: String) -> void:
 		_indicador_turno.text = "Vez de %s" % nome_jogador
 
 func _nome_do_jogador(id_jogador: int) -> String:
-	if id_jogador == id_jogador_local:
-		return _nome_jogador.text
-	if id_jogador == _id_jogador_oponente:
-		return _nome_oponente.text
-	return ""
+	return String(_nomes.get(id_jogador, ""))
+
+func _atualizar_quantidade(id_jogador: int, quantidade: int) -> void:
+	var rotulo: Label = _contagens.get(id_jogador)
+	if rotulo:
+		rotulo.text = "%d cartas" % quantidade
+
+func _configurar_jogadores(jogadores: Array) -> void:
+	var maos := [_mao_jogador, $MaoEsquerda, _mao_oponente, $MaoDireita]
+	var nomes := [_nome_jogador, $NomeEsquerda, _nome_oponente, $NomeDireita]
+	var quantidades := [_quantidade_jogador, $QuantidadeEsquerda, _quantidade_oponente, $QuantidadeDireita]
+	_maos.clear()
+	_nomes.clear()
+	_contagens.clear()
+	for indice in range(4):
+		_limpar_mao(maos[indice])
+		maos[indice].hide()
+		nomes[indice].hide()
+		quantidades[indice].hide()
+	var indice_local := 0
+	for indice in range(jogadores.size()):
+		if int(jogadores[indice]["id"]) == id_jogador_local:
+			indice_local = indice
+	var posicoes := [0, 2] if jogadores.size() == 2 else ([0, 1, 3] if jogadores.size() == 3 else [0, 1, 2, 3])
+	for deslocamento in range(jogadores.size()):
+		var jogador: Dictionary = jogadores[(indice_local + deslocamento) % jogadores.size()]
+		var id_jogador := int(jogador["id"])
+		var posicao: int = posicoes[deslocamento]
+		_maos[id_jogador] = maos[posicao]
+		_nomes[id_jogador] = String(jogador["nome"])
+		_contagens[id_jogador] = quantidades[posicao]
+		nomes[posicao].text = String(jogador["nome"])
+		maos[posicao].show()
+		nomes[posicao].show()
+		quantidades[posicao].show()
+		_atualizar_quantidade(id_jogador, int(jogador.get("quantidade_cartas", 0)))
+
+func _mostrar_escolha_alvo(id_autor: int) -> void:
+	_jogador_escolhendo_alvo_id = id_autor
+	_alvo_enviado = false
+	for filho in _escolha_alvo.get_children():
+		_escolha_alvo.remove_child(filho)
+		filho.queue_free()
+	for id_jogador in _nomes:
+		if id_jogador == id_autor:
+			continue
+		var botao := Button.new()
+		botao.text = _nome_do_jogador(id_jogador)
+		botao.pressed.connect(_solicitar_alvo.bind(id_jogador))
+		_escolha_alvo.add_child(botao)
+	_mensagem.text = "Escolha com quem trocar a mão." if id_autor == id_jogador_local else "%s está escolhendo com quem trocar." % _nome_do_jogador(id_autor)
+
+func _solicitar_alvo(id_alvo: int) -> void:
+	if _processando_eventos or _alvo_enviado or _jogador_escolhendo_alvo_id != id_jogador_local:
+		return
+	_alvo_enviado = true
+	_atualizar_controles()
+	comando_solicitado.emit(&"escolher_alvo", {"alvo_id": id_alvo})

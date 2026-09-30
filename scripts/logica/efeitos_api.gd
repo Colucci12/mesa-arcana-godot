@@ -51,18 +51,25 @@ func solicitar_escolha_cor() -> void:
 
 func trocar_maos() -> void:
 	var jogador := _mesa.obter_jogador_atual()
+	if _mesa.obter_jogadores().size() > 2:
+		_mesa.solicitar_escolha_alvo()
+		_fatos.append({"tipo": "EscolhaAlvoSolicitada", "publico": {"jogador_id": jogador.get_id()}})
+		return
 	for alvo in _mesa.obter_jogadores():
 		if alvo.get_id() == jogador.get_id():
 			continue
-		if not _mesa.trocar_maos(jogador.get_id(), alvo.get_id()):
-			return
-		_fatos.append({
-			"tipo": "MaosTrocadas",
-			"publico": {
-				"jogador_id": jogador.get_id(),
-				"alvo_id": alvo.get_id(),
-				"quantidade_jogador": jogador.retorna_quantidade_cartas(),
-				"quantidade_alvo": alvo.retorna_quantidade_cartas()
-			}
-		})
+		trocar_maos_com(alvo.get_id())
 		return
+
+func trocar_maos_com(id_alvo: int) -> void:
+	var jogador := _mesa.obter_jogador_atual()
+	var alvo := _mesa.consultar_jogador_por_id(id_alvo)
+	if not _mesa.trocar_maos(jogador.get_id(), id_alvo):
+		return
+	_mesa.concluir_escolha_alvo()
+	_fatos.append({"tipo": "MaosTrocadas", "publico": {
+		"jogador_id": jogador.get_id(), "alvo_id": id_alvo,
+		"quantidade_jogador": jogador.retorna_quantidade_cartas(),
+		"quantidade_alvo": alvo.retorna_quantidade_cartas()
+	}})
+	solicitar_escolha_cor()

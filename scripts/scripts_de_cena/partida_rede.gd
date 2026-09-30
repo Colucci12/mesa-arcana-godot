@@ -8,6 +8,8 @@ extends Control
 @onready var _botao_hospedar: Button = $PainelConexao/Conteudo/Acoes/Hospedar
 @onready var _botao_entrar: Button = $PainelConexao/Conteudo/Acoes/Entrar
 @onready var _status: Label = $PainelConexao/Conteudo/Status
+@onready var _iniciar: Button = $PainelConexao/Conteudo/Iniciar
+@onready var _jogadores: Label = $PainelConexao/Conteudo/Jogadores
 
 func _ready() -> void:
 	_tela.hide()
@@ -18,6 +20,11 @@ func _ready() -> void:
 	GameManager.event_bus.erro_comando.connect(_ao_receber_erro)
 	GameManager.event_bus.identidade_definida.connect(_ao_definir_identidade)
 	GameManager.event_bus.estado_conexao.connect(_ao_alterar_status)
+	GameManager.event_bus.sala_atualizada.connect(_ao_atualizar_sala)
+	GameManager.event_bus.partida_interrompida.connect(_ao_interromper_partida)
+	_iniciar.pressed.connect(GameManager.match_endpoint.iniciar_partida)
+	$Sair.pressed.connect(GameManager.network_manager.sair)
+	$VoltarSala.pressed.connect(_voltar_sala)
 
 func _hospedar() -> void:
 	var porta := _obter_porta()
@@ -50,6 +57,7 @@ func _obter_porta() -> int:
 	return porta
 
 func _bloquear_formulario() -> void:
+	$Sair.show()
 	_nome.editable = false
 	_ip.editable = false
 	_porta.editable = false
@@ -57,6 +65,9 @@ func _bloquear_formulario() -> void:
 	_botao_entrar.disabled = true
 
 func _liberar_formulario() -> void:
+	$Sair.hide()
+	_iniciar.hide()
+	_jogadores.text = ""
 	_nome.editable = true
 	_ip.editable = true
 	_porta.editable = true
@@ -68,8 +79,12 @@ func _enviar_comando(comando: StringName, dados: Dictionary) -> void:
 
 func _ao_receber_evento(evento: Dictionary) -> void:
 	if evento.get("tipo", "") == "PartidaIniciada":
+		$VoltarSala.hide()
+		_tela.interromper_partida("")
 		_painel.hide()
 		_tela.show()
+	if evento.get("tipo", "") == "PartidaEncerrada":
+		$VoltarSala.show()
 	_tela.aplicar_eventos([evento])
 
 func _ao_receber_erro(mensagem: String) -> void:
@@ -82,10 +97,28 @@ func _ao_definir_identidade(id_jogador: int) -> void:
 	_tela.id_jogador_local = id_jogador
 
 func _ao_alterar_status(mensagem: String, permitir_nova_tentativa: bool) -> void:
-	if _tela.visible:
-		if permitir_nova_tentativa:
-			_tela.interromper_partida(mensagem)
-	else:
-		_status.text = mensagem
-		if permitir_nova_tentativa:
-			_liberar_formulario()
+	_status.text = mensagem
+	if permitir_nova_tentativa:
+		_ao_interromper_partida(mensagem)
+		_liberar_formulario()
+
+func _ao_atualizar_sala(jogadores: Array, pode_iniciar: bool) -> void:
+	var nomes: PackedStringArray = []
+	for jogador in jogadores:
+		nomes.append(String(jogador["nome"]))
+	_jogadores.text = "%d/4 jogadores\n%s" % [jogadores.size(), "\n".join(nomes)]
+	_iniciar.visible = multiplayer.is_server()
+	_iniciar.disabled = not pode_iniciar
+	_bloquear_formulario()
+	if _status.text.is_empty() or _status.text == "Conectando...":
+		_status.text = "O anfitrião inicia quando todos estiverem na sala."
+
+func _ao_interromper_partida(motivo: String) -> void:
+	_tela.interromper_partida(motivo)
+	_voltar_sala()
+	_status.text = motivo
+
+func _voltar_sala() -> void:
+	_tela.hide()
+	_painel.show()
+	$VoltarSala.hide()

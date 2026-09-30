@@ -12,6 +12,7 @@ var _comprou_neste_turno: bool = false
 var _carta_comprada_jogavel_id: int = -1
 var _jogador_escolhendo_cor_id: int = -1
 var _carta_aguardando_cor_id: int = -1
+var _jogador_escolhendo_alvo_id: int = -1
 
 func _init() -> void:
 	_baralho = Baralho_Logico.new()
@@ -85,6 +86,7 @@ func preparar_nova_partida() -> void:
 	_compra_acumulada = 0
 	_jogador_escolhendo_cor_id = -1
 	_carta_aguardando_cor_id = -1
+	_jogador_escolhendo_alvo_id = -1
 	_limpar_compra_no_turno()
 	_fase = Fase.AGUARDANDO_JOGADORES
 	_lista_jogadores.reiniciar_atual()
@@ -107,6 +109,18 @@ func solicitar_escolha_cor() -> Jogador_Logico:
 
 func obter_jogador_escolhendo_cor_id() -> int:
 	return _jogador_escolhendo_cor_id
+
+func solicitar_escolha_alvo() -> void:
+	_jogador_escolhendo_alvo_id = obter_jogador_atual().get_id()
+
+func obter_jogador_escolhendo_alvo_id() -> int:
+	return _jogador_escolhendo_alvo_id
+
+func concluir_escolha_alvo() -> void:
+	_jogador_escolhendo_alvo_id = -1
+
+func tem_escolha_pendente() -> bool:
+	return _jogador_escolhendo_cor_id > 0 or _jogador_escolhendo_alvo_id > 0
 
 func obter_carta_aguardando_cor_id() -> int:
 	return _carta_aguardando_cor_id

@@ -230,3 +230,100 @@ text = "0 cartas"
 [node name="MaoJogador" parent="." unique_id=1375277497 instance=ExtResource("2")]
 layout_mode = 1
 color = Color(0, 0, 0, 0)
+
+[node name="MaoEsquerda" parent="." instance=ExtResource("2")]
+visible = false
+custom_minimum_size = Vector2(360, 140)
+layout_mode = 1
+anchor_left = 0.0
+anchor_right = 0.0
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = -100.0
+offset_right = 260.0
+offset_top = -70.0
+offset_bottom = 70.0
+pivot_offset = Vector2(180, 70)
+rotation = 1.5707963
+color = Color(0, 0, 0, 0)
+mao_adversaria = true
+
+[node name="MaoDireita" parent="." instance=ExtResource("2")]
+visible = false
+custom_minimum_size = Vector2(360, 140)
+layout_mode = 1
+anchor_left = 1.0
+anchor_right = 1.0
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = -260.0
+offset_right = 100.0
+offset_top = -70.0
+offset_bottom = 70.0
+pivot_offset = Vector2(180, 70)
+rotation = -1.5707963
+color = Color(0, 0, 0, 0)
+mao_adversaria = true
+
+[node name="NomeEsquerda" type="Label" parent="."]
+visible = false
+layout_mode = 1
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = 16.0
+offset_top = -240.0
+offset_right = 215.0
+offset_bottom = -210.0
+text = "Jogador"
+
+[node name="QuantidadeEsquerda" type="Label" parent="."]
+visible = false
+layout_mode = 1
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = 16.0
+offset_top = -212.0
+offset_right = 215.0
+offset_bottom = -184.0
+text = "0 cartas"
+
+[node name="NomeDireita" type="Label" parent="."]
+visible = false
+layout_mode = 1
+anchor_left = 1.0
+anchor_right = 1.0
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = -215.0
+offset_top = -240.0
+offset_right = -16.0
+offset_bottom = -210.0
+horizontal_alignment = 2
+text = "Jogador"
+
+[node name="QuantidadeDireita" type="Label" parent="."]
+visible = false
+layout_mode = 1
+anchor_left = 1.0
+anchor_right = 1.0
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = -215.0
+offset_top = -212.0
+offset_right = -16.0
+offset_bottom = -184.0
+horizontal_alignment = 2
+text = "0 cartas"
+
+[node name="EscolhaAlvo" type="VBoxContainer" parent="."]
+visible = false
+layout_mode = 1
+anchor_left = 0.5
+anchor_right = 0.5
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = -110.0
+offset_right = 110.0
+offset_top = -45.0
+offset_bottom = 75.0
+theme_override_constants/separation = 8

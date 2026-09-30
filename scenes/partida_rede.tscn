@@ -57,7 +57,7 @@ horizontal_alignment = 1
 
 [node name="Instrucao" type="Label" parent="PainelConexao/Conteudo"]
 layout_mode = 2
-text = "Hospede em uma janela e entre pela outra."
+text = "Sala para 2 a 4 jogadores."
 horizontal_alignment = 1
 
 [node name="Nome" type="LineEdit" parent="PainelConexao/Conteudo"]
@@ -95,3 +95,35 @@ layout_mode = 2
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 3
+
+[node name="Jogadores" type="Label" parent="PainelConexao/Conteudo"]
+layout_mode = 2
+horizontal_alignment = 1
+text = ""
+
+[node name="Iniciar" type="Button" parent="PainelConexao/Conteudo"]
+visible = false
+layout_mode = 2
+text = "Iniciar partida"
+
+[node name="Sair" type="Button" parent="."]
+visible = false
+layout_mode = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -160.0
+offset_right = -16.0
+offset_top = 16.0
+offset_bottom = 52.0
+text = "Sair da sala"
+
+[node name="VoltarSala" type="Button" parent="."]
+visible = false
+layout_mode = 1
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -100.0
+offset_right = 100.0
+offset_top = 72.0
+offset_bottom = 110.0
+text = "Voltar à sala"

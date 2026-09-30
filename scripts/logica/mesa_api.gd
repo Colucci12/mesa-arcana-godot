@@ -15,8 +15,8 @@ func iniciar_partida() -> Dictionary:
 	var jogadores := _mesa.obter_jogadores()
 	if jogadores.size() < 2:
 		return _falha("jogadores_insuficientes", "A partida precisa de dois jogadores.")
-	if jogadores.size() > 2:
-		return _falha("limite_de_jogadores", "Esta etapa aceita exatamente dois jogadores.")
+	if jogadores.size() > 4:
+		return _falha("limite_de_jogadores", "A partida aceita no máximo quatro jogadores.")
 	if _mesa.obter_fase() == Mesa_Logica.Fase.EM_ANDAMENTO:
 		return _falha("partida_em_andamento", "Já existe uma partida em andamento.")
 
@@ -46,7 +46,7 @@ func iniciar_partida() -> Dictionary:
 func pode_jogar_carta(id_jogador: int, id_carta: int) -> bool:
 	if _mesa.obter_fase() != Mesa_Logica.Fase.EM_ANDAMENTO:
 		return false
-	if _mesa.obter_jogador_escolhendo_cor_id() > 0:
+	if _mesa.tem_escolha_pendente():
 		return false
 	if not _eh_a_vez(id_jogador):
 		return false
@@ -77,19 +77,15 @@ func jogar_carta(id_jogador: int, id_carta: int) -> Dictionary:
 	}))
 	var efeitos := Efeitos_Api.new(_mesa)
 	carta.aplicar_efeito(efeitos)
-	for fato in efeitos.obter_fatos():
-		var tipo := String(fato["tipo"])
-		eventos.append(_evento(tipo, fato["publico"]))
-		if tipo == "MaosTrocadas":
-			eventos.append_array(_eventos_maos_atualizadas())
-	if _mesa.obter_jogador_escolhendo_cor_id() > 0:
+	eventos.append_array(_eventos_dos_efeitos(efeitos))
+	if _mesa.tem_escolha_pendente():
 		return _sucesso(eventos)
 	return _concluir_jogada(eventos)
 
 func comprar_carta(id_jogador: int) -> Dictionary:
 	if _mesa.obter_fase() != Mesa_Logica.Fase.EM_ANDAMENTO:
 		return _falha("partida_nao_em_andamento", "Não há uma partida em andamento.")
-	if _mesa.obter_jogador_escolhendo_cor_id() > 0:
+	if _mesa.tem_escolha_pendente():
 		return _falha("escolha_cor_pendente", "Aguarde a escolha da cor.")
 	var jogador := _mesa.consultar_jogador_por_id(id_jogador)
 	if not jogador:
@@ -118,7 +114,7 @@ func comprar_carta(id_jogador: int) -> Dictionary:
 func aceitar_compra_acumulada(id_jogador: int) -> Dictionary:
 	if _mesa.obter_fase() != Mesa_Logica.Fase.EM_ANDAMENTO:
 		return _falha("partida_nao_em_andamento", "Não há uma partida em andamento.")
-	if _mesa.obter_jogador_escolhendo_cor_id() > 0:
+	if _mesa.tem_escolha_pendente():
 		return _falha("escolha_cor_pendente", "Aguarde a escolha da cor.")
 	var jogador := _mesa.consultar_jogador_por_id(id_jogador)
 	if not jogador:
@@ -156,7 +152,7 @@ func _resolver_compra_acumulada(jogador: Jogador_Logico) -> Array[Dictionary]:
 func passar_vez(id_jogador: int) -> Dictionary:
 	if _mesa.obter_fase() != Mesa_Logica.Fase.EM_ANDAMENTO:
 		return _falha("partida_nao_em_andamento", "Não há uma partida em andamento.")
-	if _mesa.obter_jogador_escolhendo_cor_id() > 0:
+	if _mesa.tem_escolha_pendente():
 		return _falha("escolha_cor_pendente", "Aguarde a escolha da cor.")
 	if not _mesa.consultar_jogador_por_id(id_jogador):
 		return _falha("jogador_inexistente", "O jogador não pertence a esta partida.")
@@ -199,6 +195,24 @@ func escolher_cor(id_jogador: int, nome_cor: String) -> Dictionary:
 			eventos.append(evento_cor)
 	return _concluir_jogada(eventos)
 
+func escolher_alvo(id_jogador: int, id_alvo: int) -> Dictionary:
+	if _mesa.obter_fase() != Mesa_Logica.Fase.EM_ANDAMENTO or _mesa.obter_jogador_escolhendo_alvo_id() != id_jogador:
+		return _falha("escolha_alvo_nao_permitida", "Só quem jogou a carta pode escolher o adversário.")
+	if id_alvo == id_jogador or not _mesa.consultar_jogador_por_id(id_alvo):
+		return _falha("alvo_invalido", "Escolha outro jogador da mesa.")
+	var efeitos := Efeitos_Api.new(_mesa)
+	efeitos.trocar_maos_com(id_alvo)
+	return _sucesso(_eventos_dos_efeitos(efeitos))
+
+func _eventos_dos_efeitos(efeitos: Efeitos_Api) -> Array[Dictionary]:
+	var eventos: Array[Dictionary] = []
+	for fato in efeitos.obter_fatos():
+		var tipo := String(fato["tipo"])
+		eventos.append(_evento(tipo, fato["publico"]))
+		if tipo == "MaosTrocadas":
+			eventos.append_array(_eventos_maos_atualizadas([int(fato["publico"]["jogador_id"]), int(fato["publico"]["alvo_id"])]))
+	return eventos
+
 func _concluir_jogada(eventos: Array[Dictionary]) -> Dictionary:
 	var vencedor := _mesa.obter_jogador_sem_cartas()
 	if vencedor:
@@ -215,9 +229,11 @@ func _concluir_jogada(eventos: Array[Dictionary]) -> Dictionary:
 		eventos.append(_evento_turno_alterado(proximo))
 	return _sucesso(eventos)
 
-func _eventos_maos_atualizadas() -> Array[Dictionary]:
+func _eventos_maos_atualizadas(ids: Array) -> Array[Dictionary]:
 	var eventos: Array[Dictionary] = []
 	for jogador in _mesa.obter_jogadores():
+		if not ids.has(jogador.get_id()):
+			continue
 		eventos.append(_evento("MaoAtualizada", {"jogador_id": jogador.get_id()}, jogador.get_id(), {
 			"cartas": jogador.serializar_mao()
 		}, true))
@@ -267,7 +283,7 @@ func _evento_turno_alterado(jogador: Jogador_Logico) -> Dictionary:
 func _validar_jogada_solicitada(id_jogador: int, id_carta: int) -> Dictionary:
 	if _mesa.obter_fase() != Mesa_Logica.Fase.EM_ANDAMENTO:
 		return {"sucesso": false, "erro": "partida_nao_em_andamento", "mensagem": "Não há uma partida em andamento."}
-	if _mesa.obter_jogador_escolhendo_cor_id() > 0:
+	if _mesa.tem_escolha_pendente():
 		return {"sucesso": false, "erro": "escolha_cor_pendente", "mensagem": "Aguarde a escolha da cor."}
 	if not _mesa.consultar_jogador_por_id(id_jogador):
 		return {"sucesso": false, "erro": "jogador_inexistente", "mensagem": "O jogador não pertence a esta partida."}
