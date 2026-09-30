@@ -80,7 +80,7 @@ flowchart LR
 - A cena local `scenes/tests/previa_mesa_partida.tscn` continua disponível para revisar a interface sem rede.
 - A cena `teste.tscn` é o laboratório de objetos e usa o baralho completo por padrão. A partida configura o mesmo `Baralho_Logico` com as cartas já implementadas; ambos usam `comprar_carta()`, que repõe a composição configurada quando o monte esgota.
 - A partida básica entre duas instâncias em localhost foi validada manualmente no Godot.
-- As cartas especiais coloridas `PULA`, `INVERTE` e `+2` e o coringa `TROCACOR` participam do baralho. `+4`, troca de mãos, chat, lobby completo e reconexão permanecem para as próximas etapas.
+- As cartas especiais coloridas `PULA`, `INVERTE` e `+2` e os coringas `TROCACOR` e `+4` participam do baralho. Troca de mãos, chat, lobby completo e reconexão permanecem para as próximas etapas.
 
 ## Regra de compra da partida básica
 
@@ -95,18 +95,19 @@ flowchart LR
 
 ## Regras das cartas especiais coloridas
 
-- A partida começa com uma carta numérica no descarte. O baralho contém números, `PULA`, `INVERTE`, `+2` e `TROCACOR`.
+- A partida começa com uma carta numérica no descarte. O baralho contém números, `PULA`, `INVERTE`, `+2`, `TROCACOR` e `+4`.
 - Uma carta especial combina com a cor ou com o símbolo da carta do topo.
 - `PULA` salta o próximo jogador. Com dois jogadores, quem jogou recebe outra vez.
 - `INVERTE` muda o sentido da mesa e, com dois jogadores, também salta o adversário.
 - Cada `+2` soma dois à pilha pública de compra. O jogador seguinte pode rebater com qualquer `+2` ou clicar no monte para comprar a pilha e perder a vez.
+- O `+4` soma quatro à pilha e pede uma cor antes de passar a vez. Pode rebater outro `+4`, mas não pode ser jogado sobre um `+2`. Um `+2` rebate um `+4` somente se combinar com a cor escolhida para ele; a partir daí, o topo é `+2` e continua a regra dos `+2`.
 - Comprar a pilha é uma penalidade separada da compra voluntária: nenhuma das cartas recebidas pode ser jogada nesse turno. Se o monte esgotar durante a penalidade, o baralho repõe as cartas e a entrega continua.
-- Quando a última carta da mão é uma especial, seu efeito ocorre antes de encerrar a partida. Se for `+2`, o próximo jogador compra a pilha automaticamente, sem nova oportunidade de rebater, e a partida termina.
+- Quando a última carta da mão é uma especial, seu efeito ocorre antes de encerrar a partida. Se for `+2` ou `+4`, o próximo jogador compra a pilha automaticamente, sem nova oportunidade de rebater, e a partida termina. No caso do `+4`, a cor é escolhida antes dessa compra.
 - Os efeitos e as quantidades compradas são eventos públicos ordenados; as identidades das cartas compradas continuam privadas.
 
 ## Escolha de cor
 
-- `TROCACOR` pode ser jogada em qualquer cor, exceto enquanto houver uma pilha de `+2` pendente.
+- `TROCACOR` pode ser jogada em qualquer cor, exceto enquanto houver uma pilha de compra pendente. O `+4` também é coringa, mas não pode ser jogado sobre um `+2`.
 - Após `CartaJogada`, a mesa aguarda a escolha de quem jogou. O servidor publica `EscolhaCorSolicitada`; comandos de jogo ficam bloqueados até receber uma das quatro cores válidas.
 - A escolha altera a cor do objeto lógico identificado pelo ID. O topo do descarte passa a ser a referência de cor das próximas jogadas, sem uma segunda cor guardada na mesa.
 - `CorDaCartaAlterada` informa ID e cor a todos se a carta estiver no descarte; se estiver em uma mão, só o dono recebe o evento. Uma carta ainda no monte é alterada apenas no servidor e será entregue com a nova cor quando for comprada.

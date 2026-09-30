@@ -80,7 +80,7 @@ func encerrar_partida() -> void:
 func preparar_nova_partida() -> void:
 	for jogador in _lista_jogadores.obter_elementos():
 		jogador.limpar_mao()
-	_baralho.criar_baralho_com_troca_cor()
+	_baralho.criar_baralho_sem_troca_mao()
 	_descarte.limpar()
 	_compra_acumulada = 0
 	_jogador_escolhendo_cor_id = -1

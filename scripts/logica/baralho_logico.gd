@@ -1,7 +1,7 @@
 extends Resource
 class_name Baralho_Logico
 
-enum Composicao { COMPLETO, NUMERICO, SEM_CORINGAS, COM_TROCA_COR }
+enum Composicao { COMPLETO, NUMERICO, SEM_CORINGAS, COM_TROCA_COR, SEM_TROCA_MAO }
 
 var _contador_id: int = 1
 var _pilha_principal_de_cartas: Array[Carta_Base] = []
@@ -63,6 +63,10 @@ func criar_baralho_com_troca_cor() -> void:
 	_composicao = Composicao.COM_TROCA_COR
 	_repor_baralho()
 
+func criar_baralho_sem_troca_mao() -> void:
+	_composicao = Composicao.SEM_TROCA_MAO
+	_repor_baralho()
+
 func _repor_baralho() -> void:
 	var baralho := _criar_baralho_numerico()
 	if _composicao != Composicao.NUMERICO:
@@ -74,6 +78,12 @@ func _repor_baralho() -> void:
 				carta.set_id(_contador_id)
 				_contador_id += 1
 				baralho.append(carta)
+		Composicao.SEM_TROCA_MAO:
+			for _indice in range(2):
+				for carta in [Carta_Troca_Cor.new(), Carta_Compra_Quatro.new()]:
+					carta.set_id(_contador_id)
+					_contador_id += 1
+					baralho.append(carta)
 		Composicao.COMPLETO:
 			baralho.append_array(_criar_baralho_coringa(2))
 	limpar()

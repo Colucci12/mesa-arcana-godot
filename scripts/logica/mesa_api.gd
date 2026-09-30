@@ -51,10 +51,10 @@ func pode_jogar_carta(id_jogador: int, id_carta: int) -> bool:
 	if not _eh_a_vez(id_jogador):
 		return false
 	var carta := _mesa.obter_carta_do_jogador(id_jogador, id_carta)
-	if not (carta is Carta_Numerica or carta is Carta_Especial or carta is Carta_Troca_Cor):
+	if not (carta is Carta_Numerica or carta is Carta_Especial or carta is Carta_Troca_Cor or carta is Carta_Compra_Quatro):
 		return false
 	if _mesa.obter_compra_acumulada() > 0:
-		return carta is Carta_Compra_Dois
+		return _pode_rebater_compra(carta)
 	if _mesa.comprou_neste_turno() and id_carta != _mesa.obter_carta_comprada_jogavel_id():
 		return false
 	return _validar_jogada(carta, _mesa.consultar_carta_descarte())
@@ -106,7 +106,7 @@ func comprar_carta(id_jogador: int) -> Dictionary:
 	if not _eh_a_vez(id_jogador):
 		return _falha("fora_da_vez", "Só o jogador da vez pode comprar.")
 	if _mesa.obter_compra_acumulada() > 0:
-		return _falha("compra_acumulada_pendente", "Rebata com +2 ou compre a pilha acumulada.")
+		return _falha("compra_acumulada_pendente", "Rebata a pilha ou compre as cartas acumuladas.")
 	if _mesa.obter_carta_comprada_jogavel_id() > 0:
 		return _falha("compra_concluida", "Jogue a carta comprada ou passe a vez.")
 	if not _mesa.pode_comprar_carta():
@@ -115,7 +115,7 @@ func comprar_carta(id_jogador: int) -> Dictionary:
 	var carta := _mesa.comprar_carta_para_jogador(id_jogador)
 	if not carta:
 		return _falha("monte_esgotado", "Não foi possível comprar uma carta.")
-	var carta_jogavel := (carta is Carta_Numerica or carta is Carta_Especial or carta is Carta_Troca_Cor) and _validar_jogada(carta, _mesa.consultar_carta_descarte())
+	var carta_jogavel := (carta is Carta_Numerica or carta is Carta_Especial or carta is Carta_Troca_Cor or carta is Carta_Compra_Quatro) and _validar_jogada(carta, _mesa.consultar_carta_descarte())
 	_mesa.registrar_compra_no_turno(carta.get_id() if carta_jogavel else -1)
 	var eventos: Array[Dictionary] = []
 	eventos.append(_evento_carta_recebida(jogador, carta, "compra", {
@@ -172,7 +172,7 @@ func passar_vez(id_jogador: int) -> Dictionary:
 	if not _eh_a_vez(id_jogador):
 		return _falha("fora_da_vez", "Só o jogador da vez pode passar.")
 	if _mesa.obter_compra_acumulada() > 0:
-		return _falha("compra_acumulada_pendente", "Rebata com +2 ou compre a pilha acumulada.")
+		return _falha("compra_acumulada_pendente", "Rebata a pilha ou compre as cartas acumuladas.")
 	if _mesa.obter_carta_comprada_jogavel_id() <= 0 and _mesa.pode_comprar_carta():
 		return _falha("compra_em_andamento", "Compre até encontrar uma carta jogável.")
 
@@ -208,6 +208,9 @@ func escolher_cor(id_jogador: int, nome_cor: String) -> Dictionary:
 			eventos.append(evento_cor)
 	var jogador := _mesa.consultar_jogador_por_id(id_jogador)
 	if jogador.retorna_quantidade_cartas() == 0:
+		if _mesa.obter_compra_acumulada() > 0:
+			var penalizado := _mesa.avancar_turno()
+			eventos.append_array(_resolver_compra_acumulada(penalizado))
 		_mesa.encerrar_partida()
 		eventos.append(_evento("PartidaEncerrada", {
 			"vencedor_id": jogador.get_id(),
@@ -271,12 +274,12 @@ func _validar_jogada_solicitada(id_jogador: int, id_carta: int) -> Dictionary:
 	var carta := _mesa.obter_carta_do_jogador(id_jogador, id_carta)
 	if not carta:
 		return {"sucesso": false, "erro": "carta_nao_encontrada", "mensagem": "A carta não está na mão do jogador."}
-	if not (carta is Carta_Numerica or carta is Carta_Especial or carta is Carta_Troca_Cor):
+	if not (carta is Carta_Numerica or carta is Carta_Especial or carta is Carta_Troca_Cor or carta is Carta_Compra_Quatro):
 		return {"sucesso": false, "erro": "carta_fora_desta_etapa", "mensagem": "Esta carta ainda não foi implementada na partida."}
 	if _mesa.obter_compra_acumulada() > 0:
-		if carta is Carta_Compra_Dois:
+		if _pode_rebater_compra(carta):
 			return {"sucesso": true, "erro": "", "mensagem": ""}
-		return {"sucesso": false, "erro": "compra_acumulada_pendente", "mensagem": "Rebata com +2 ou compre a pilha acumulada."}
+		return {"sucesso": false, "erro": "compra_acumulada_pendente", "mensagem": "Rebata a pilha ou compre as cartas acumuladas."}
 	if _mesa.comprou_neste_turno() and id_carta != _mesa.obter_carta_comprada_jogavel_id():
 		return {"sucesso": false, "erro": "carta_nao_eh_a_comprada", "mensagem": "Após comprar, só é possível jogar a carta jogável recém-comprada."}
 	if not _validar_jogada(carta, _mesa.consultar_carta_descarte()):
@@ -287,10 +290,23 @@ func _eh_a_vez(id_jogador: int) -> bool:
 	var atual := _mesa.obter_jogador_atual()
 	return atual != null and atual.get_id() == id_jogador
 
+func _pode_rebater_compra(carta: Carta_Base) -> bool:
+	var carta_topo := _mesa.consultar_carta_descarte()
+	if carta is Carta_Compra_Dois:
+		if carta_topo is Carta_Compra_Dois:
+			return true
+		if carta_topo is Carta_Compra_Quatro:
+			return carta.get_cor() == carta_topo.get_cor()
+	if carta is Carta_Compra_Quatro:
+		return carta_topo is Carta_Compra_Quatro
+	return false
+
 func _validar_jogada(carta_jogada: Carta_Base, carta_topo: Carta_Base) -> bool:
 	if not carta_jogada or not carta_topo:
 		return false
-	if carta_jogada is Carta_Troca_Cor:
+	if carta_jogada is Carta_Compra_Quatro and carta_topo is Carta_Compra_Dois:
+		return false
+	if carta_jogada is Carta_Coringa:
 		return true
 	return carta_jogada.get_cor() == carta_topo.get_cor() or carta_jogada.valor == carta_topo.valor
 

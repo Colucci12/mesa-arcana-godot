@@ -285,7 +285,7 @@ func _solicitar_jogada(id_carta: int) -> void:
 		return
 	if not _mao_jogador.carta_permitida(id_carta):
 		if _compra_acumulada > 0:
-			_mensagem.text = "Rebata com +2 ou compre a pilha."
+			_mensagem.text = "Rebata a pilha ou compre as cartas."
 		elif _comprou_neste_turno:
 			_mensagem.text = "Após comprar, só a carta jogável recém-comprada pode ser jogada."
 		else:
@@ -352,8 +352,8 @@ func _registrar_mensagem_efeito(mensagem: String) -> void:
 func _mensagem_turno() -> String:
 	if _compra_acumulada > 0:
 		if _jogador_da_vez_id == id_jogador_local:
-			return "Pilha +%d: jogue +2 ou clique no monte para comprar." % _compra_acumulada
-		return "%s deve rebater +2 ou comprar %d cartas." % [_nome_do_jogador(_jogador_da_vez_id), _compra_acumulada]
+			return "Pilha +%d: rebata ou clique no monte para comprar." % _compra_acumulada
+		return "%s deve rebater ou comprar %d cartas." % [_nome_do_jogador(_jogador_da_vez_id), _compra_acumulada]
 	if not _mensagem_efeito.is_empty():
 		return _mensagem_efeito
 	return "" if _pode_comprar else "Monte esgotado: jogue uma carta ou passe a vez."
