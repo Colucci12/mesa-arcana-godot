@@ -3,6 +3,9 @@ class_name Carta
 
 signal selecionada(id_carta: int)
 
+@export var deslocamento_sombra := Vector2(3, 5)
+@export_range(0.0, 20.0, 0.5) var inclinacao_maxima: float = 12.0
+
 var id_carta: int = -1
 
 var SCALE := self.scale
@@ -11,6 +14,10 @@ var posicao : Vector2
 
 var tween_de_reposicionamento: Tween = null
 var _tween_da_cor: Tween = null
+var _tween_do_hover: Tween = null
+var _tween_da_virada: Tween = null
+var _virando: bool = false
+var _inclinacao_atual := Vector2.ZERO
 var _cor_de_fundo: Carta_Base.Cores = Carta_Base.Cores.PRETO
 	
 var verso := true:
@@ -27,6 +34,41 @@ var state := false:
 #FUNÇÕES TRIGGER
 func _ready() -> void:
 	global_position = posicao
+	set_notify_transform(true)
+	_atualizar_sombra()
+	set_process(false)
+	_solicitar_atualizacao_visual()
+
+func _process(delta: float) -> void:
+	var inclinacao_destino := Vector2.ZERO
+	if state and not verso and not _virando:
+		var mouse_relativo := get_local_mouse_position() / SIZE * 2.0 - Vector2.ONE
+		mouse_relativo = mouse_relativo.clamp(-Vector2.ONE, Vector2.ONE)
+		inclinacao_destino = Vector2(-mouse_relativo.y, mouse_relativo.x) * inclinacao_maxima
+	_definir_inclinacao(_inclinacao_atual.lerp(inclinacao_destino, 1.0 - exp(-16.0 * delta)))
+	if not state and _inclinacao_atual.length_squared() < 0.0001:
+		_definir_inclinacao(Vector2.ZERO)
+		set_process(false)
+
+func _definir_inclinacao(inclinacao: Vector2) -> void:
+	_inclinacao_atual = inclinacao
+	$TexturaCarta.material.set_shader_parameter("inclinacao", inclinacao)
+
+func _solicitar_atualizacao_visual() -> void:
+	$SubViewport.render_target_update_mode = SubViewport.UPDATE_ONCE
+
+func _notification(notificacao: int) -> void:
+	if notificacao == NOTIFICATION_TRANSFORM_CHANGED and is_node_ready():
+		_atualizar_sombra()
+
+func _atualizar_sombra() -> void:
+	var transformacao := get_global_transform_with_canvas()
+	if absf(transformacao.determinant()) < 0.0001:
+		return
+	var escala_sombra := minf(transformacao.x.length(), transformacao.y.length())
+	var deslocamento_na_tela := deslocamento_sombra * escala_sombra
+	var deslocamento_local := transformacao.affine_inverse() * (transformacao.origin + deslocamento_na_tela)
+	$Sombra.position = $TexturaCarta.position + deslocamento_local
 
 func _gui_input(event: InputEvent) -> void:
 	if not (event is InputEventMouseButton):
@@ -49,50 +91,65 @@ func definir_jogavel(jogavel: bool) -> void:
 	modulate = Color.WHITE if jogavel else Color(0.55, 0.55, 0.55)
 		
 func virar_carta():
-	var tween = create_tween()
+	if _tween_do_hover and _tween_do_hover.is_valid():
+		_tween_do_hover.kill()
+	if _tween_da_virada and _tween_da_virada.is_valid():
+		_tween_da_virada.kill()
+	_virando = true
+	state = false
+	_definir_inclinacao(Vector2.ZERO)
+	set_process(false)
+	scale.y = SCALE.y
+	_tween_da_virada = create_tween()
 	
-	tween.tween_property(self, "scale:x", 0.0, 0.2).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	_tween_da_virada.tween_property(self, "scale:x", 0.0, 0.2).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	
-	tween.tween_callback(_trocar_textura_visual)
+	_tween_da_virada.tween_callback(_trocar_textura_visual)
 	
-	tween.tween_property(self, "scale:x", SCALE.x, 0.5).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_tween_da_virada.tween_property(self, "scale:x", SCALE.x, 0.5).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	
-	if verso: tween.tween_callback(_limpar_carta)
+	if verso: _tween_da_virada.tween_callback(_limpar_carta)
+	_tween_da_virada.tween_callback(_finalizar_virada)
+
+func _finalizar_virada() -> void:
+	_virando = false
+	if not verso and get_viewport().gui_get_hovered_control() == self:
+		_on_mouse_entered()
 
 func _limpar_carta():
-	$ColorRect.color = Color.TRANSPARENT
-	$simbolo_centro.texture.region = Rect2(-40, -40, 40, 40)
-	$simbolo_esquerdo.texture.region = Rect2(-40, -40, 40, 40)
-	$simbolo_direito.texture.region = Rect2(-40, -40, 40, 40)
+	$SubViewport/Visual/ColorRect.color = Color.TRANSPARENT
+	$SubViewport/Visual/simbolo_centro.texture.region = Rect2(-40, -40, 40, 40)
+	$SubViewport/Visual/simbolo_esquerdo.texture.region = Rect2(-40, -40, 40, 40)
+	$SubViewport/Visual/simbolo_direito.texture.region = Rect2(-40, -40, 40, 40)
 	
 	id_carta = -1
+	_solicitar_atualizacao_visual()
 
 #ANIMAÇÕES E EMBELEZAMENTOS
 func _on_mouse_entered() -> void:
-	if verso: return
+	if verso or _virando: return
 	
 	state = true
-	
-	var tweeen = create_tween()
-	tweeen.set_trans(Tween.TRANS_CIRC)
-	tweeen.set_ease(Tween.EASE_IN_OUT)
-	tweeen.tween_property(self, "scale", Vector2(SCALE.x+0.2, SCALE.y+0.2), 0.1)
+	set_process(true)
+	_animar_hover(SCALE + Vector2(0.2, 0.2), 0.35)
 
 func _on_mouse_exited() -> void:
-	if verso: return
+	if verso or _virando: return
 	
 	state = false
-	
-	var tweeen = create_tween()
-	tweeen.set_trans(Tween.TRANS_ELASTIC)
-	tweeen.set_ease(Tween.EASE_OUT)
-	tweeen.tween_property(self, "scale", Vector2(SCALE.x, SCALE.y), 0.2	)
+	_animar_hover(SCALE, 0.2)
+
+func _animar_hover(escala_destino: Vector2, duracao: float) -> void:
+	if _tween_do_hover and _tween_do_hover.is_valid():
+		_tween_do_hover.kill()
+	_tween_do_hover = create_tween()
+	_tween_do_hover.set_trans(Tween.TRANS_ELASTIC)
+	_tween_do_hover.set_ease(Tween.EASE_OUT)
+	_tween_do_hover.tween_property(self, "scale", escala_destino, duracao)
 
 func _trocar_textura_visual():
-	if $costas_carta.visible:
-		$costas_carta.visible = false
-	else:
-		$costas_carta.visible = true
+	$SubViewport/Visual/costas_carta.visible = verso
+	_solicitar_atualizacao_visual()
 
 func reposicionar(p_posicao:Vector2, p_rotacao:float) -> void:
 	if tween_de_reposicionamento and tween_de_reposicionamento.is_valid():
@@ -112,7 +169,11 @@ func alterar_cor_visual(cor: Carta_Base.Cores) -> void:
 	if _tween_da_cor and _tween_da_cor.is_valid():
 		_tween_da_cor.kill()
 	_tween_da_cor = create_tween()
-	_tween_da_cor.tween_property($ColorRect, "color", MAP_CORES[_cor_de_fundo], 0.35).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_tween_da_cor.tween_method(_definir_cor_fundo, $SubViewport/Visual/ColorRect.color, MAP_CORES[_cor_de_fundo], 0.35).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+
+func _definir_cor_fundo(cor: Color) -> void:
+	$SubViewport/Visual/ColorRect.color = cor
+	_solicitar_atualizacao_visual()
 
 func teleportar(p_posicao:Vector2 = Vector2(0,0), p_rotacao:float = 0.0) -> void:
 	self.position = p_posicao
@@ -174,11 +235,12 @@ func _configurar_visual(cor: Carta_Base.Cores, valor: String) -> void:
 	var regiao_centro = Rect2(coord_centro.x * LARGURA, coord_centro.y * ALTURA, LARGURA, ALTURA)
 	var regiao_lados = Rect2(coord_lados.x * LARGURA, coord_lados.y * ALTURA, LARGURA, ALTURA)
 	
-	$simbolo_centro.texture = $simbolo_centro.texture.duplicate()
-	$simbolo_esquerdo.texture = $simbolo_esquerdo.texture.duplicate()
-	$simbolo_direito.texture = $simbolo_direito.texture.duplicate()
+	$SubViewport/Visual/simbolo_centro.texture = $SubViewport/Visual/simbolo_centro.texture.duplicate()
+	$SubViewport/Visual/simbolo_esquerdo.texture = $SubViewport/Visual/simbolo_esquerdo.texture.duplicate()
+	$SubViewport/Visual/simbolo_direito.texture = $SubViewport/Visual/simbolo_direito.texture.duplicate()
 	
-	$ColorRect.color = cor_visual
-	$simbolo_centro.texture.region = regiao_centro
-	$simbolo_esquerdo.texture.region = regiao_lados
-	$simbolo_direito.texture.region = regiao_lados
+	$SubViewport/Visual/ColorRect.color = cor_visual
+	$SubViewport/Visual/simbolo_centro.texture.region = regiao_centro
+	$SubViewport/Visual/simbolo_esquerdo.texture.region = regiao_lados
+	$SubViewport/Visual/simbolo_direito.texture.region = regiao_lados
+	_solicitar_atualizacao_visual()
