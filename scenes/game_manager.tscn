@@ -1,0 +1,18 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/globais/game_manager.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/globais/barramento_eventos.gd" id="2"]
+[ext_resource type="Script" path="res://scripts/rede/gerenciador_rede.gd" id="3"]
+[ext_resource type="Script" path="res://scripts/rede/endpoint_partida.gd" id="4"]
+
+[node name="GameManager" type="Node"]
+script = ExtResource("1")
+
+[node name="EventBus" type="Node" parent="."]
+script = ExtResource("2")
+
+[node name="NetworkManager" type="Node" parent="."]
+script = ExtResource("3")
+
+[node name="MatchEndpoint" type="Node" parent="."]
+script = ExtResource("4")

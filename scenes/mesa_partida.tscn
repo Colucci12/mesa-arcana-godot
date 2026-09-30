@@ -1,0 +1,232 @@
+[gd_scene format=3 uid="uid://dmky5d0asw4u8"]
+
+[ext_resource type="Script" uid="uid://dglnfaj2yc0tk" path="res://scripts/scripts_de_cena/mesa_partida.gd" id="1"]
+[ext_resource type="PackedScene" uid="uid://c2h4odean45qd" path="res://scenes/mao.tscn" id="2"]
+[ext_resource type="PackedScene" uid="uid://bypqjeoqphjfc" path="res://scenes/monte.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://scenes/descarte.tscn" id="4"]
+
+[node name="MesaPartida" type="Control" unique_id=1815636156]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1")
+intervalo_entre_cartas = 0.15
+
+[node name="PlanoFundo" type="ColorRect" parent="." unique_id=1714349624]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.055, 0.22, 0.17, 1)
+
+[node name="Titulo" type="Label" parent="." unique_id=1759817237]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -100.0
+offset_top = 24.0
+offset_right = 100.0
+offset_bottom = 72.0
+grow_horizontal = 2
+theme_override_font_sizes/font_size = 36
+text = "UNO"
+horizontal_alignment = 1
+
+[node name="NomeOponente" type="Label" parent="." unique_id=2039922806]
+layout_mode = 1
+offset_left = 48.0
+offset_top = 40.0
+offset_right = 300.0
+offset_bottom = 72.0
+theme_override_font_sizes/font_size = 22
+text = "Oponente"
+
+[node name="QuantidadeOponente" type="Label" parent="." unique_id=712030316]
+layout_mode = 1
+offset_left = 48.0
+offset_top = 74.0
+offset_right = 300.0
+offset_bottom = 102.0
+text = "0 cartas"
+
+[node name="MaoOponente" parent="." unique_id=1750264772 instance=ExtResource("2")]
+layout_mode = 1
+anchors_preset = 5
+anchor_top = 0.0
+anchor_bottom = 0.0
+offset_top = 20.0
+offset_bottom = 160.0
+grow_vertical = 1
+rotation = 3.1415927
+color = Color(0, 0, 0, 0)
+mao_adversaria = true
+
+[node name="IndicadorTurno" type="Label" parent="." unique_id=705551149]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -155.0
+offset_right = 200.0
+offset_bottom = -115.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 26
+text = "Aguardando partida"
+horizontal_alignment = 1
+
+[node name="Monte" parent="." unique_id=980925600 instance=ExtResource("3")]
+layout_mode = 1
+offset_left = -235.0
+offset_top = -72.0
+offset_right = -128.5
+offset_bottom = 70.5
+
+[node name="EscolhaCor" type="VBoxContainer" parent="."]
+visible = false
+layout_mode = 1
+offset_right = 100.0
+offset_bottom = 144.0
+theme_override_constants/separation = 4
+
+[node name="Azul" type="Button" parent="EscolhaCor"]
+custom_minimum_size = Vector2(100, 32)
+layout_mode = 2
+text = "Azul"
+
+[node name="Verde" type="Button" parent="EscolhaCor"]
+custom_minimum_size = Vector2(100, 32)
+layout_mode = 2
+text = "Verde"
+
+[node name="Amarelo" type="Button" parent="EscolhaCor"]
+custom_minimum_size = Vector2(100, 32)
+layout_mode = 2
+text = "Amarelo"
+
+[node name="Vermelho" type="Button" parent="EscolhaCor"]
+custom_minimum_size = Vector2(100, 32)
+layout_mode = 2
+text = "Vermelho"
+
+[node name="Descarte" parent="." unique_id=523327856 instance=ExtResource("4")]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = 18.0
+offset_top = -90.0
+offset_right = 170.0
+offset_bottom = 90.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="LegendaMonte" type="Label" parent="." unique_id=518217049]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -260.0
+offset_top = 82.0
+offset_right = -103.0
+offset_bottom = 110.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "Monte"
+horizontal_alignment = 1
+
+[node name="LegendaDescarte" type="Label" parent="." unique_id=328579092]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -2.0
+offset_top = 102.0
+offset_right = 146.0
+offset_bottom = 130.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "Descarte"
+horizontal_alignment = 1
+
+[node name="Mensagem" type="Label" parent="." unique_id=65992613]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -300.0
+offset_top = 130.0
+offset_right = 300.0
+offset_bottom = 160.0
+grow_horizontal = 2
+grow_vertical = 2
+horizontal_alignment = 1
+
+[node name="PassarVez" type="Button" parent="." unique_id=832714397]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -110.0
+offset_top = 170.0
+offset_right = 110.0
+offset_bottom = 210.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "Passar a vez"
+
+[node name="NomeJogador" type="Label" parent="." unique_id=1888809810]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -400.0
+offset_top = -198.0
+offset_right = -120.0
+offset_bottom = -164.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_font_sizes/font_size = 22
+text = "Você"
+
+[node name="QuantidadeJogador" type="Label" parent="." unique_id=1481410693]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -400.0
+offset_top = -164.0
+offset_right = -120.0
+offset_bottom = -136.0
+grow_horizontal = 2
+grow_vertical = 0
+text = "0 cartas"
+
+[node name="MaoJogador" parent="." unique_id=1375277497 instance=ExtResource("2")]
+layout_mode = 1
+color = Color(0, 0, 0, 0)

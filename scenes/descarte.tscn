@@ -1,0 +1,11 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/scripts_de_cena/descarte.gd" id="1"]
+
+[node name="Descarte" type="Control"]
+custom_minimum_size = Vector2(152, 180)
+layout_mode = 3
+offset_right = 152.0
+offset_bottom = 180.0
+mouse_filter = 2
+script = ExtResource("1")
