@@ -3,11 +3,14 @@ extends Control
 const CENA_CARTA = preload("res://scenes/main/componentes/carta.tscn")
 const ARQUIVO_TESTES = "user://laboratorio_mao.json"
 const CORES = ["VERMELHO", "AZUL", "VERDE", "AMARELO"]
+const LIMITE_INCLINACAO = 85.0
 const PADRAO = {
 	"posicao_x": 50.0, "posicao_y": 50.0,
 	"tamanho": 1.25, "altura": 1.0, "giro": 0.0, "deformacao": 0.0,
 	"largura": 560.0, "separacao": -20.0, "curvatura": -30.0, "abertura": 12.0,
-	"inclinacao_x": 0.0, "inclinacao_y": 0.0, "variacao_tamanho": 0.0
+	"inclinacao_x": 0.0, "inclinacao_y": 0.0, "variacao_tamanho": 0.0,
+	"inclinacao_x_inicio": 0.0, "inclinacao_x_fim": 0.0,
+	"inclinacao_y_inicio": 0.0, "inclinacao_y_fim": 0.0
 }
 
 @onready var _area: Control = $Layout/AreaVisual
@@ -19,6 +22,7 @@ const PADRAO = {
 
 var _ajustes: Dictionary = PADRAO.duplicate()
 var _controles: Dictionary = {}
+var _blocos_ajustes: Dictionary = {}
 var _testes: Dictionary = {}
 var _cartas: Array[Carta] = []
 var _dados_cartas: Array[Dictionary] = []
@@ -55,6 +59,7 @@ func _montar_cartas() -> void:
 		var carta := CENA_CARTA.instantiate() as Carta
 		var dados := {"id": indice + 1, "cor": CORES[indice % CORES.size()], "valor": str(indice + 1)}
 		_mao.add_child(carta)
+		carta.limite_inclinacao_total = 89.0
 		carta.setup_dados(dados)
 		carta.definir_hover_habilitado(false)
 		carta.definir_sombra_visivel(false)
@@ -86,18 +91,22 @@ func _montar_painel() -> void:
 	_ajuste("variacao_tamanho", "Variação entre as pontas", -0.5, 0.5, 0.05)
 	_texto("A largura limita o espaço do leque. A variação deixa uma ponta maior que a outra.")
 	_titulo("Perspectiva das faces")
-	_ajuste("inclinacao_x", "Inclinar cima/baixo", -45, 45, 1, "°")
+	_ajuste("inclinacao_x", "Inclinar cima/baixo", -LIMITE_INCLINACAO, LIMITE_INCLINACAO, 1, "°")
 	_inclinacao_x_progressiva = CheckBox.new()
 	_inclinacao_x_progressiva.text = "Inclinação cima/baixo gradual"
 	_conteudo.add_child(_inclinacao_x_progressiva)
 	_inclinacao_x_progressiva.toggled.connect(_alternar_gradual)
-	_ajuste("inclinacao_y", "Inclinar esquerda/direita", -45, 45, 1, "°")
+	_ajuste("inclinacao_x_inicio", "Cima/baixo · primeira", -LIMITE_INCLINACAO, LIMITE_INCLINACAO, 1, "°")
+	_ajuste("inclinacao_x_fim", "Cima/baixo · última", -LIMITE_INCLINACAO, LIMITE_INCLINACAO, 1, "°")
+	_ajuste("inclinacao_y", "Inclinar esquerda/direita", -LIMITE_INCLINACAO, LIMITE_INCLINACAO, 1, "°")
 	_inclinacao_y_progressiva = CheckBox.new()
 	_inclinacao_y_progressiva.text = "Inclinação esquerda/direita gradual"
 	_conteudo.add_child(_inclinacao_y_progressiva)
 	_inclinacao_y_progressiva.toggled.connect(_alternar_gradual)
+	_ajuste("inclinacao_y_inicio", "Esquerda/direita · primeira", -LIMITE_INCLINACAO, LIMITE_INCLINACAO, 1, "°")
+	_ajuste("inclinacao_y_fim", "Esquerda/direita · última", -LIMITE_INCLINACAO, LIMITE_INCLINACAO, 1, "°")
 	_texto("Esses dois controles usam o shader das cartas. O giro acima muda a orientação do leque na tela.")
-	_texto("Cada eixo pode ser gradual: sinais opostos nas pontas e zero no centro. Um valor negativo inverte os lados.")
+	_texto("No modo gradual, escolha a inclinação da primeira e da última carta. As demais fazem a transição; valores iguais mantêm a orientação uniforme. Primeira/última seguem a ordem do leque, mesmo ao girá-lo.")
 	_frentes = CheckBox.new()
 	_frentes.text = "Mostrar frentes"
 	_conteudo.add_child(_frentes)
@@ -176,6 +185,7 @@ func _ajuste(chave: String, texto: String, minimo: float, maximo: float, passo: 
 	bloco.add_child(controle)
 	_conteudo.add_child(bloco)
 	_controles[chave] = controle
+	_blocos_ajustes[chave] = bloco
 	controle.value_changed.connect(_alterar_ajuste.bind(chave))
 
 
@@ -187,6 +197,7 @@ func _alterar_ajuste(valor: float, chave: String) -> void:
 
 
 func _aplicar_ajustes() -> void:
+	_atualizar_controles_inclinacao()
 	if _em_virada:
 		return
 	_reposicionar()
@@ -210,11 +221,21 @@ func _aplicar_ajustes() -> void:
 		var posicao_relativa := (indice - centro) / maxf(centro, 1.0)
 		carta.definir_deformacao(deformacao * posicao_relativa if progressiva else 0.0)
 		var inclinacao := Vector2(float(_ajustes["inclinacao_x"]), float(_ajustes["inclinacao_y"]))
+		var progresso := indice / maxf(_cartas.size() - 1.0, 1.0)
 		if _inclinacao_x_progressiva.button_pressed:
-			inclinacao.x *= posicao_relativa
+			inclinacao.x = lerpf(float(_ajustes["inclinacao_x_inicio"]), float(_ajustes["inclinacao_x_fim"]), progresso)
 		if _inclinacao_y_progressiva.button_pressed:
-			inclinacao.y *= posicao_relativa
+			inclinacao.y = lerpf(float(_ajustes["inclinacao_y_inicio"]), float(_ajustes["inclinacao_y_fim"]), progresso)
 		carta.inclinacao_base = inclinacao
+
+
+func _atualizar_controles_inclinacao() -> void:
+	var graduais := {"x": _inclinacao_x_progressiva.button_pressed, "y": _inclinacao_y_progressiva.button_pressed}
+	for eixo in graduais:
+		var chave: String = "inclinacao_" + eixo
+		(_blocos_ajustes[chave] as Control).visible = not graduais[eixo]
+		(_blocos_ajustes[chave + "_inicio"] as Control).visible = graduais[eixo]
+		(_blocos_ajustes[chave + "_fim"] as Control).visible = graduais[eixo]
 
 
 func _alternar_gradual(_ativada: bool) -> void:
@@ -368,10 +389,20 @@ func _carregar_teste() -> void:
 
 
 func _preencher_ajustes(valores: Dictionary) -> void:
+	var ajustes_normalizados := valores.duplicate()
+	# Perfis anteriores usavam uma amplitude: primeira = -valor, última = +valor.
+	for eixo in ["x", "y"]:
+		var chave: String = "inclinacao_" + eixo
+		var valor_antigo: Variant = valores.get(chave, 0.0)
+		var amplitude := float(valor_antigo) if (valor_antigo is float or valor_antigo is int) else 0.0
+		if not ajustes_normalizados.has(chave + "_inicio"):
+			ajustes_normalizados[chave + "_inicio"] = -amplitude
+		if not ajustes_normalizados.has(chave + "_fim"):
+			ajustes_normalizados[chave + "_fim"] = amplitude
 	_atualizando_painel = true
 	for chave in PADRAO:
 		var controle := _controles[chave] as HSlider
-		var valor: Variant = valores.get(chave, PADRAO[chave])
+		var valor: Variant = ajustes_normalizados.get(chave, PADRAO[chave])
 		if not (valor is float or valor is int):
 			valor = PADRAO[chave]
 		controle.value = clampf(float(valor), controle.min_value, controle.max_value)

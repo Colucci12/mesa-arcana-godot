@@ -156,7 +156,19 @@ O componente compartilhado `Carta` recebe uma `inclinacao_base` opcional, zero p
 
 O controle **Deformação gradual por carta** alterna entre a deformação atual do conjunto inteiro e a deformação local com sinais opostos: com valor +25°, a primeira carta recebe −25°, o centro fica em zero e a última recebe +25°, com transição linear. Escolher −25° inverte os lados. Essa opção acompanha os testes salvos e copiados; testes antigos usam o modo de conjunto inteiro. A abertura do leque aceita valores de −35° a +35°.
 
-As inclinações cima/baixo e esquerda/direita também possuem opções graduais independentes, com a mesma distribuição de sinais opostos da deformação: zero no centro, valor negativo na primeira ponta e positivo na última ao escolher um valor positivo no controle. Valores negativos invertem os lados. As opções são salvas e copiadas com o perfil; testes anteriores mantêm a inclinação uniforme, e restaurar os ajustes iniciais desliga os modos graduais.
+As inclinações cima/baixo e esquerda/direita possuem opções graduais independentes. Ao ativar um eixo, seu controle uniforme dá lugar aos valores da **primeira** e da **última** carta, de −85° a +85°; as intermediárias usam uma transição linear. As pontas podem ter o mesmo sinal ou valores iguais, sem obrigar o centro a passar por zero. Primeira/última seguem a ordem das cartas no leque, não cima/baixo na tela quando a mão está girada. Testes e composições antigos preservam sua aparência: o valor gradual anterior é convertido em primeira = −valor e última = +valor durante o carregamento. Os extremos são salvos e copiados com o perfil nos dois laboratórios. Restaurar os ajustes iniciais desliga os modos graduais.
+
+Nos laboratórios, as inclinações uniformes e os extremos graduais aceitam até ±85°. `Carta.limite_inclinacao_total` mantém 55° por padrão nas demais cenas; o laboratório usa 89° para a soma da base com o hover, evitando atravessar 90°, quando a face fica de perfil. Perto desse ângulo, a carta fica muito estreita por causa da perspectiva.
+
+### Laboratório de quatro mãos
+
+Executar `scenes/desenvolvimento/laboratorios/laboratorio_quatro_maos.tscn` com F6. É uma cena separada que herda o laboratório individual e reutiliza seu painel, cartas, shaders e controles. Mostra quatro mãos no mesmo fundo escuro, sem mesa ou partida. O laboratório de uma mão continua disponível.
+
+O seletor **Editar mão inferior/superior/esquerda/direita** determina quais cartas recebem os ajustes e o arraste. Cada mão guarda seus próprios parâmetros, frentes/versos, sombras, modos graduais e observações. A roda somente rola o painel. **Tab** oculta os controles e ativa o hover nas quatro mãos, inclusive nos versos; mostrar o painel encerra o hover. Viradas bloqueiam a seleção e os comandos de carregamento até o término.
+
+**Aplicar teste à mão selecionada** lê os testes de `user://laboratorio_mao.json` e aplica o perfil escolhido somente à mão atual. O arquivo individual é apenas lido nesta cena. **Salvar composição inteira** usa o nome informado e grava as quatro mãos e as observações do conjunto em `user://laboratorio_quatro_maos.json`. **Carregar composição selecionada** restaura tudo; **Copiar composição e anotações** permite compartilhar o conjunto em JSON. Salvar com o mesmo nome atualiza a composição. Restaurar uma mão ou as quatro preserva os arquivos salvos.
+
+As posições são percentuais da área disponível; ocultar o painel amplia essa área, mantendo a distribuição relativa. Os valores iniciais são apenas uma composição de partida: inferior maior, superior menor e laterais rotacionadas. Aplicar os testes individuais e ajustar o tamanho relativo é parte da comparação. Conferir visualmente seleção/arraste independente, frente/verso, hover com Tab e salvar/carregar o conjunto. A execução visual fica com o usuário; não lançar o jogo nem produzir capturas automaticamente.
 
 ### Verificações gerais
 

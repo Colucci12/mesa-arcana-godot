@@ -5,6 +5,7 @@ signal selecionada(id_carta: int)
 
 @export var deslocamento_sombra := Vector2(3, 5)
 @export_range(0.0, 20.0, 0.5) var inclinacao_maxima: float = 12.0
+@export_range(1.0, 89.0, 1.0) var limite_inclinacao_total: float = 55.0
 @export var inclinacao_base := Vector2.ZERO:
 	set(valor):
 		inclinacao_base = valor
@@ -61,7 +62,8 @@ func _process(delta: float) -> void:
 
 func _definir_inclinacao(inclinacao: Vector2) -> void:
 	_inclinacao_atual = inclinacao
-	var total := (inclinacao_base + inclinacao).clamp(Vector2(-55, -55), Vector2(55, 55))
+	var limite := Vector2.ONE * limite_inclinacao_total
+	var total := (inclinacao_base + inclinacao).clamp(-limite, limite)
 	$TexturaCarta.material.set_shader_parameter("inclinacao", total)
 
 func _solicitar_atualizacao_visual() -> void:
