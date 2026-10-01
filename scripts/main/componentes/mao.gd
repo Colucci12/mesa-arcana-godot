@@ -76,13 +76,19 @@ func _aplicar_jogabilidade(carta: Carta) -> void:
 	carta.definir_jogavel(carta_permitida(carta.id_carta))
 
 #FUNÇÕES DE EMBELEZAMENTO
-func _atualizar_leque():
+func configurar_leque(nova_separacao: int, nova_curvatura: int, nova_abertura: int, animar: bool = true) -> void:
+	separacao = nova_separacao
+	offset_max = nova_curvatura
+	rotacao_max_graus = nova_abertura
+	_atualizar_leque(animar)
+
+func _atualizar_leque(animar: bool = true):
 	var cartas := get_child_count()
 	if cartas == 0:
 		return
 	if cartas == 1:
 		var carta_unica := get_child(0)
-		carta_unica.reposicionar(Vector2((size.x - Carta.SIZE.x) / 2.0, offset_min), 0.0)
+		_posicionar_no_leque(carta_unica, Vector2((size.x - Carta.SIZE.x) / 2.0, offset_min), 0.0, animar)
 		return
 
 	var tamanho_todas_cartas := Carta.SIZE.x *  cartas + separacao * (cartas -1)
@@ -102,4 +108,12 @@ func _atualizar_leque():
 		var final_x:float = offset + Carta.SIZE.x * i + separacao_final * i
 		var final_y:float = offset_min + offset_max * multiplicador_cima
 		
-		carta.reposicionar(Vector2(final_x, final_y), (rotacao_max_graus * multiplicador_rotacao))
+		_posicionar_no_leque(carta, Vector2(final_x, final_y), rotacao_max_graus * multiplicador_rotacao, animar)
+
+func _posicionar_no_leque(carta: Carta, destino: Vector2, angulo: float, animar: bool) -> void:
+	if animar:
+		carta.reposicionar(destino, angulo)
+	else:
+		if carta.tween_de_reposicionamento and carta.tween_de_reposicionamento.is_valid():
+			carta.tween_de_reposicionamento.kill()
+		carta.teleportar(destino, angulo)

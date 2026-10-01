@@ -11,7 +11,7 @@ Atualizado em 01/10/2026. Este documento orienta a navegação no código e regi
 - A organização atual satisfaz o usuário. Evitar novas camadas, pastas e refatorações amplas sem necessidade concreta.
 - Preservar encapsulamento e coesão: operações internas de um componente podem ser chamadas diretamente; sinais são usados para comunicação entre componentes quando fazem sentido. Não transformar cada operação em um sinal.
 - Quando o usuário pede discussão ou planejamento, discutir antes de implementar. Evoluir o visual em entregas pequenas e apresentar para avaliação.
-- O usuário trabalha no editor e costuma executar as cenas manualmente. Ele autorizou novamente abrir o Godot para comparações visuais, mas evitar execuções repetidas ou pesadas sem propósito.
+- O usuário executa as cenas e valida o visual no editor. Não abrir o jogo para gerar capturas por iniciativa própria; nesta etapa, a comparação visual fica com ele.
 - O repositório é local. Fazer commits quando solicitado. `export_presets.cfg` é uma configuração legítima de exportação criada pelo usuário e ficou fora dos commits até aqui; não excluir nem incluir silenciosamente.
 - Arquivos `.uid` e referências de recursos são relevantes para o Godot. Preservar os existentes e incluir os de scripts novos quando gerados.
 
@@ -131,6 +131,34 @@ Godot `Control` não tem `global_rotation`. A orientação global é compensada 
 O menu atual é uma cena separada, com título JUNO e ações Jogar/Sair. Jogar abre `partida_rede.tscn`; a conexão possui Voltar ao menu quando o formulário está disponível. A fonte Barlow Condensed Bold já é usada nos nomes de jogadores e no menu.
 
 ## Validação e cuidados práticos
+
+### Laboratório oblíquo em 2D
+
+Executar `scenes/desenvolvimento/laboratorios/laboratorio_obliquo.tscn` diretamente com F6. É uma composição visual com dados fictícios, sem partida ou rede. O experimento anterior de câmera/luz foi removido; esta versão mantém o projeto em 2D e prioriza separar o plano de jogo das mãos.
+
+O fundo de feltro, o monte e três cartas no descarte são desenhados juntos em um SubViewport. O shader local `plano_obliquo.gdshader` projeta esse conteúdo num trapézio: borda distante mais estreita, borda próxima mais larga. Assim, monte e descarte seguem a mesma perspectiva da mesa. A faixa frontal escura sugere espessura. Não há câmera móvel nem iluminação adicional.
+
+As quatro mãos reutilizam `MaoVisual` e `Carta`, mas ficam fora da projeção da mesa. A inferior é maior e sobrepõe a borda próxima, preservando o hover existente. A superior é menor; as laterais usam rotação e compressão. Adversários mostram os versos. As sombras de contato ficam ocultas nas cartas das mãos por `Carta.definir_sombra_visivel()`; a aparência das outras cenas continua com o padrão anterior.
+
+Ajustar no Inspector da raiz, antes de executar: área da mesa, largura da borda distante, espessura frontal, centros do monte/descarte no plano e posição/escala das mãos. A referência é 1280×720, com escala uniforme e centralização em outras dimensões. Primeiro avaliar se a mão inferior parece segurada diante da mesa, se monte/descarte parecem apoiados e se a mão superior parece distante. A execução e a aprovação visual desta versão ficam com o usuário.
+
+### Laboratório de uma mão ajustável
+
+Executar `scenes/desenvolvimento/laboratorios/laboratorio_mao.tscn` com F6. A cena mostra sete cartas em um fundo escuro, sem mesa, partida ou rede. O painel fica na própria cena, com rolagem para alcançar todos os controles. O laboratório oblíquo permanece disponível para conferir depois a composição completa.
+
+Os ajustes ao vivo incluem posição, tamanho, compressão vertical, giro e deformação do conjunto; largura, separação, curvatura e abertura do leque; variação de tamanho entre as pontas; e inclinação nos dois eixos do shader existente. Frente/verso e sombra podem ser comparados separadamente. Com o painel visível, as cartas não recebem hover e a mão pode ser arrastada. Ocultar o painel com **Tab** habilita o hover existente, inclusive nos versos apenas neste laboratório, e suspende o arraste. Mostrar o painel encerra o hover e restaura a escala e a inclinação-base ajustadas. A virada suspende o hover até a reaplicação dos ajustes.
+
+Arrastar na área escura move a mão. A roda do mouse apenas rola o painel, inclusive sobre sliders e campos numéricos, sem alterar valores ou o tamanho da mão. **Tab** mostra ou oculta o painel, ignorando repetição automática. A posição é relativa à área de visualização disponível, inclusive quando o painel é ocultado. Durante a virada, os ajustes de geometria aguardam sua conclusão e os comandos de salvar/carregar/restaurar ficam temporariamente indisponíveis.
+
+Nomear o teste, escrever observações e usar **Salvar teste** guarda a combinação em `user://laboratorio_mao.json`, na pasta de dados do usuário do Godot. Salvar novamente com o mesmo nome atualiza a combinação. **Carregar teste selecionado** restaura os ajustes, faces, sombras e anotações; **Copiar valores e anotações** coloca o perfil em JSON na área de transferência para compartilhar. **Restaurar ajustes iniciais** preserva os testes salvos.
+
+O componente compartilhado `Carta` recebe uma `inclinacao_base` opcional, zero por padrão, composta com a inclinação dinâmica do hover e preservada durante a virada. `MaoVisual.configurar_leque()` permite reposicionamento imediato no laboratório; o comportamento animado segue como padrão nas demais cenas. A execução e a aprovação visual ficam com o usuário; não lançar o jogo nem produzir capturas automaticamente para essas iterações.
+
+O controle **Deformação gradual por carta** alterna entre a deformação atual do conjunto inteiro e a deformação local com sinais opostos: com valor +25°, a primeira carta recebe −25°, o centro fica em zero e a última recebe +25°, com transição linear. Escolher −25° inverte os lados. Essa opção acompanha os testes salvos e copiados; testes antigos usam o modo de conjunto inteiro. A abertura do leque aceita valores de −35° a +35°.
+
+As inclinações cima/baixo e esquerda/direita também possuem opções graduais independentes, com a mesma distribuição de sinais opostos da deformação: zero no centro, valor negativo na primeira ponta e positivo na última ao escolher um valor positivo no controle. Valores negativos invertem os lados. As opções são salvas e copiadas com o perfil; testes anteriores mantêm a inclinação uniforme, e restaurar os ajustes iniciais desliga os modos graduais.
+
+### Verificações gerais
 
 - A janela de referência é 1280×720, com stretch `canvas_items`/aspect `expand`; também foram consideradas telas de 1920×1080.
 - Para revisar a mesa real sem rede, usar `scenes/desenvolvimento/previas/previa_mesa_partida.tscn`. Para interações completas, executar o projeto pelo menu ou `partida_rede.tscn` em instâncias separadas.

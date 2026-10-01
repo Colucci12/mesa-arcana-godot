@@ -5,6 +5,7 @@ render_mode unshaded, blend_premul_alpha;
 #include "res://scripts/main/componentes/acabamento_carta.gdshaderinc"
 
 uniform vec2 inclinacao = vec2(0.0);
+uniform float deformacao = 0.0;
 uniform vec2 tamanho_textura = vec2(87.0, 111.0);
 uniform float largura_contorno : hint_range(0.0, 2.0, 0.05) = 0.65;
 uniform vec4 cor_contorno : source_color = vec4(0.42, 0.43, 0.46, 0.55);
@@ -14,6 +15,9 @@ varying vec4 cor_modulada;
 void vertex() {
 	posicao_na_tela = (UV - 0.5) * tamanho_textura * 1.5;
 	VERTEX += (UV - 0.5) * tamanho_textura * 0.5;
+	// Deformação local em torno do centro, equivalente ao skew do conjunto.
+	float angulo_deformacao = radians(deformacao);
+	VERTEX += vec2(-sin(angulo_deformacao), cos(angulo_deformacao) - 1.0) * posicao_na_tela.y;
 	cor_modulada = COLOR;
 }
 

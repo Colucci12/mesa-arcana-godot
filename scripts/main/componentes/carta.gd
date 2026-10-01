@@ -5,6 +5,11 @@ signal selecionada(id_carta: int)
 
 @export var deslocamento_sombra := Vector2(3, 5)
 @export_range(0.0, 20.0, 0.5) var inclinacao_maxima: float = 12.0
+@export var inclinacao_base := Vector2.ZERO:
+	set(valor):
+		inclinacao_base = valor
+		if is_node_ready():
+			_definir_inclinacao(_inclinacao_atual)
 
 var id_carta: int = -1
 
@@ -17,6 +22,8 @@ var _tween_da_cor: Tween = null
 var _tween_do_hover: Tween = null
 var _tween_da_virada: Tween = null
 var _virando: bool = false
+var _hover_habilitado: bool = true
+var _hover_no_verso: bool = false
 var _inclinacao_atual := Vector2.ZERO
 var _cor_de_fundo: Carta_Base.Cores = Carta_Base.Cores.PRETO
 var _iluminacao: IluminacaoAmbiente
@@ -38,11 +45,12 @@ func _ready() -> void:
 	set_notify_transform(true)
 	_atualizar_sombra()
 	set_process(false)
+	_definir_inclinacao(Vector2.ZERO)
 	_solicitar_atualizacao_visual()
 
 func _process(delta: float) -> void:
 	var inclinacao_destino := Vector2.ZERO
-	if state and not verso and not _virando:
+	if state and _hover_permitido():
 		var mouse_relativo := get_local_mouse_position() / SIZE * 2.0 - Vector2.ONE
 		mouse_relativo = mouse_relativo.clamp(-Vector2.ONE, Vector2.ONE)
 		inclinacao_destino = Vector2(-mouse_relativo.y, mouse_relativo.x) * inclinacao_maxima
@@ -53,7 +61,8 @@ func _process(delta: float) -> void:
 
 func _definir_inclinacao(inclinacao: Vector2) -> void:
 	_inclinacao_atual = inclinacao
-	$TexturaCarta.material.set_shader_parameter("inclinacao", inclinacao)
+	var total := (inclinacao_base + inclinacao).clamp(Vector2(-55, -55), Vector2(55, 55))
+	$TexturaCarta.material.set_shader_parameter("inclinacao", total)
 
 func _solicitar_atualizacao_visual() -> void:
 	$SubViewport.render_target_update_mode = SubViewport.UPDATE_ONCE
@@ -96,6 +105,28 @@ func carta_esta_em_foco():
 func definir_jogavel(jogavel: bool) -> void:
 	modulate = Color.WHITE if jogavel else Color(0.55, 0.55, 0.55)
 
+func definir_sombra_visivel(visivel: bool) -> void:
+	$Sombra.visible = visivel
+
+func definir_hover_habilitado(habilitado: bool, incluir_verso: bool = false) -> void:
+	_hover_habilitado = habilitado
+	_hover_no_verso = incluir_verso
+	mouse_filter = Control.MOUSE_FILTER_STOP if habilitado else Control.MOUSE_FILTER_IGNORE
+	if not habilitado:
+		if _tween_do_hover and _tween_do_hover.is_valid():
+			_tween_do_hover.kill()
+		state = false
+		_definir_inclinacao(Vector2.ZERO)
+		set_process(false)
+		if not _virando:
+			scale = SCALE
+
+func _hover_permitido() -> bool:
+	return _hover_habilitado and not _virando and (not verso or _hover_no_verso)
+
+func definir_deformacao(graus: float) -> void:
+	$TexturaCarta.material.set_shader_parameter("deformacao", clampf(graus, -25.0, 25.0))
+
 func definir_acabamento(intensidade_claros: float, intensidade_tinta: float, variacao_tinta: float = 0.0, escala_variacao: float = 18.0) -> void:
 	var material_carta := $TexturaCarta.material as ShaderMaterial
 	material_carta.set_shader_parameter("acabamento_claros", clampf(intensidade_claros, 0.0, 0.05))
@@ -136,7 +167,7 @@ func virar_carta():
 
 func _finalizar_virada() -> void:
 	_virando = false
-	if not verso and get_viewport().gui_get_hovered_control() == self:
+	if _hover_permitido() and get_viewport().gui_get_hovered_control() == self:
 		_on_mouse_entered()
 
 func _limpar_carta():
@@ -150,14 +181,14 @@ func _limpar_carta():
 
 #ANIMAÇÕES E EMBELEZAMENTOS
 func _on_mouse_entered() -> void:
-	if verso or _virando: return
+	if not _hover_permitido(): return
 	
 	state = true
 	set_process(true)
 	_animar_hover(SCALE + Vector2(0.2, 0.2), 0.35)
 
 func _on_mouse_exited() -> void:
-	if verso or _virando: return
+	if not _hover_permitido(): return
 	
 	state = false
 	_animar_hover(SCALE, 0.2)
