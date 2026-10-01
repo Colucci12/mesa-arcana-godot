@@ -81,7 +81,7 @@ flowchart LR
 - A interface distribui as mãos em relação ao jogador local: ele fica embaixo; os oponentes ocupam o topo e as laterais conforme a quantidade de participantes. As mãos laterais reutilizam a cena `mao.tscn` rotacionada.
 - A saída de um participante durante a partida interrompe a rodada e devolve os restantes à sala. Eles podem iniciar outra partida; quem saiu pode entrar novamente na sala. A saída do anfitrião encerra a conexão dos clientes. Não há retomada da rodada nem migração de anfitrião.
 - O chat usa o próprio endpoint e um painel recolhível, disponível na sala e durante a partida. As recusas de mensagens ficam nesse painel; as recusas de jogadas continuam na interface da mesa.
-- A cena local `scenes/tests/previa_mesa_partida.tscn` continua disponível para revisar a interface sem rede.
+- A cena local `scenes/desenvolvimento/previas/previa_mesa_partida.tscn` continua disponível para revisar a interface sem rede.
 - A cena `teste.tscn` é o laboratório de objetos e usa o baralho completo por padrão. A partida configura o mesmo `Baralho_Logico` com as cartas já implementadas; ambos usam `comprar_carta()`, que repõe a composição configurada quando o monte esgota.
 - A partida básica entre duas instâncias em localhost foi validada manualmente no Godot.
 - As cartas especiais coloridas `PULA`, `INVERTE` e `+2` e os coringas `TROCACOR`, `+4` e `TROCAMAO` participam do baralho.

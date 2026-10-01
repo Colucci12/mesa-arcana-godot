@@ -1,13 +1,13 @@
 # JUNO — contexto para continuar o projeto
 
-Atualizado em 30/09/2026. Este documento orienta a navegação no código e registra as decisões do projeto. O usuário tem seu próprio planejamento de próximas entregas; alinhar o pedido atual com ele antes de ampliar o escopo.
+Atualizado em 01/10/2026. Este documento orienta a navegação no código e registra as decisões do projeto. O usuário tem seu próprio planejamento de próximas entregas; alinhar o pedido atual com ele antes de ampliar o escopo.
 
 ## Projeto e forma de trabalhar
 
 - Jogo de cartas em Godot 4.6.2, GDScript, com anfitrião participante e partidas de 2 a 4 jogadores por ENet/IP.
 - Nome atual: **JUNO**. Há nomes e artes herdados da fase inicial de UNO; não renomear tudo automaticamente.
 - Código em português, simples, bem escrito e com comentários apenas quando explicam algo necessário. Preservar os nomes existentes em inglês sem fazer uma reorganização geral.
-- **Scripts ficam em `scripts`; cenas ficam em `scenes`. Nunca misturar.** Testes e prévias têm subpastas próprias dentro de cada uma dessas pastas.
+- **Scripts ficam em `scripts`; cenas ficam em `scenes`. Nunca misturar.** Cenas usadas no jogo ficam em `scenes/main`, separadas em `telas`, `componentes` e `globais`; seus scripts e shaders acompanham essa divisão em `scripts/main`. Prévias, laboratórios e testes ficam em `desenvolvimento`, com subpastas próprias dentro de `scenes` e `scripts`.
 - A organização atual satisfaz o usuário. Evitar novas camadas, pastas e refatorações amplas sem necessidade concreta.
 - Preservar encapsulamento e coesão: operações internas de um componente podem ser chamadas diretamente; sinais são usados para comunicação entre componentes quando fazem sentido. Não transformar cada operação em um sinal.
 - Quando o usuário pede discussão ou planejamento, discutir antes de implementar. Evoluir o visual em entregas pequenas e apresentar para avaliação.
@@ -18,30 +18,36 @@ Atualizado em 30/09/2026. Este documento orienta a navegação no código e regi
 ## Onde começar a leitura
 
 1. `project.godot`: nome, cena inicial, autoload e configuração de janela/renderização.
-2. `scenes/game_manager.tscn` e `scripts/globais/game_manager.gd`: montagem e ligações entre rede e barramento.
+2. `scenes/main/globais/game_manager.tscn` e `scripts/main/globais/game_manager.gd`: montagem e ligações entre rede e barramento.
 3. `scripts/rede/endpoint_partida.gd`: entrada de comandos, associação da conexão ao jogador e entrega dos eventos.
 4. `scripts/logica/mesa_api.gd` e `scripts/logica/mesa_logica.gd`: regras e estado autoritativo.
-5. `scripts/scripts_de_cena/partida_rede.gd` e `mesa_partida.gd`: ligação da interface com os comandos e eventos.
+5. `scripts/main/telas/partida_rede.gd` e `scripts/main/componentes/mesa_partida.gd`: ligação da interface com os comandos e eventos.
 6. O componente visual específico da alteração: carta, mão, monte, descarte, chat ou fundo.
 
 Há um diagrama e regras detalhadas em [arquitetura-multiplayer.md](arquitetura-multiplayer.md). Algumas referências ali são históricas: `SceneRouter` é uma proposta, não uma classe implementada; atualmente o menu troca de cena diretamente.
 
 ## Organização existente
 
-- `scenes/menu_principal.tscn`: cena inicial, com título JUNO, Jogar e Sair.
-- `scenes/partida_rede.tscn`: conexão por nome/IP/porta, sala, mesa real e chat.
-- `scenes/mesa_partida.tscn`: apresentação da partida, mãos, compra, descarte e escolhas de cor/alvo.
-- `scenes/carta.tscn`, `mao.tscn`, `monte.tscn`, `descarte.tscn`: componentes visuais reutilizáveis.
-- `scenes/fundo_mesa.tscn`: fundo compartilhado pelo menu, conexão e mesa.
-- `scenes/chat_partida.tscn`: painel recolhível do chat.
-- `scenes/teste.tscn` e `scripts/teste.gd`: laboratório original do usuário para testar objetos, leque, virada, compra e troca entre mãos. **Preservar como laboratório; não convertê-lo na partida final.**
-- `scenes/tests/previa_mesa_partida.tscn`: instancia a mesa real sem conexão, com dois jogadores; comandos locais passam pela mesma lógica e filtragem. Não inclui o chat nem representa toda a experiência de quatro jogadores.
-- `scenes/tests/teste_mesa_basica.tscn`, `teste_rede_quatro.tscn`, `teste_chat_rede.tscn`: verificações de recortes da lógica e rede, com scripts em `scripts/tests`.
+`main` identifica cenas e componentes usados pelo jogo, não uma única cena inicial. O fluxo é `menu_principal` → `partida_rede`, que instancia `mesa_partida` e o chat. `GameManager` é carregado como autoload. As cenas de `desenvolvimento` são executadas separadamente e reutilizam os componentes de `main`.
+
+- `scenes/main/telas/menu_principal.tscn`: cena inicial, com título JUNO, Jogar e Sair.
+- `scenes/main/telas/partida_rede.tscn`: conexão por nome/IP/porta, sala, mesa real e chat.
+- `scenes/main/componentes/mesa_partida.tscn`: apresentação da partida, mãos, compra, descarte e escolhas de cor/alvo.
+- `scenes/main/componentes/carta.tscn`, `mao.tscn`, `monte.tscn`, `descarte.tscn`: componentes visuais reutilizáveis.
+- `scenes/main/componentes/fundo_mesa.tscn`: fundo compartilhado pelo menu, conexão e mesa.
+- `scenes/main/componentes/chat_partida.tscn`: painel recolhível do chat.
+- `scenes/main/componentes/luz_mesa.tscn`: iluminação modular instanciada pela mesa; script e shaders em `scripts/main/componentes`.
+- `scenes/desenvolvimento/laboratorios/teste.tscn` e `scripts/desenvolvimento/laboratorios/teste.gd`: laboratório original do usuário para testar objetos, leque, virada, compra e troca entre mãos. **Preservar como laboratório; não convertê-lo na partida final.**
+- `scenes/desenvolvimento/previas/previa_mesa_partida.tscn`: instancia a mesa real sem conexão, com dois jogadores; comandos locais passam pela mesma lógica e filtragem. Não inclui o chat nem representa toda a experiência de quatro jogadores.
+- `scenes/desenvolvimento/previas/previa_acabamento_carta.tscn`: comparação visual entre carta original e acabamento de impressão, com ajustes para experimentação.
+- `scenes/desenvolvimento/tests/teste_mesa_basica.tscn`, `teste_rede_quatro.tscn`, `teste_chat_rede.tscn`: verificações de recortes da lógica e rede, com scripts em `scripts/desenvolvimento/tests`.
 - `scripts/cartas`: objetos lógicos e sua hierarquia, separados da carta visual.
 - `scripts/logica`: mesa, API de comandos, contexto de efeitos, jogadores, baralho, descarte e filtragem de eventos.
 - `scripts/rede`: conexão e endpoints de partida/chat.
-- `scripts/globais`: autoload e barramento.
-- `scripts/scripts_de_cena`: scripts visuais e shaders existentes. Manter essa organização.
+- `scripts/main/globais`: autoload e barramento.
+- `scripts/main/telas`: scripts do menu e da partida em rede.
+- `scripts/main/componentes`: scripts visuais reutilizáveis, shaders e includes compartilhados.
+- `scripts/desenvolvimento`: scripts de prévias, laboratórios e testes nas mesmas subpastas das cenas. Os nomes existentes foram preservados.
 - `images`: sprites, moldura, verso e fonte Barlow Condensed Bold. Licença da fonte em `docs/OFL-BarlowCondensed.txt`.
 
 ## Arquitetura e responsabilidades
@@ -60,7 +66,7 @@ As classes `Carta_*` de `scripts/cartas` representam cartas lógicas, com ID, va
 
 ### Rede e barramento
 
-`GameManager` é o autoload de `scenes/game_manager.tscn`. Seus filhos persistentes são `EventBus`, `NetworkManager`, `MatchEndpoint` e `ChatEndpoint`; manter os caminhos iguais entre as instâncias para os RPCs.
+`GameManager` é o autoload de `scenes/main/globais/game_manager.tscn`. Seus filhos persistentes são `EventBus`, `NetworkManager`, `MatchEndpoint` e `ChatEndpoint`; manter os caminhos iguais entre as instâncias para os RPCs.
 
 `GerenciadorRede` cuida de ENet, apresentação/handshake, participantes, início permitido e desconexões. O anfitrião é jogador 1. Outros IDs estáveis de jogador são atribuídos pelo servidor e **não são os IDs dos peers do Godot**. O servidor identifica o remetente pela conexão, não por um ID de jogador enviado pelo cliente.
 
@@ -104,7 +110,7 @@ Conectar/hospedar/sair e iniciar a sala usam diretamente os gerenciadores/endpoi
 
 Direção: retrô/arcade com sensação de mesa física; repouso calmo e respostas breves às ações. O usuário avalia o visual por pequenas entregas.
 
-As cinco cores visuais são centralizadas em `Carta.MAP_CORES`, em `scripts/scripts_de_cena/carta.gd`:
+As cinco cores visuais são centralizadas em `Carta.MAP_CORES`, em `scripts/main/componentes/carta.gd`:
 
 - Vermelho: `#8F1E28`.
 - Verde: `#2F6B3B`.
@@ -127,7 +133,7 @@ O menu atual é uma cena separada, com título JUNO e ações Jogar/Sair. Jogar 
 ## Validação e cuidados práticos
 
 - A janela de referência é 1280×720, com stretch `canvas_items`/aspect `expand`; também foram consideradas telas de 1920×1080.
-- Para revisar a mesa real sem rede, usar `scenes/tests/previa_mesa_partida.tscn`. Para interações completas, executar o projeto pelo menu ou `partida_rede.tscn` em instâncias separadas.
+- Para revisar a mesa real sem rede, usar `scenes/desenvolvimento/previas/previa_mesa_partida.tscn`. Para interações completas, executar o projeto pelo menu ou `partida_rede.tscn` em instâncias separadas.
 - O laboratório `teste.tscn` tem fundo cinza e áreas ciano das mãos. Isso é próprio daquela cena, não a aparência final da mesa.
 - O usuário já validou manualmente lógica básica, multiplayer, cartas especiais, distribuição e troca de mãos em etapas anteriores. Esse histórico não equivale a uma verificação de toda alteração futura.
 - Neste ambiente, tentativas de lançar o Godot diretamente por terminal para capturas chegaram a falhar com `signal 11`, inclusive em compatibilidade/headless. A causa não foi diagnosticada; não atribuir automaticamente o crash ao código do jogo nem alterar permanentemente o renderer para contornar.

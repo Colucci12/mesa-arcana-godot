@@ -1,0 +1,72 @@
+[gd_scene format=3 uid="uid://dr31pg08xg5wm"]
+
+[ext_resource type="Script" uid="uid://ct8ytp6hvt85t" path="res://scripts/desenvolvimento/laboratorios/teste.gd" id="1_kta4m"]
+[ext_resource type="PackedScene" uid="uid://c2h4odean45qd" path="res://scenes/main/componentes/mao.tscn" id="2_2gqm3"]
+[ext_resource type="PackedScene" uid="uid://bypqjeoqphjfc" path="res://scenes/main/componentes/monte.tscn" id="3_3r2dd"]
+
+[node name="Teste" type="Node" unique_id=267600563]
+script = ExtResource("1_kta4m")
+
+[node name="Control" type="Control" parent="." unique_id=1748840652]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="mao_baixo" parent="Control" unique_id=1643648853 instance=ExtResource("2_2gqm3")]
+layout_mode = 1
+
+[node name="mao_cima" parent="Control" unique_id=134421412 instance=ExtResource("2_2gqm3")]
+layout_mode = 1
+anchors_preset = 5
+anchor_top = 0.0
+anchor_bottom = 0.0
+offset_top = 0.0
+offset_bottom = 140.0
+grow_vertical = 1
+rotation = 3.1415927
+mao_adversaria = true
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Control" unique_id=1165868366]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -40.0
+offset_bottom = 40.0
+grow_horizontal = 0
+
+[node name="Compra" type="Button" parent="Control/VBoxContainer" unique_id=1046310424]
+layout_mode = 2
+text = "COMPRA"
+
+[node name="Descarta" type="Button" parent="Control/VBoxContainer" unique_id=531969656]
+layout_mode = 2
+text = "DESCARTA"
+
+[node name="Button" type="Button" parent="Control/VBoxContainer" unique_id=1497765357]
+layout_mode = 2
+text = "SWAP"
+
+[node name="monte" parent="Control" unique_id=986836584 instance=ExtResource("3_3r2dd")]
+layout_mode = 0
+anchors_preset = 0
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+offset_left = 592.0
+offset_top = 286.0
+offset_right = 698.5
+offset_bottom = 428.5
+grow_horizontal = 1
+grow_vertical = 1
+
+[connection signal="button_down" from="Control/VBoxContainer/Compra" to="." method="_on_compra_button_down"]
+[connection signal="button_down" from="Control/VBoxContainer/Descarta" to="." method="_on_descarta_button_down"]
+[connection signal="button_down" from="Control/VBoxContainer/Button" to="." method="_on_button_button_down"]
+[connection signal="gui_input" from="Control/monte" to="." method="_on_monte_gui_input"]

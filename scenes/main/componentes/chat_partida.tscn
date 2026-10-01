@@ -1,0 +1,79 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/main/componentes/chat_partida.gd" id="1"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_painel"]
+bg_color = Color(0.04, 0.09, 0.08, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.35, 0.45, 0.4, 0.8)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_left = 6
+corner_radius_bottom_right = 6
+content_margin_left = 12.0
+content_margin_top = 12.0
+content_margin_right = 12.0
+content_margin_bottom = 12.0
+
+[node name="ChatPartida" type="VBoxContainer"]
+visible = false
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 3
+anchor_left = 1.0
+anchor_right = 1.0
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = -316.0
+offset_top = -48.0
+offset_right = -16.0
+offset_bottom = -16.0
+grow_vertical = 0
+theme_override_constants/separation = 6
+script = ExtResource("1")
+
+[node name="Abrir" type="Button" parent="."]
+custom_minimum_size = Vector2(0, 32)
+layout_mode = 2
+text = "Chat"
+toggle_mode = true
+
+[node name="Conteudo" type="PanelContainer" parent="."]
+visible = false
+custom_minimum_size = Vector2(0, 230)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_painel")
+
+[node name="Itens" type="VBoxContainer" parent="Conteudo"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Mensagens" type="RichTextLabel" parent="Conteudo/Itens"]
+custom_minimum_size = Vector2(0, 155)
+layout_mode = 2
+size_flags_vertical = 3
+bbcode_enabled = false
+scroll_following = true
+selection_enabled = true
+
+[node name="Compor" type="HBoxContainer" parent="Conteudo/Itens"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Entrada" type="LineEdit" parent="Conteudo/Itens/Compor"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "Mensagem..."
+max_length = 280
+
+[node name="Enviar" type="Button" parent="Conteudo/Itens/Compor"]
+layout_mode = 2
+text = "Enviar"
+
+[node name="Erro" type="Label" parent="Conteudo/Itens"]
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.65, 0.55, 1)
+autowrap_mode = 3

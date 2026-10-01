@@ -1,0 +1,30 @@
+[gd_scene format=3 uid="uid://c2h4odean45qd"]
+
+[ext_resource type="Script" uid="uid://bam1nm5lr4u6b" path="res://scripts/main/componentes/mao.gd" id="1_g8kpn"]
+
+[sub_resource type="Curve" id="Curve_g8kpn"]
+_data = [Vector2(0, 0), 0.0, 3.0, 0, 0, Vector2(0.5, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), -3.0, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="Curve" id="Curve_fviye"]
+_limits = [-1.0, 1.0, 0.0, 1.0]
+_data = [Vector2(0, -1), 0.0, 6.0, 0, 0, Vector2(0.5, 1.4901161e-08), 0.0, 0.0, 0, 0, Vector2(1, 1), 6.0, 0.0, 0, 0]
+point_count = 3
+
+[node name="Mao" type="ColorRect" unique_id=1643648853]
+custom_minimum_size = Vector2(800, 140)
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -400.0
+offset_top = -140.0
+offset_right = 400.0
+grow_horizontal = 2
+grow_vertical = 0
+pivot_offset = Vector2(400, 70)
+color = Color(0, 1, 1, 1)
+script = ExtResource("1_g8kpn")
+curvatura = SubResource("Curve_g8kpn")
+rotacao = SubResource("Curve_fviye")
