@@ -10,33 +10,45 @@
 [ext_resource type="PackedScene" path="res://scenes/luz_mesa.tscn" id="7"]
 [ext_resource type="Shader" uid="uid://vc2kfg7ulql1" path="res://scripts/scripts_de_cena/objeto_iluminado.gdshader" id="8_pl6e3"]
 
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_q08x5"]
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_2hn67"]
 shader = ExtResource("3_2hn67")
 shader_parameter/luz_intensidade = 0.95
 shader_parameter/luz_cor = Color(0.86802304, 0.63416123, 0, 1)
-shader_parameter/luz_posicao = Vector2(0.5, 0.47)
+shader_parameter/luz_posicao = Vector2(0.5, 0.55)
 shader_parameter/luz_raio = Vector2(0.85, 0.5)
 shader_parameter/luz_suavidade = 0.49
 shader_parameter/luz_brilho_foco = 1.15
 shader_parameter/luz_brilho_exterior = 0.18
-shader_parameter/luz_aquecimento = 0.15
+shader_parameter/luz_aquecimento = 0.16
+shader_parameter/luz_assimetria = Vector2(0.1, 0.1)
+shader_parameter/luz_preservacao = 0.0
+shader_parameter/luz_irregularidade = 0.025
+shader_parameter/luz_incidencia_superior = 0.3
+shader_parameter/luz_amplitude_pulsacao = 0.03
+shader_parameter/luz_velocidade_pulsacao = 0.25
 shader_parameter/cor_base = Color(0.047058824, 0.21960784, 0.17254902, 1)
 shader_parameter/cor_iluminada = Color(0.09019608, 0.2901961, 0.22745098, 1)
 shader_parameter/intensidade = 1.0
 shader_parameter/extensao = 0.76
 shader_parameter/dimensoes = Vector2(1280, 720)
 
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_487wo"]
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_pl6e3"]
 resource_local_to_scene = true
 shader = ExtResource("8_pl6e3")
 shader_parameter/luz_intensidade = 0.95
 shader_parameter/luz_cor = Color(0.86802304, 0.63416123, 0, 1)
-shader_parameter/luz_posicao = Vector2(0.5, 0.47)
+shader_parameter/luz_posicao = Vector2(0.5, 0.55)
 shader_parameter/luz_raio = Vector2(0.85, 0.5)
 shader_parameter/luz_suavidade = 0.49
 shader_parameter/luz_brilho_foco = 1.15
 shader_parameter/luz_brilho_exterior = 0.32
-shader_parameter/luz_aquecimento = 0.15
+shader_parameter/luz_aquecimento = 0.16
+shader_parameter/luz_assimetria = Vector2(0.1, 0.1)
+shader_parameter/luz_preservacao = 0.5
+shader_parameter/luz_irregularidade = 0.025
+shader_parameter/luz_incidencia_superior = 0.3
+shader_parameter/luz_amplitude_pulsacao = 0.03
+shader_parameter/luz_velocidade_pulsacao = 0.25
 
 [node name="MesaPartida" type="Control" unique_id=1815636156]
 layout_mode = 3
@@ -49,7 +61,7 @@ script = ExtResource("1")
 intervalo_entre_cartas = 0.15
 
 [node name="PlanoFundo" parent="." unique_id=1714349624 instance=ExtResource("5")]
-material = SubResource("ShaderMaterial_q08x5")
+material = SubResource("ShaderMaterial_2hn67")
 layout_mode = 1
 
 [node name="Titulo" type="Label" parent="." unique_id=1759817237]
@@ -148,7 +160,7 @@ layout_mode = 2
 text = "Vermelho"
 
 [node name="Descarte" parent="." unique_id=523327856 instance=ExtResource("4")]
-material = SubResource("ShaderMaterial_487wo")
+material = SubResource("ShaderMaterial_pl6e3")
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -384,8 +396,14 @@ theme_override_constants/separation = 8
 [node name="LuzMesa" parent="." unique_id=1570717990 instance=ExtResource("7")]
 intensidade = 0.95
 cor = Color(0.86802304, 0.63416123, 0, 1)
+posicao = Vector2(0.5, 0.55)
 raio = Vector2(0.85, 0.5)
 suavidade = 0.49
-aquecimento = 0.15
+assimetria = Vector2(0.1, 0.1)
+incidencia_superior = 0.3
+amplitude_pulsacao = 0.03
+velocidade_pulsacao = 0.25
+preservacao_cartas = 0.5
+comprimento_sombra = 30.0
 superficies_mesa = Array[NodePath]([NodePath("../PlanoFundo")])
 objetos_mesa = Array[NodePath]([NodePath("../Monte/background"), NodePath("../Descarte")])

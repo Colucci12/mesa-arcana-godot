@@ -9,18 +9,35 @@ uniform float luz_brilho_exterior : hint_range(0.0, 1.0) = 0.18;
 uniform float luz_aquecimento : hint_range(0.0, 1.0) = 0.16;
 uniform vec2 luz_assimetria = vec2(0.0);
 uniform float luz_preservacao : hint_range(0.0, 1.0) = 0.0;
+uniform float luz_irregularidade : hint_range(0.0, 0.15) = 0.0;
+uniform float luz_incidencia_superior : hint_range(0.0, 0.5) = 0.0;
+uniform float luz_amplitude_pulsacao : hint_range(0.0, 0.03) = 0.0;
+uniform float luz_velocidade_pulsacao : hint_range(0.0, 0.25) = 0.06;
 
 float calcular_foco_luz(vec2 posicao_tela, vec2 tamanho_pixel) {
 	vec2 dimensoes_foco = vec2(1.0) / tamanho_pixel;
 	vec2 proporcao_foco = dimensoes_foco / min(dimensoes_foco.x, dimensoes_foco.y);
-	vec2 raios_seguros = max(luz_raio, vec2(0.001));
+	// Todos os materiais usam o mesmo relógio. Só o raio varia; a fonte fica fixa.
+	float pulso_raio = 1.0 + luz_amplitude_pulsacao * sin(TIME * TAU * luz_velocidade_pulsacao);
+	vec2 raios_seguros = max(luz_raio * pulso_raio, vec2(0.001));
 	vec2 coordenadas_foco = (posicao_tela - luz_posicao) * proporcao_foco / raios_seguros;
 	// Curvatura ampla, sem ruído ou textura, para quebrar a simetria perfeita.
 	vec2 deformacao_foco = clamp(luz_assimetria, vec2(-0.25), vec2(0.25));
 	coordenadas_foco += deformacao_foco * coordenadas_foco.yx * coordenadas_foco.yx;
 	float distancia_foco = length(coordenadas_foco);
+	// Pequenas variações de baixa frequência no contorno, sem textura ou ruído.
+	float angulo_foco = 0.0;
+	if (distancia_foco > 0.0001) {
+		angulo_foco = atan(coordenadas_foco.y, coordenadas_foco.x);
+	}
+	float contorno_foco = 0.65 * cos(3.0 * angulo_foco + 0.4);
+	contorno_foco += 0.35 * sin(2.0 * angulo_foco - 0.7);
+	distancia_foco /= 1.0 + luz_irregularidade * contorno_foco;
 	// A luz perde força desde o centro, evitando um interior de brilho uniforme.
 	float atenuacao_foco = 1.0 / (1.0 + distancia_foco * distancia_foco);
+	// A parte inferior recebe menos luz, sugerindo incidência vinda de cima.
+	float peso_incidencia = smoothstep(-0.2, 0.8, coordenadas_foco.y);
+	atenuacao_foco *= 1.0 - luz_incidencia_superior * peso_incidencia;
 	// A suavidade continua controlando o encontro do foco com a penumbra.
 	float inicio_transicao = 1.0 - clamp(luz_suavidade, 0.05, 1.0);
 	float borda_foco = 1.0 - smoothstep(inicio_transicao, 1.0, distancia_foco);

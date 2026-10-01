@@ -40,6 +40,31 @@ signal parametros_alterados
 		assimetria = valor
 		_atualizar_materiais()
 
+# Variações amplas e fixas no contorno; zero mantém somente a assimetria do oval.
+@export_range(0.0, 0.15, 0.005) var irregularidade: float = 0.025:
+	set(valor):
+		irregularidade = valor
+		_atualizar_materiais()
+
+# Aumentar concentra a incidência na parte superior da mesa.
+@export_range(0.0, 0.5, 0.01) var incidencia_superior: float = 0.18:
+	set(valor):
+		incidencia_superior = valor
+		_atualizar_materiais()
+
+@export_group("Pulsação do raio")
+# Fração do raio: 0.008 corresponde a ±0.8%. Zero desliga a pulsação.
+@export_range(0.0, 0.03, 0.001) var amplitude_pulsacao: float = 0.008:
+	set(valor):
+		amplitude_pulsacao = valor
+		_atualizar_materiais()
+
+# Ciclos por segundo: 0.06 completa uma pulsação em aproximadamente 17 segundos.
+@export_range(0.0, 0.25, 0.005) var velocidade_pulsacao: float = 0.06:
+	set(valor):
+		velocidade_pulsacao = valor
+		_atualizar_materiais()
+
 @export_group("Brilho e temperatura")
 # Intensidade dentro do foco: 1 mantém o brilho original dos objetos.
 @export_range(0.5, 2.0, 0.01) var brilho_foco: float = 1.15:
@@ -139,6 +164,10 @@ func _configurar_material(material_superficie: ShaderMaterial, objeto: bool) -> 
 	material_superficie.set_shader_parameter("luz_raio", raio)
 	material_superficie.set_shader_parameter("luz_suavidade", suavidade)
 	material_superficie.set_shader_parameter("luz_assimetria", assimetria)
+	material_superficie.set_shader_parameter("luz_irregularidade", irregularidade)
+	material_superficie.set_shader_parameter("luz_incidencia_superior", incidencia_superior)
+	material_superficie.set_shader_parameter("luz_amplitude_pulsacao", amplitude_pulsacao)
+	material_superficie.set_shader_parameter("luz_velocidade_pulsacao", velocidade_pulsacao)
 	material_superficie.set_shader_parameter("luz_brilho_foco", brilho_foco)
 	var exterior := maxf(brilho_exterior, brilho_minimo_cartas) if objeto else brilho_exterior
 	material_superficie.set_shader_parameter("luz_brilho_exterior", exterior)
