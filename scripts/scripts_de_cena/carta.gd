@@ -96,6 +96,13 @@ func carta_esta_em_foco():
 func definir_jogavel(jogavel: bool) -> void:
 	modulate = Color.WHITE if jogavel else Color(0.55, 0.55, 0.55)
 
+func definir_acabamento(intensidade_claros: float, intensidade_tinta: float, variacao_tinta: float = 0.0, escala_variacao: float = 18.0) -> void:
+	var material_carta := $TexturaCarta.material as ShaderMaterial
+	material_carta.set_shader_parameter("acabamento_claros", clampf(intensidade_claros, 0.0, 0.05))
+	material_carta.set_shader_parameter("acabamento_tinta", clampf(intensidade_tinta, 0.0, 0.08))
+	material_carta.set_shader_parameter("acabamento_variacao_tinta", clampf(variacao_tinta, 0.0, 0.15))
+	material_carta.set_shader_parameter("acabamento_escala_variacao", clampf(escala_variacao, 4.0, 48.0))
+
 func definir_iluminacao(iluminacao: IluminacaoAmbiente) -> void:
 	if is_instance_valid(_iluminacao) and _iluminacao.parametros_alterados.is_connected(_atualizar_sombra):
 		_iluminacao.parametros_alterados.disconnect(_atualizar_sombra)

@@ -2,12 +2,12 @@ shader_type canvas_item;
 render_mode unshaded, blend_premul_alpha;
 
 #include "res://scripts/scripts_de_cena/iluminacao_ambiente.gdshaderinc"
+#include "res://scripts/scripts_de_cena/acabamento_carta.gdshaderinc"
 
 uniform vec2 inclinacao = vec2(0.0);
 uniform vec2 tamanho_textura = vec2(87.0, 111.0);
 uniform float largura_contorno : hint_range(0.0, 2.0, 0.05) = 0.65;
 uniform vec4 cor_contorno : source_color = vec4(0.42, 0.43, 0.46, 0.55);
-
 varying vec2 posicao_na_tela;
 varying vec4 cor_modulada;
 
@@ -50,6 +50,9 @@ void fragment() {
 	textura += vec4(cor_contorno.rgb * alfa_contorno, alfa_contorno);
 	// Tratar a arte antes da modulação mantém o papel legível nas cartas escurecidas.
 	vec3 arte_carta = textura.rgb / max(textura.a, 0.00001);
+	if (acabamento_claros > 0.0 || acabamento_tinta > 0.0 || acabamento_variacao_tinta > 0.0) {
+		arte_carta = aplicar_acabamento_carta(arte_carta, uv, tamanho_textura);
+	}
 	arte_carta = aplicar_iluminacao_ambiente(arte_carta, SCREEN_UV, SCREEN_PIXEL_SIZE);
 	COLOR = vec4(arte_carta * textura.a, textura.a);
 	COLOR *= vec4(cor_modulada.rgb * cor_modulada.a, cor_modulada.a);

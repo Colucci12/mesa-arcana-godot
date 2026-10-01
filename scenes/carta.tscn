@@ -15,6 +15,10 @@ resource_local_to_scene = true
 shader = ExtResource("5_perspectiva")
 shader_parameter/inclinacao = Vector2(0, 0)
 shader_parameter/tamanho_textura = Vector2(87, 111)
+shader_parameter/acabamento_claros = 0.03
+shader_parameter/acabamento_tinta = 0.05
+shader_parameter/acabamento_variacao_tinta = 0.15
+shader_parameter/acabamento_escala_variacao = 4.0
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_rx7pn"]
 atlas = ExtResource("3_3p8e2")

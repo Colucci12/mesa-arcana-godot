@@ -7,6 +7,10 @@
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_iluminacao"]
 resource_local_to_scene = true
 shader = ExtResource("3")
+shader_parameter/acabamento_claros = 0.03
+shader_parameter/acabamento_tinta = 0.05
+shader_parameter/acabamento_variacao_tinta = 0.15
+shader_parameter/acabamento_escala_variacao = 4.0
 
 [node name="monte" type="ColorRect" unique_id=986836584]
 anchors_preset = 8

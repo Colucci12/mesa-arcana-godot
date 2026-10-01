@@ -1,0 +1,105 @@
+[gd_scene format=3 uid="uid://vwiy1hvl2020"]
+
+[ext_resource type="Script" uid="uid://cm5w4nmdj22r6" path="res://scripts/tests/previa_acabamento_carta.gd" id="1"]
+[ext_resource type="PackedScene" uid="uid://crnqw3ca6nns1" path="res://scenes/carta.tscn" id="2"]
+[ext_resource type="PackedScene" uid="uid://dws06fm8qslt3" path="res://scenes/fundo_mesa.tscn" id="3"]
+[ext_resource type="Shader" uid="uid://dmdvftxcgp6nw" path="res://scripts/scripts_de_cena/fundo_mesa.gdshader" id="3_2f7qo"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_erahj"]
+shader = ExtResource("3_2f7qo")
+shader_parameter/luz_intensidade = 0.0
+shader_parameter/luz_cor = Color(1, 0.95, 0.86, 1)
+shader_parameter/luz_posicao = Vector2(0.5, 0.47)
+shader_parameter/luz_raio = Vector2(0.65, 0.41)
+shader_parameter/luz_suavidade = 0.4
+shader_parameter/luz_brilho_foco = 1.15
+shader_parameter/luz_brilho_exterior = 0.18
+shader_parameter/luz_aquecimento = 0.16
+shader_parameter/luz_assimetria = Vector2(0, 0)
+shader_parameter/luz_preservacao = 0.0
+shader_parameter/luz_irregularidade = 0.0
+shader_parameter/luz_incidencia_superior = 0.0
+shader_parameter/luz_amplitude_pulsacao = 0.0
+shader_parameter/luz_velocidade_pulsacao = 0.06
+shader_parameter/cor_base = Color(0.047058824, 0.21960784, 0.17254902, 1)
+shader_parameter/cor_iluminada = Color(0.09019608, 0.2901961, 0.22745098, 1)
+shader_parameter/intensidade = 1.0
+shader_parameter/extensao = 0.76
+shader_parameter/dimensoes = Vector2(1280, 720)
+shader_parameter/intensidade_textura = 0.0
+shader_parameter/escala_textura = 1.0
+shader_parameter/intensidade_manchas = 0.0
+
+[node name="PreviaAcabamentoCarta" type="Control" unique_id=1046738078]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1")
+intensidade_claros = 0.03
+intensidade_tinta = 0.05
+variacao_tinta = 0.15
+escala_variacao = 4.0
+
+[node name="PlanoFundo" parent="." unique_id=964033902 instance=ExtResource("3")]
+material = SubResource("ShaderMaterial_erahj")
+layout_mode = 1
+
+[node name="Titulo" type="Label" parent="." unique_id=26682296]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 48.0
+offset_bottom = 90.0
+grow_horizontal = 2
+theme_override_font_sizes/font_size = 28
+text = "Acabamento da carta — comparação"
+horizontal_alignment = 1
+
+[node name="Original" type="Label" parent="." unique_id=2004521711]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.35
+anchor_top = 0.5
+anchor_right = 0.35
+anchor_bottom = 0.5
+offset_left = -120.0
+offset_top = 115.0
+offset_right = 120.0
+offset_bottom = 145.0
+text = "Original"
+horizontal_alignment = 1
+
+[node name="Acabamento" type="Label" parent="." unique_id=477789136]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.65
+anchor_top = 0.5
+anchor_right = 0.65
+anchor_bottom = 0.5
+offset_left = -120.0
+offset_top = 115.0
+offset_right = 120.0
+offset_bottom = 145.0
+text = "Impressão experimental"
+horizontal_alignment = 1
+
+[node name="Orientacao" type="Label" parent="." unique_id=506540245]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -80.0
+offset_bottom = -35.0
+text = "Ajuste a cor e as intensidades no Inspector do nó principal.
+Durante a execução, use o Inspector remoto para comparar os ajustes."
+horizontal_alignment = 1
+
+[node name="CartaOriginal" parent="." unique_id=682743268 instance=ExtResource("2")]
+layout_mode = 0
+
+[node name="CartaAcabamento" parent="." unique_id=82571304 instance=ExtResource("2")]
+layout_mode = 0

@@ -31,6 +31,9 @@ shader_parameter/cor_iluminada = Color(0.09019608, 0.2901961, 0.22745098, 1)
 shader_parameter/intensidade = 1.0
 shader_parameter/extensao = 0.76
 shader_parameter/dimensoes = Vector2(1280, 720)
+shader_parameter/intensidade_textura = 0.12
+shader_parameter/escala_textura = 1.0
+shader_parameter/intensidade_manchas = 0.0
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_pl6e3"]
 resource_local_to_scene = true
@@ -63,8 +66,7 @@ intervalo_entre_cartas = 0.15
 [node name="PlanoFundo" parent="." unique_id=1714349624 instance=ExtResource("5")]
 material = SubResource("ShaderMaterial_2hn67")
 layout_mode = 1
-intensidade_textura = 0.06
-intensidade_manchas = 0.004
+intensidade_textura = 0.12
 
 [node name="Titulo" type="Label" parent="." unique_id=1759817237]
 layout_mode = 1
