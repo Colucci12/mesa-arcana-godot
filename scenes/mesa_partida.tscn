@@ -63,6 +63,8 @@ intervalo_entre_cartas = 0.15
 [node name="PlanoFundo" parent="." unique_id=1714349624 instance=ExtResource("5")]
 material = SubResource("ShaderMaterial_2hn67")
 layout_mode = 1
+intensidade_textura = 0.06
+intensidade_manchas = 0.004
 
 [node name="Titulo" type="Label" parent="." unique_id=1759817237]
 layout_mode = 1

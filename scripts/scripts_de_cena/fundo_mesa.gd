@@ -22,6 +22,25 @@ extends ColorRect
 		extensao = valor
 		_atualizar_material()
 
+@export_group("Textura do feltro")
+# Controle principal do grão e da variação do feltro; zero desliga a textura.
+@export_range(0.0, 0.2, 0.005) var intensidade_textura: float = 0.0:
+	set(valor):
+		intensidade_textura = valor
+		_atualizar_material()
+
+# Valores maiores aumentam o tamanho dos detalhes, sem mudar sua intensidade.
+@export_range(0.5, 4.0, 0.05) var escala_textura: float = 1.0:
+	set(valor):
+		escala_textura = valor
+		_atualizar_material()
+
+# Manchas amplas e muito discretas; zero mantém apenas o grão do feltro.
+@export_range(0.0, 0.05, 0.001) var intensidade_manchas: float = 0.0:
+	set(valor):
+		intensidade_manchas = valor
+		_atualizar_material()
+
 
 func _ready() -> void:
 	material = material.duplicate()
@@ -38,3 +57,6 @@ func _atualizar_material() -> void:
 	fundo_material.set_shader_parameter("intensidade", intensidade)
 	fundo_material.set_shader_parameter("extensao", extensao)
 	fundo_material.set_shader_parameter("dimensoes", size)
+	fundo_material.set_shader_parameter("intensidade_textura", intensidade_textura)
+	fundo_material.set_shader_parameter("escala_textura", escala_textura)
+	fundo_material.set_shader_parameter("intensidade_manchas", intensidade_manchas)
