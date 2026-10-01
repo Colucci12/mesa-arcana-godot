@@ -19,6 +19,7 @@ var _tween_da_virada: Tween = null
 var _virando: bool = false
 var _inclinacao_atual := Vector2.ZERO
 var _cor_de_fundo: Carta_Base.Cores = Carta_Base.Cores.PRETO
+var _iluminacao: IluminacaoAmbiente
 	
 var verso := true:
 	set(v):
@@ -67,6 +68,11 @@ func _atualizar_sombra() -> void:
 		return
 	var escala_sombra := minf(transformacao.x.length(), transformacao.y.length())
 	var deslocamento_na_tela := deslocamento_sombra * escala_sombra
+	if is_instance_valid(_iluminacao):
+		var centro_na_tela := transformacao * (size / 2.0)
+		var dimensoes_tela := get_viewport().get_visible_rect().size
+		var sombra_lampada := _iluminacao.deslocamento_sombra_na_tela(centro_na_tela, dimensoes_tela)
+		deslocamento_na_tela = deslocamento_na_tela.lerp(sombra_lampada * escala_sombra, _iluminacao.intensidade)
 	var deslocamento_local := transformacao.affine_inverse() * (transformacao.origin + deslocamento_na_tela)
 	$Sombra.position = $TexturaCarta.position + deslocamento_local
 
@@ -89,6 +95,16 @@ func carta_esta_em_foco():
 
 func definir_jogavel(jogavel: bool) -> void:
 	modulate = Color.WHITE if jogavel else Color(0.55, 0.55, 0.55)
+
+func definir_iluminacao(iluminacao: IluminacaoAmbiente) -> void:
+	if is_instance_valid(_iluminacao) and _iluminacao.parametros_alterados.is_connected(_atualizar_sombra):
+		_iluminacao.parametros_alterados.disconnect(_atualizar_sombra)
+	_iluminacao = iluminacao
+	_iluminacao.aplicar_em($TexturaCarta.material as ShaderMaterial, true)
+	_iluminacao.parametros_alterados.connect(_atualizar_sombra)
+	if not get_viewport().size_changed.is_connected(_atualizar_sombra):
+		get_viewport().size_changed.connect(_atualizar_sombra)
+	_atualizar_sombra()
 		
 func virar_carta():
 	if _tween_do_hover and _tween_do_hover.is_valid():

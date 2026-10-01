@@ -43,6 +43,7 @@ var _processando_eventos: bool = false
 var _interacoes_liberadas: bool = false
 
 func _ready() -> void:
+	_monte.definir_iluminacao($LuzMesa)
 	_monte.gui_input.connect(_ao_clicar_monte)
 	_botao_passar.pressed.connect(_solicitar_passagem)
 	resized.connect(_posicionar_escolha_cor)

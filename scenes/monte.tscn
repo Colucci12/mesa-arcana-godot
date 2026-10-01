@@ -2,6 +2,11 @@
 
 [ext_resource type="Script" uid="uid://cce0wdxip6yes" path="res://scripts/scripts_de_cena/monte.gd" id="1_jyyp0"]
 [ext_resource type="Texture2D" uid="uid://b1gsgkhaduegt" path="res://images/deck_cards.png" id="2_uhx4n"]
+[ext_resource type="Shader" path="res://scripts/scripts_de_cena/objeto_iluminado.gdshader" id="3"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_iluminacao"]
+resource_local_to_scene = true
+shader = ExtResource("3")
 
 [node name="monte" type="ColorRect" unique_id=986836584]
 anchors_preset = 8
@@ -20,6 +25,7 @@ color = Color(1, 1, 1, 0)
 script = ExtResource("1_jyyp0")
 
 [node name="background" type="TextureRect" parent="." unique_id=541443590]
+material = SubResource("ShaderMaterial_iluminacao")
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
