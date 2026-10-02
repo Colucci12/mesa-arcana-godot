@@ -1,0 +1,36 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/desenvolvimento/laboratorios/laboratorio_maos_no_plano.tscn" id="1"]
+[ext_resource type="Script" path="res://scripts/desenvolvimento/laboratorios/laboratorio_maos_erguidas.gd" id="2"]
+
+[sub_resource type="StyleBoxFlat" id="Estilo_painel"]
+bg_color = Color(0.075, 0.085, 0.10, 1)
+
+[node name="LaboratorioMaosErguidas" instance=ExtResource("1")]
+script = ExtResource("2")
+
+[node name="Guia" parent="."]
+z_index = 30
+text = "Adversários sobre a mesa; mão inferior em primeiro plano\nTab mostra ou oculta os controles; compare as sombras no painel"
+
+[node name="Painel" type="PanelContainer" parent="."]
+z_index = 40
+anchor_bottom = 1.0
+offset_right = 320.0
+theme_override_styles/panel = SubResource("Estilo_painel")
+
+[node name="Margem" type="MarginContainer" parent="Painel"]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 14
+
+[node name="Rolagem" type="ScrollContainer" parent="Painel/Margem"]
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="Controles" type="VBoxContainer" parent="Painel/Margem/Rolagem"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
