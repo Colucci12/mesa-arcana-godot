@@ -1,12 +1,25 @@
 shader_type canvas_item;
 render_mode unshaded;
 
-uniform float largura_distante : hint_range(0.15, 1.0) = 0.56;
+uniform vec3 inversa_x;
+uniform vec3 inversa_y;
+uniform vec3 inversa_z;
+uniform vec2 origem_retangulo;
+uniform vec2 tamanho_plano = vec2(1000.0, 700.0);
+uniform vec2 origem_captura = vec2(0.0);
+uniform vec2 tamanho_captura = vec2(1000.0, 700.0);
+varying vec2 ponto_projetado;
+
+void vertex() {
+	ponto_projetado = VERTEX + origem_retangulo;
+}
 
 void fragment() {
-	// Projeção do plano da mesa, incluindo o caso retangular (1.0).
-	float largura = mix(largura_distante, 1.0, UV.y);
-	vec2 origem = vec2(0.5 + (UV.x - 0.5) / largura, UV.y / largura);
+	vec3 ponto = vec3(ponto_projetado, 1.0);
+	float denominador = dot(inversa_z, ponto);
+	if (denominador <= 0.000001) { discard; }
+	vec2 mundo = vec2(dot(inversa_x, ponto), dot(inversa_y, ponto)) / denominador * tamanho_plano;
+	vec2 origem = (mundo - origem_captura) / tamanho_captura;
 	if (any(lessThan(origem, vec2(0.0))) || any(greaterThan(origem, vec2(1.0)))) {
 		discard;
 	}

@@ -33,11 +33,8 @@ func _ready() -> void:
 func _dimensionar_plano() -> void:
 	# A largura aumenta o espaço disponível, em vez de ampliar o conteúdo.
 	var dimensoes := Vector2i(roundi(_mesa.largura_proxima), roundi(MesaVisual.TAMANHO_PLANO.y))
-	_viewport_mesa.size_2d_override = dimensoes
 	_conteudo_mesa.size = Vector2(dimensoes)
-	var superficie := _conteudo_mesa.get_node("Superficie") as ColorRect
-	superficie.size = Vector2(dimensoes)
-	(superficie.material as ShaderMaterial).set_shader_parameter("tamanho_plano", Vector2(dimensoes))
+	_mesa.definir_tamanho_plano(Vector2(dimensoes))
 
 
 func _process(_delta: float) -> void:

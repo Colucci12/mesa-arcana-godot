@@ -27,6 +27,7 @@ mouse_filter = 2
 [node name="Composicao" type="Node2D" parent="."]
 
 [node name="Mesa" parent="Composicao" instance=ExtResource("2")]
+formato = 1
 position = Vector2(640, 396)
 largura_proxima = 1600.0
 profundidade_aparente = 400.0

@@ -4,6 +4,12 @@ class_name MesaVisual
 const TAMANHO_PLANO := Vector2(1000, 700)
 const CENA_CARTA = preload("res://scenes/main/componentes/carta.tscn")
 
+@export_group("Formato do tampo")
+@export_enum("Retangular", "Arredondado") var formato := 0
+# Zero usa o tamanho do plano; o contorno pode crescer sem mudar a câmera.
+@export var dimensoes_tampo := Vector2.ZERO
+var tamanho_plano := TAMANHO_PLANO
+
 @export_group("Perspectiva")
 @export_range(200.0, 1600.0, 10.0) var largura_proxima := 1000.0
 @export_range(60.0, 900.0, 5.0) var profundidade_aparente := 420.0
@@ -41,20 +47,99 @@ func configurar_visual(ajustes: Dictionary, grade: bool, cartas: bool) -> void:
 
 
 func atualizar_visual() -> void:
-	var dimensoes := Vector2(largura_proxima, profundidade_aparente)
-	_plano.position = -dimensoes / 2.0
-	_plano.size = dimensoes
-	(_plano.material as ShaderMaterial).set_shader_parameter("largura_distante", largura_distante)
+	var retangulo := obter_retangulo_plano()
+	_viewport.size_2d_override = Vector2i(retangulo.size.ceil())
+	_viewport.size = Vector2i(retangulo.size.ceil() * 1.5)
+	$PlanoViewport/Conteudo.position = -retangulo.position
+	_superficie.position = retangulo.position
+	_superficie.size = retangulo.size
+	var projecao := matriz_projecao_plano()
+	var limites := Rect2(_projetar_ponto(retangulo.position), Vector2.ZERO)
+	for canto in [retangulo.position + Vector2(retangulo.size.x, 0), retangulo.end,
+		retangulo.position + Vector2(0, retangulo.size.y)]:
+		limites = limites.expand(_projetar_ponto(canto))
+	_plano.position = limites.position
+	_plano.size = limites.size
+	var material_projecao := _plano.material as ShaderMaterial
+	var inversa := projecao.inverse()
+	for indice in range(3):
+		material_projecao.set_shader_parameter(["inversa_x", "inversa_y", "inversa_z"][indice],
+			Vector3(inversa.x[indice], inversa.y[indice], inversa.z[indice]))
+	material_projecao.set_shader_parameter("origem_retangulo", limites.position)
+	material_projecao.set_shader_parameter("tamanho_plano", tamanho_plano)
+	material_projecao.set_shader_parameter("origem_captura", retangulo.position)
+	material_projecao.set_shader_parameter("tamanho_captura", retangulo.size)
 	var material_superficie := _superficie.material as ShaderMaterial
+	material_superficie.set_shader_parameter("tamanho_plano", tamanho_plano)
+	material_superficie.set_shader_parameter("origem_captura", retangulo.position)
+	material_superficie.set_shader_parameter("tamanho_captura", retangulo.size)
+	material_superficie.set_shader_parameter("arredondada", formato == 1)
+	material_superficie.set_shader_parameter("dimensoes_tampo", obter_dimensoes_tampo())
 	material_superficie.set_shader_parameter("largura_moldura", largura_moldura)
 	material_superficie.set_shader_parameter("mostrar_grade", mostrar_grade)
 	_referencias.visible = mostrar_cartas
-	var esquerda := Vector2(-largura_proxima / 2.0, profundidade_aparente / 2.0)
-	var direita := Vector2(largura_proxima / 2.0, profundidade_aparente / 2.0)
-	_espessura.polygon = PackedVector2Array([
-		esquerda, direita, direita + Vector2(0, espessura), esquerda + Vector2(0, espessura)
-	])
+	var frente := PackedVector2Array()
+	var tamanho := obter_dimensoes_tampo()
+	if formato == 1:
+		# Extremos laterais da elipse já projetada; só o arco frontal recebe espessura.
+		var k := 1.0 - largura_distante
+		var lateral := asin(clampf(k * tamanho.y / (2.0 * tamanho_plano.y) / (1.0 - k / 2.0), 0.0, 0.999))
+		for indice in range(65):
+			var angulo := lerpf(lateral, PI - lateral, indice / 64.0)
+			frente.append(_projetar_ponto(tamanho_plano / 2.0 + Vector2(cos(angulo), sin(angulo)) * tamanho / 2.0))
+	else:
+		frente.append(_projetar_ponto(tamanho_plano / 2.0 + tamanho / 2.0))
+		frente.append(_projetar_ponto(tamanho_plano / 2.0 + Vector2(-tamanho.x, tamanho.y) / 2.0))
+	var vertices := frente.duplicate()
+	for indice in range(frente.size() - 1, -1, -1):
+		vertices.append(frente[indice] + Vector2(0, espessura))
+	_espessura.polygon = vertices
 	_espessura.visible = espessura > 0.0
+	for indice in range(_referencias.get_child_count()):
+		var carta := _referencias.get_child(indice) as Carta
+		carta.teleportar(tamanho_plano * Vector2(0.5, 0.25 if indice == 0 else 0.75) - Carta.SIZE / 2.0)
+
+
+func definir_tamanho_plano(tamanho: Vector2) -> void:
+	tamanho_plano = tamanho
+	atualizar_visual()
+
+
+func obter_dimensoes_tampo() -> Vector2:
+	return dimensoes_tampo if dimensoes_tampo.x > 0.0 and dimensoes_tampo.y > 0.0 else tamanho_plano
+
+
+func obter_retangulo_plano() -> Rect2:
+	var tamanho := obter_dimensoes_tampo()
+	return Rect2(Vector2.ZERO, tamanho_plano).merge(Rect2((tamanho_plano - tamanho) / 2.0, tamanho))
+
+
+func matriz_projecao_plano() -> Basis:
+	var k := 1.0 - largura_distante
+	var w := largura_proxima
+	var h := profundidade_aparente
+	return Basis(Vector3(w * largura_distante, 0, 0),
+		Vector3(0, h * (largura_distante + k / 2.0), -k),
+		Vector3(-w * largura_distante / 2.0, -h / 2.0, 1))
+
+
+func _projetar_ponto(ponto: Vector2) -> Vector2:
+	var q := matriz_projecao_plano() * Vector3(ponto.x / tamanho_plano.x, ponto.y / tamanho_plano.y, 1)
+	return Vector2(q.x, q.y) / q.z
+
+
+func configurar_recorte_sombra(material: ShaderMaterial) -> void:
+	material.set_shader_parameter("margem_feltro", Vector2.ONE * largura_moldura / tamanho_plano)
+	material.set_shader_parameter("mesa_arredondada", formato == 1)
+	material.set_shader_parameter("raios_feltro", (obter_dimensoes_tampo() / 2.0 - Vector2.ONE * largura_moldura) / tamanho_plano)
+
+
+func contem_feltro(ponto: Vector2) -> bool:
+	var raios := obter_dimensoes_tampo() / 2.0 - Vector2.ONE * largura_moldura
+	if raios.x <= 0 or raios.y <= 0:
+		return false
+	var local := (ponto - tamanho_plano / 2.0) / raios
+	return local.length_squared() <= 1.0 if formato == 1 else absf(local.x) <= 1.0 and absf(local.y) <= 1.0
 
 
 func _montar_referencias() -> void:

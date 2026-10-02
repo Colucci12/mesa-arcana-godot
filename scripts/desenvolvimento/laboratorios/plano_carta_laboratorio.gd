@@ -117,11 +117,14 @@ func projetar_sombra(laboratorio: Node, plano: Dictionary, opacidade: float, int
 	sombra.visible = false
 	if not _captura_pronta or opacidade <= 0.001 or not laboratorio._sombras_melhoradas.button_pressed:
 		return
-	var dimensoes := Vector2(laboratorio._viewport_mesa.size_2d_override)
+	var dimensoes := Vector2(laboratorio._mesa.tamanho_plano)
 	var mesa: Basis = laboratorio._matriz_da_mesa(Vector3.ZERO,
 		Vector3(dimensoes.x, 0, 0), Vector3(0, dimensoes.y, 0))
 	var projecao: Basis = laboratorio._matriz_sombra(plano["ponto"], plano["u"], plano["v"])
-	if absf(projecao.determinant()) < 0.00001 or not _aplicar(sombra, mesa):
+	var retangulo: Rect2 = laboratorio._mesa.obter_retangulo_plano()
+	var receptor: Basis = laboratorio._matriz_da_mesa(Vector3(retangulo.position.x, retangulo.position.y, 0),
+		Vector3(retangulo.size.x, 0, 0), Vector3(0, retangulo.size.y, 0))
+	if absf(projecao.determinant()) < 0.00001 or not _aplicar(sombra, receptor):
 		return
 	var material := sombra.material as ShaderMaterial
 	_inversa(material, projecao.inverse(), "inversa")
@@ -131,7 +134,7 @@ func projetar_sombra(laboratorio: Node, plano: Dictionary, opacidade: float, int
 	var v: Vector3 = plano["v"]
 	material.set_shader_parameter("altura_plano", Vector3(u.z, v.z, p.z))
 	material.set_shader_parameter("tamanho_captura", tamanho_textura)
-	material.set_shader_parameter("margem_feltro", Vector2.ONE * laboratorio._mesa.largura_moldura / dimensoes)
+	laboratorio._mesa.configurar_recorte_sombra(material)
 	material.set_shader_parameter("intensidade", (laboratorio.intensidade_sombra if intensidade < 0.0 else intensidade) * opacidade)
 	material.set_shader_parameter("suavidade", laboratorio.suavidade_sombra if suavidade < 0.0 else suavidade)
 	material.set_shader_parameter("suavidade_por_altura", laboratorio.suavidade_por_altura)

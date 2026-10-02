@@ -1,0 +1,261 @@
+{
+  "alteracoes_avancadas": [
+    {
+      "largura": {
+        "padrao": 360.0,
+        "valor": 550.0
+      }
+    },
+    {
+      "abertura": {
+        "padrao": 5.0,
+        "valor": -6.0
+      },
+      "curvatura": {
+        "padrao": -15.0,
+        "valor": 0.0
+      },
+      "deformacao": {
+        "padrao": 0.0,
+        "valor": 10.0
+      },
+      "deformacao_progressiva": {
+        "padrao": false,
+        "valor": true
+      }
+    },
+    {
+      "curvatura": {
+        "padrao": -15.0,
+        "valor": 0.0
+      },
+      "deformacao": {
+        "padrao": 0.0,
+        "valor": 25.0
+      }
+    },
+    {
+      "curvatura": {
+        "padrao": -15.0,
+        "valor": 0.0
+      },
+      "deformacao": {
+        "padrao": 0.0,
+        "valor": -25.0
+      },
+      "inclinacao_x_fim": {
+        "padrao": 0.0,
+        "valor": -20.0
+      },
+      "inclinacao_x_progressiva": {
+        "padrao": false,
+        "valor": true
+      }
+    }
+  ],
+  "fonte_sombra": {
+    "altura": 1035.0,
+    "localizada": true,
+    "x": 67.0,
+    "y": -100.0
+  },
+  "inferior_livre": true,
+  "maos": [
+    {
+      "altura": 0.0,
+      "avancados": {
+        "abertura": 5.0,
+        "compressao": 1.0,
+        "curvatura": -15.0,
+        "deformacao": 0.0,
+        "deformacao_progressiva": false,
+        "frentes": true,
+        "inclinacao_x": 0.0,
+        "inclinacao_x_fim": 0.0,
+        "inclinacao_x_inicio": 0.0,
+        "inclinacao_x_progressiva": false,
+        "inclinacao_y": 0.0,
+        "inclinacao_y_fim": 0.0,
+        "inclinacao_y_inicio": 0.0,
+        "inclinacao_y_progressiva": false,
+        "largura": 550.0,
+        "separacao": -10.0,
+        "sombras": true,
+        "variacao_tamanho": 0.0
+      },
+      "giro": 0.0,
+      "inclinacao": 50.0,
+      "posicao_x": 50.0,
+      "posicao_y": 95.0,
+      "primeiro_plano": {
+        "altura": 0.0,
+        "giro": 0.0,
+        "inclinacao": 0.0,
+        "posicao_x": 50.0,
+        "posicao_y": 92.0,
+        "tamanho": 1.30000002384186
+      },
+      "tamanho": 1.0
+    },
+    {
+      "altura": 100.0,
+      "avancados": {
+        "abertura": -6.0,
+        "compressao": 1.0,
+        "curvatura": 0.0,
+        "deformacao": 10.0,
+        "deformacao_progressiva": true,
+        "frentes": false,
+        "inclinacao_x": 0.0,
+        "inclinacao_x_fim": 0.0,
+        "inclinacao_x_inicio": 0.0,
+        "inclinacao_x_progressiva": false,
+        "inclinacao_y": 0.0,
+        "inclinacao_y_fim": 0.0,
+        "inclinacao_y_inicio": 0.0,
+        "inclinacao_y_progressiva": false,
+        "largura": 360.0,
+        "separacao": -10.0,
+        "sombras": true,
+        "variacao_tamanho": 0.0
+      },
+      "giro": 0.0,
+      "inclinacao": 70.0,
+      "posicao_x": 50.0,
+      "posicao_y": 17.0000001788139,
+      "primeiro_plano": {
+        "altura": 0.0,
+        "giro": 0.0,
+        "inclinacao": 0.0,
+        "posicao_x": 50.0,
+        "posicao_y": 90.0,
+        "tamanho": 1.8
+      },
+      "tamanho": 1.05000002384186
+    },
+    {
+      "altura": 100.0,
+      "avancados": {
+        "abertura": 5.0,
+        "compressao": 1.0,
+        "curvatura": 0.0,
+        "deformacao": 25.0,
+        "deformacao_progressiva": false,
+        "frentes": false,
+        "inclinacao_x": 0.0,
+        "inclinacao_x_fim": 0.0,
+        "inclinacao_x_inicio": 0.0,
+        "inclinacao_x_progressiva": false,
+        "inclinacao_y": 0.0,
+        "inclinacao_y_fim": 0.0,
+        "inclinacao_y_inicio": 0.0,
+        "inclinacao_y_progressiva": false,
+        "largura": 360.0,
+        "separacao": -10.0,
+        "sombras": true,
+        "variacao_tamanho": 0.0
+      },
+      "giro": -90.0,
+      "inclinacao": 85.0,
+      "posicao_x": 13.0,
+      "posicao_y": 60.0,
+      "primeiro_plano": {
+        "altura": 0.0,
+        "giro": 0.0,
+        "inclinacao": 0.0,
+        "posicao_x": 50.0,
+        "posicao_y": 90.0,
+        "tamanho": 1.8
+      },
+      "tamanho": 1.0
+    },
+    {
+      "altura": 100.0,
+      "avancados": {
+        "abertura": 5.0,
+        "compressao": 1.0,
+        "curvatura": 0.0,
+        "deformacao": -25.0,
+        "deformacao_progressiva": false,
+        "frentes": false,
+        "inclinacao_x": 0.0,
+        "inclinacao_x_fim": -20.0,
+        "inclinacao_x_inicio": 0.0,
+        "inclinacao_x_progressiva": true,
+        "inclinacao_y": 0.0,
+        "inclinacao_y_fim": 0.0,
+        "inclinacao_y_inicio": 0.0,
+        "inclinacao_y_progressiva": true,
+        "largura": 360.0,
+        "separacao": -10.0,
+        "sombras": true,
+        "variacao_tamanho": 0.0
+      },
+      "giro": 90.0,
+      "inclinacao": 85.0,
+      "posicao_x": 87.0,
+      "posicao_y": 60.0,
+      "primeiro_plano": {
+        "altura": 0.0,
+        "giro": 0.0,
+        "inclinacao": 0.0,
+        "posicao_x": 50.0,
+        "posicao_y": 90.0,
+        "tamanho": 1.8
+      },
+      "tamanho": 1.0
+    }
+  ],
+  "notas": "",
+  "pilhas": [
+    {
+      "camadas": 12.0,
+      "desalinhamento": 0.5,
+      "espessura": 22.0,
+      "giro": 0.0,
+      "intensidade_sombra": 0.5,
+      "maximo_visiveis": 20.0,
+      "suavidade_sombra": 2.0,
+      "tamanho": 1.15,
+      "variacao_rotacao": 10.0,
+      "variacao_x": 0.0,
+      "variacao_y": 6.0,
+      "x": 43.0,
+      "y": 58.0
+    },
+    {
+      "camadas": 8.0,
+      "desalinhamento": 1.6,
+      "espessura": 3.0,
+      "giro": 0.0,
+      "intensidade_sombra": 0.5,
+      "maximo_visiveis": 20.0,
+      "suavidade_sombra": 1.8,
+      "tamanho": 1.2,
+      "variacao_rotacao": 22.0,
+      "variacao_x": 8.0,
+      "variacao_y": 13.0,
+      "x": 57.0,
+      "y": 59.0
+    }
+  ],
+  "sombra_inferior": {
+    "intensidade": 50.0,
+    "x": -6.0,
+    "y": 10.0
+  },
+  "sombras_entre_cartas": true,
+  "sombras_tampo": true,
+  "trajeto": {
+    "altura": 65.0,
+    "compra": [
+      0.430000007152557,
+      0.579999983310699
+    ],
+    "descarte": [
+      0.569999992847443,
+      0.589999973773956
+    ],
+    "duracao": 1.0
+  }
+}

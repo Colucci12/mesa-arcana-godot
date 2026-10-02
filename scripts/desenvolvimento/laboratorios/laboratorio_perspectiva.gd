@@ -20,6 +20,15 @@ const ORDEM_TRANSITO := 80
 const PADRAO_SOMBRA_INFERIOR := {"intensidade": 14.0, "x": -2.0, "y": 3.0}
 const LIMITES_SOMBRA_INFERIOR := {
 	"intensidade": Vector2(0, 100), "x": Vector2(-20, 20), "y": Vector2(-20, 20)}
+const PRESET_BASE := "res://scripts/desenvolvimento/laboratorios/presets/teste_8.json"
+const PADRAO_MESA := {"formato": 1.0, "largura": 1600.0, "profundidade": 700.0,
+	"x": 50.0, "y": 55.0, "profundidade_camera": 400.0, "perspectiva": 50.0,
+	"moldura": 30.0, "espessura": 100.0}
+const LIMITES_MESA := {"largura": Vector2(400, 2400), "profundidade": Vector2(300, 1050),
+	"x": Vector2(-25, 125), "y": Vector2(-25, 125), "profundidade_camera": Vector2(60, 650),
+	"perspectiva": Vector2(35, 100), "moldura": Vector2(0, 120), "espessura": Vector2(0, 100)}
+const PADRAO_ENQUADRAMENTO := {"zoom": 100.0, "x": 0.0, "y": 0.0}
+const LIMITES_ENQUADRAMENTO := {"zoom": Vector2(50, 180), "x": Vector2(-50, 50), "y": Vector2(-50, 50)}
 
 @export_group("Transferências")
 @export_range(0.8, 2.0, 0.05) var duracao_trajeto := 1.0
@@ -61,14 +70,34 @@ var _importacoes: Dictionary = {}
 var _lista_importacoes: OptionButton
 var _edicao_bloqueada := false
 var _controles_bloqueados: Array[Dictionary] = []
+var _ajustes_mesa := PADRAO_MESA.duplicate()
+var _enquadramento := PADRAO_ENQUADRAMENTO.duplicate()
+var _controles_mesa: Dictionary = {}
+var _controles_enquadramento: Dictionary = {}
+var _formato_mesa: OptionButton
+var _ver_inteira: CheckBox
+var _area_enquadramento: Control
+var _secoes: Dictionary = {}
 
 
 func _ready() -> void:
 	_perfis_pilhas = [_padrao_pilha(0), _padrao_pilha(1)]
+	_area_enquadramento = Control.new()
+	_area_enquadramento.name = "AreaEnquadramento"
+	_area_enquadramento.clip_contents = true
+	_area_enquadramento.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_area_enquadramento)
+	move_child(_area_enquadramento, 1)
+	_area_enquadramento.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_composicao.reparent(_area_enquadramento, false)
 	super._ready()
 	_montar_pilhas()
 	_ler_importacoes()
-	if _importacoes.has(conjunto_visual_inicial):
+	var base: Variant = _testes.get("teste 8", JSON.parse_string(FileAccess.get_file_as_string(PRESET_BASE)))
+	if base is Dictionary and base.get("maos") is Array and base["maos"].size() == 4:
+		_aplicar_teste(base, "Mesa arredondada 1")
+		_mensagem.text = "Base: teste 8. Salve a mesa com um novo nome para guardar a referência."
+	elif _importacoes.has(conjunto_visual_inicial):
 		_aplicar_teste(_importacoes[conjunto_visual_inicial], conjunto_visual_inicial)
 		_mensagem.text = "Restaurado: " + conjunto_visual_inicial + ". Testes salvos preservados."
 	_atualizar_pilhas()
@@ -83,7 +112,8 @@ func _parametros_adicionais_teste() -> Dictionary:
 	return {"trajeto": {"duracao": duracao_trajeto, "altura": altura_trajeto,
 		"compra": [centro_compra.x, centro_compra.y], "descarte": [centro_jogada.x, centro_jogada.y]},
 		"pilhas": _perfis_pilhas.duplicate(true), "sombras_entre_cartas": sombras_entre_cartas,
-		"sombra_inferior": _sombra_inferior.duplicate()}
+		"sombra_inferior": _sombra_inferior.duplicate(), "mesa": _ajustes_mesa.duplicate(),
+		"enquadramento": _enquadramento.duplicate()}
 
 
 func _padrao_pilha(indice: int) -> Dictionary:
@@ -97,6 +127,15 @@ func _padrao_pilha(indice: int) -> Dictionary:
 
 
 func _aplicar_teste(perfil: Dictionary, nome: String) -> void:
+	_ajustes_mesa = _validar_ajustes(perfil.get("mesa", {}), PADRAO_MESA, LIMITES_MESA)
+	var formato: Variant = perfil.get("mesa", {}).get("formato", 1) if perfil.get("mesa") is Dictionary else 1
+	_ajustes_mesa["formato"] = 1.0
+	if (formato is float or formato is int) and is_finite(float(formato)):
+		_ajustes_mesa["formato"] = float(clampi(roundi(float(formato)), 0, 1))
+	_enquadramento = _validar_ajustes(perfil.get("enquadramento", {}), PADRAO_ENQUADRAMENTO, LIMITES_ENQUADRAMENTO)
+	_ver_inteira.set_pressed_no_signal(false)
+	_aplicar_mesa()
+	_mostrar_ajustes_ambiente()
 	_sombra_inferior = PADRAO_SOMBRA_INFERIOR.duplicate()
 	var contato: Variant = perfil.get("sombra_inferior", {})
 	if contato is Dictionary:
@@ -234,14 +273,18 @@ func _atualizar_indicadores() -> void:
 
 
 func _montar_painel() -> void:
-	super._montar_painel()
-	(_controles_ui.get_child(0) as Label).text = "Laboratório Perspectiva"
+	_texto("Laboratório Perspectiva", 20)
+	_texto("Base teste 8. Ajuste a mesa e o enquadramento; abra as outras seções quando precisar.")
+	_botao("Ocultar controles · Tab", _alternar_painel)
+	_seletor = OptionButton.new()
+	for nome in NOMES:
+		_seletor.add_item("Mão " + nome.to_lower())
+	_controles_ui.add_child(_seletor)
+	_seletor.item_selected.connect(_selecionar_mao)
 	_comandos_trajeto = VBoxContainer.new()
 	_controles_ui.add_child(_comandos_trajeto)
-	_controles_ui.move_child(_comandos_trajeto, 2)
 	var anterior := _controles_ui
 	_controles_ui = _comandos_trajeto
-	_texto("Comprar/jogar usa a mão selecionada nos controles. Inferior primeiro; depois compare laterais e superior.")
 	_botao("Comprar para a mão selecionada · D", _comprar)
 	_botao("Jogar da mão selecionada · J", _jogar_carta)
 	_escolha_jogada = OptionButton.new()
@@ -251,19 +294,268 @@ func _montar_painel() -> void:
 	_botao("Esvaziar mãos e descarte · R", _esvaziar)
 	_estado_trajeto = _texto("")
 	_controles_ui = anterior
+	_controles_ui = _criar_secao("Mesa", true)
+	_montar_controles_mesa()
+	_controles_ui = anterior
+	_controles_ui = _criar_secao("Enquadramento", true)
+	_montar_controles_enquadramento()
+	_controles_ui = anterior
+	_controles_ui = _criar_secao("Mãos e cartas")
+	_primeiro_plano = CheckBox.new()
+	_primeiro_plano.text = "Mão inferior em primeiro plano"
+	_primeiro_plano.button_pressed = true
+	_controles_ui.add_child(_primeiro_plano)
+	_primeiro_plano.toggled.connect(_alterar_modo_visual)
+	_texto("Ajustes da mão selecionada", 16)
+	_ajuste("posicao_x", "Posição horizontal", 1, "%")
+	_ajuste("posicao_y", "Posição vertical", 1, "%")
+	_ajuste("tamanho", "Tamanho uniforme", 0.05)
+	_ajuste("giro", "Giro na mesa", 1, "°")
+	_ajuste("inclinacao", "Erguer a mão", 1, "°")
+	_ajuste("altura", "Altura do apoio", 1)
+	_montar_avancados()
+	_comparar = CheckBox.new()
+	_comparar.text = "Comparar mãos da mesa apoiadas"
+	_controles_ui.add_child(_comparar)
+	_comparar.toggled.connect(_comparar_planas)
+	_botao("Restaurar mão selecionada", _restaurar_mao)
+	_controles_ui = anterior
+	_controles_ui = _criar_secao("Monte e descarte")
 	_montar_controles_pilhas()
+	_controles_ui = anterior
+	_controles_ui = _criar_secao("Luz e sombras")
+	_sombras_melhoradas = CheckBox.new()
+	_sombras_melhoradas.text = "Sombras projetadas no tampo"
+	_sombras_melhoradas.button_pressed = true
+	_controles_ui.add_child(_sombras_melhoradas)
+	_sombras_melhoradas.toggled.connect(_alterar_modo_visual)
+	_montar_fonte()
 	_montar_controles_sombra_inferior()
+	_controles_ui = anterior
+	_controles_ui = _criar_secao("Conjuntos", true)
+	_nome = LineEdit.new()
+	_nome.placeholder_text = "Nome do conjunto"
+	_nome.max_length = 80
+	_controles_ui.add_child(_nome)
+	_notas = TextEdit.new()
+	_notas.custom_minimum_size.y = 90
+	_notas.placeholder_text = "O que funcionou? O que ficou estranho?"
+	_notas.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY
+	_controles_ui.add_child(_notas)
+	_botao("Salvar conjunto completo", _salvar)
+	_lista = OptionButton.new()
+	_controles_ui.add_child(_lista)
+	_carregar = _botao("Carregar conjunto selecionado", _carregar_teste)
+	_botao("Voltar à base teste 8", _restaurar_base)
+	_botao("Restaurar padrões completos", _restaurar_todas)
+	_mensagem = _texto("Salvar guarda mesa, enquadramento, mãos, pilhas e sombras juntos.")
 	_texto("Importar conjuntos visuais anteriores", 16)
 	_lista_importacoes = OptionButton.new()
 	_controles_ui.add_child(_lista_importacoes)
 	_botao("Importar conjunto visual selecionado", _importar_visual)
-	_mensagem.text = "Importe seu conjunto visual. Salvar aqui usa um arquivo separado; não grava distribuição de cartas."
+	_controles_ui = anterior
+
+
+func _criar_secao(titulo: String, aberta: bool = false) -> VBoxContainer:
+	var botao := Button.new()
+	botao.toggle_mode = true
+	botao.button_pressed = aberta
+	botao.text = ("▼ " if aberta else "▶ ") + titulo
+	botao.set_meta("secao", true)
+	_controles_ui.add_child(botao)
+	var conteudo := VBoxContainer.new()
+	conteudo.visible = aberta
+	_controles_ui.add_child(conteudo)
+	_secoes[titulo] = conteudo
+	botao.toggled.connect(func(ativo: bool):
+		conteudo.visible = ativo
+		botao.text = ("▼ " if ativo else "▶ ") + titulo)
+	return conteudo
+
+
+func _controle_ambiente(chave: String, legenda: String, limites: Vector2,
+		valor: float, destino: Dictionary, callback: Callable, passo: float = 1.0, unidade: String = "") -> void:
+	_texto(legenda)
+	var numero := SpinBox.new()
+	numero.min_value = limites.x
+	numero.max_value = limites.y
+	numero.step = passo
+	numero.suffix = unidade
+	_controles_ui.add_child(numero)
+	var controle := HSlider.new()
+	controle.min_value = limites.x
+	controle.max_value = limites.y
+	controle.step = passo
+	controle.share(numero)
+	controle.value = valor
+	_controles_ui.add_child(controle)
+	destino[chave] = controle
+	controle.value_changed.connect(callback.bind(chave))
+
+
+func _montar_controles_mesa() -> void:
+	_formato_mesa = OptionButton.new()
+	_formato_mesa.add_item("Tampo retangular")
+	_formato_mesa.add_item("Tampo arredondado (círculo/oval)")
+	_formato_mesa.select(1)
+	_controles_ui.add_child(_formato_mesa)
+	_formato_mesa.item_selected.connect(func(indice: int):
+		if not _atualizando_ui and _transitos.is_empty():
+			_ajustes_mesa["formato"] = float(indice)
+			_aplicar_mesa())
+	_texto("Largura e profundidade iguais formam um círculo no espaço da mesa. A perspectiva o faz parecer oval. Estes tamanhos não esticam as cartas.")
+	var legendas := {"largura": "Largura do tampo", "profundidade": "Profundidade do tampo",
+		"x": "Posição horizontal", "y": "Posição vertical", "profundidade_camera": "Profundidade na tela",
+		"perspectiva": "Largura distante da projeção", "moldura": "Largura da moldura", "espessura": "Espessura frontal"}
+	for chave in LIMITES_MESA:
+		_controle_ambiente(chave, legendas[chave], LIMITES_MESA[chave], _ajustes_mesa[chave],
+			_controles_mesa, _alterar_mesa, 5.0 if chave in ["largura", "profundidade", "profundidade_camera"] else 1.0,
+			"%" if chave in ["x", "y", "perspectiva"] else "")
+	_texto("Profundidade na tela e largura distante ajustam a perspectiva compartilhada, incluindo as cartas apoiadas.")
+	_botao("Restaurar somente a mesa", _restaurar_mesa)
+
+
+func _montar_controles_enquadramento() -> void:
+	var legendas := {"zoom": "Aproximação", "x": "Deslocamento horizontal", "y": "Deslocamento vertical"}
+	for chave in LIMITES_ENQUADRAMENTO:
+		_controle_ambiente(chave, legendas[chave], LIMITES_ENQUADRAMENTO[chave], _enquadramento[chave],
+			_controles_enquadramento, _alterar_enquadramento, 1.0, "%")
+	_ver_inteira = CheckBox.new()
+	_ver_inteira.text = "Ver composição inteira"
+	_controles_ui.add_child(_ver_inteira)
+	_ver_inteira.toggled.connect(func(_ativo: bool):
+		_sair_da_mesa()
+		_ajustar_enquadramento())
+	_texto("100% mantém o enquadramento anterior; 75% abre a visão. Aumentar aproxima a cena e pode cortar suas bordas. A visão inteira preserva a aproximação escolhida e não é salva.")
+	_botao("Restaurar somente o enquadramento", _restaurar_enquadramento)
+
+
+func _validar_ajustes(dados: Variant, padrao: Dictionary, limites: Dictionary) -> Dictionary:
+	var ajustes := padrao.duplicate()
+	if dados is Dictionary:
+		for chave in limites:
+			var valor: Variant = dados.get(chave)
+			if (valor is float or valor is int) and is_finite(float(valor)):
+				ajustes[chave] = clampf(float(valor), limites[chave].x, limites[chave].y)
+	return ajustes
+
+
+func _mostrar_ajustes_ambiente() -> void:
+	var anterior := _atualizando_ui
+	_atualizando_ui = true
+	_formato_mesa.select(roundi(_ajustes_mesa["formato"]))
+	for chave in _controles_mesa:
+		(_controles_mesa[chave] as HSlider).value = _ajustes_mesa[chave]
+	for chave in _controles_enquadramento:
+		(_controles_enquadramento[chave] as HSlider).value = _enquadramento[chave]
+	_atualizando_ui = anterior
+	_ajustar_enquadramento()
+
+
+func _alterar_mesa(valor: float, chave: String) -> void:
+	if _atualizando_ui or not _transitos.is_empty():
+		return
+	_sair_da_mesa()
+	_ajustes_mesa[chave] = valor
+	_aplicar_mesa()
+
+
+func _aplicar_mesa() -> void:
+	_mesa.formato = roundi(_ajustes_mesa["formato"])
+	_mesa.dimensoes_tampo = Vector2(_ajustes_mesa["largura"], _ajustes_mesa["profundidade"])
+	_mesa.position = REFERENCIA * Vector2(_ajustes_mesa["x"], _ajustes_mesa["y"]) / 100.0
+	_mesa.profundidade_aparente = _ajustes_mesa["profundidade_camera"]
+	_mesa.largura_distante = float(_ajustes_mesa["perspectiva"]) / 100.0
+	_mesa.largura_moldura = _ajustes_mesa["moldura"]
+	_mesa.espessura = _ajustes_mesa["espessura"]
+	_mesa.atualizar_visual()
+	_projetar_maos()
+	_ajustar_enquadramento()
+
+
+func _restaurar_mesa() -> void:
+	_ajustes_mesa = PADRAO_MESA.duplicate()
+	_aplicar_mesa()
+	_mostrar_ajustes_ambiente()
+
+
+func _alterar_enquadramento(valor: float, chave: String) -> void:
+	if _atualizando_ui:
+		return
+	_sair_da_mesa()
+	_enquadramento[chave] = valor
+	# Editar volta à visão do jogador para que o efeito do controle seja visível.
+	_ver_inteira.set_pressed_no_signal(false)
+	_ajustar_enquadramento()
+
+
+func _restaurar_enquadramento() -> void:
+	_enquadramento = PADRAO_ENQUADRAMENTO.duplicate()
+	_ver_inteira.set_pressed_no_signal(false)
+	_mostrar_ajustes_ambiente()
+
+
+func _restaurar_base() -> void:
+	var perfil: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(PRESET_BASE))
+	_aplicar_teste(perfil, "Mesa arredondada 1")
+	_mensagem.text = "Base teste 8 restaurada. Seus conjuntos salvos foram preservados."
+
+
+func _ajustar_enquadramento() -> void:
+	if not is_instance_valid(_area_enquadramento):
+		return
+	var margem := _painel.size.x if _painel.visible else 0.0
+	_area_enquadramento.offset_left = margem
+	var area := Vector2(maxf(size.x - margem, 1.0), maxf(size.y, 1.0))
+	var fator := maxf(minf(area.x / REFERENCIA.x, area.y / REFERENCIA.y), 0.001)
+	var zoom := float(_enquadramento["zoom"]) / 100.0
+	var centro := REFERENCIA / 2.0
+	var deslocamento := REFERENCIA * Vector2(_enquadramento["x"], _enquadramento["y"]) / 100.0
+	if is_instance_valid(_ver_inteira) and _ver_inteira.button_pressed:
+		var limites := _limites_composicao()
+		centro = limites.get_center()
+		zoom = minf(0.75, minf(maxf(area.x - 40, 1) / limites.size.x,
+			maxf(area.y - 40, 1) / limites.size.y) / fator)
+		deslocamento = Vector2.ZERO
+	_composicao.scale = Vector2.ONE * fator * zoom
+	_composicao.position = area / 2.0 - centro * fator * zoom + deslocamento * fator
+	($Guia as Label).offset_left = margem + 18.0
+
+
+func _limites_composicao() -> Rect2:
+	var limites := Rect2(_mesa.position, Vector2.ONE)
+	var dimensoes := _mesa.obter_dimensoes_tampo()
+	for indice in range(128):
+		var angulo := TAU * indice / 128.0
+		var local := Vector2(cos(angulo), sin(angulo)) * dimensoes / 2.0
+		if _mesa.formato == 0:
+			local = Vector2(signf(local.x), signf(local.y)) * dimensoes / 2.0
+		var ponto := _mesa.position + _mesa._projetar_ponto(_mesa.tamanho_plano / 2.0 + local)
+		limites = limites.expand(ponto).expand(ponto + Vector2(0, _mesa.espessura))
+	for indice in range(_maos_erguidas.size()):
+		for carta in _maos_erguidas[indice].obter_cartas():
+			limites = _expandir_limites_plano(limites, _plano_carta(carta, indice))
+	for registro in _cartas_descarte.values():
+		limites = _expandir_limites_plano(limites, _plano_carta(registro["carta"], -1, true))
+	for indice in range(_planos_pilhas.size()):
+		limites = _expandir_limites_plano(limites, _plano_pilha(0, indice))
+	for registro in _transitos.values():
+		limites = _expandir_limites_plano(limites, registro["atual"])
+	return limites.grow(20)
+
+
+func _expandir_limites_plano(limites: Rect2, plano: Dictionary) -> Rect2:
+	var matriz := _matriz_apresentacao(plano)
+	for uv in [Vector2.ZERO, Vector2.RIGHT, Vector2.ONE, Vector2.DOWN]:
+		var q: Vector3 = matriz * Vector3(uv.x, uv.y, 1)
+		if q.z > 0.00001:
+			limites = limites.expand(Vector2(q.x, q.y) / q.z)
+	return limites
 
 
 func _montar_controles_sombra_inferior() -> void:
 	var bloco := VBoxContainer.new()
 	_controles_ui.add_child(bloco)
-	_controles_ui.move_child(bloco, 4)
 	var anterior := _controles_ui
 	_controles_ui = bloco
 	_texto("Sombra entre cartas da mão inferior", 16)
@@ -308,7 +600,6 @@ func _alterar_sombra_inferior(valor: float, chave: String) -> void:
 func _montar_controles_pilhas() -> void:
 	var bloco := VBoxContainer.new()
 	_controles_ui.add_child(bloco)
-	_controles_ui.move_child(bloco, 3)
 	var anterior := _controles_ui
 	_controles_ui = bloco
 	_texto("Monte e descarte", 16)
@@ -416,6 +707,11 @@ func _restaurar_pilha() -> void:
 
 
 func _restaurar_todas() -> void:
+	_ajustes_mesa = PADRAO_MESA.duplicate()
+	_enquadramento = PADRAO_ENQUADRAMENTO.duplicate()
+	_ver_inteira.set_pressed_no_signal(false)
+	_aplicar_mesa()
+	_mostrar_ajustes_ambiente()
 	_sombra_inferior = PADRAO_SOMBRA_INFERIOR.duplicate()
 	_mostrar_sombra_inferior()
 	super._restaurar_todas()
@@ -552,7 +848,7 @@ func _estado_compra() -> Dictionary:
 
 
 func _plano_pilha(indice: int, camada: int = -1) -> Dictionary:
-	var centro := (centro_compra if indice == 0 else centro_jogada) * Vector2(_viewport_mesa.size_2d_override)
+	var centro := (centro_compra if indice == 0 else centro_jogada) * Vector2(_mesa.tamanho_plano)
 	var perfil := _perfis_pilhas[indice]
 	var altura := 0.5
 	if indice == 0:
@@ -735,6 +1031,8 @@ func _liberar_visual_descarte(registro: Dictionary) -> void:
 func _projetar_maos() -> void:
 	super._projetar_maos()
 	_atualizar_pilhas()
+	if is_instance_valid(_ver_inteira) and _ver_inteira.button_pressed:
+		_ajustar_enquadramento()
 
 
 func _estado_descarte(carta: Carta) -> Dictionary:
@@ -1015,7 +1313,7 @@ func _travar_edicao(ativo: bool) -> void:
 		if foco != null:
 			foco.release_focus()
 		for controle in _controles_ui.find_children("*", "Control", true, false):
-			if _comandos_trajeto.is_ancestor_of(controle) or _campos_fonte.is_ancestor_of(controle) or controle == _fonte_localizada or controle == _seletor:
+			if controle.has_meta("secao") or _secoes["Enquadramento"].is_ancestor_of(controle) or _comandos_trajeto.is_ancestor_of(controle) or _campos_fonte.is_ancestor_of(controle) or controle == _fonte_localizada or controle == _seletor:
 				continue
 			var propriedade := "disabled" if controle is BaseButton else "editable"
 			if controle is BaseButton or controle is Slider or controle is SpinBox:

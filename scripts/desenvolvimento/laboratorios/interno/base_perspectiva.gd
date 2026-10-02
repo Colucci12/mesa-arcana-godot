@@ -201,7 +201,7 @@ func _ponto_no_mundo(local: Vector2, perfil: Dictionary) -> Vector3:
 	var apoio := 50.0
 	var ponto := Vector2(local.x, apoio + (local.y - apoio) * cos(inclinacao))
 	ponto = (ponto * float(perfil["tamanho"])).rotated(deg_to_rad(float(perfil["giro"])))
-	var centro := Vector2(_viewport_mesa.size_2d_override) * Vector2(
+	var centro := Vector2(_mesa.tamanho_plano) * Vector2(
 		float(perfil["posicao_x"]), float(perfil["posicao_y"])) / 100.0
 	return Vector3(centro.x + ponto.x, centro.y + ponto.y,
 		altura - (local.y - apoio) * sin(inclinacao) * float(perfil["tamanho"]))
@@ -210,7 +210,7 @@ func _ponto_no_mundo(local: Vector2, perfil: Dictionary) -> Vector3:
 func _matriz_da_mesa(ponto: Vector3, eixo_u: Vector3, eixo_v: Vector3) -> Basis:
 	# Uma câmera matemática comum aos planos, sem nós ou renderização 3D.
 	# Para z=0, reproduz exatamente a homografia usada pelo shader da mesa.
-	var profundidade := float(_viewport_mesa.size_2d_override.y)
+	var profundidade := float(_mesa.tamanho_plano.y)
 	var cosseno := _mesa.profundidade_aparente / profundidade
 	var seno := sqrt(1.0 - cosseno * cosseno)
 	var distante := _mesa.largura_distante
@@ -300,10 +300,13 @@ func _matriz_sombra(ponto: Vector3, u: Vector3, v: Vector3, altura_receptor: flo
 
 
 func _projetar_maos() -> void:
-	var tamanho_mesa := Vector2(_viewport_mesa.size_2d_override)
+	var tamanho_mesa := Vector2(_mesa.tamanho_plano)
 	var matriz_mesa := _matriz_da_mesa(Vector3.ZERO,
 		Vector3(tamanho_mesa.x, 0, 0), Vector3(0, tamanho_mesa.y, 0))
 	var inversa_mesa := matriz_mesa.inverse()
+	var retangulo := _mesa.obter_retangulo_plano()
+	var matriz_receptor := _matriz_da_mesa(Vector3(retangulo.position.x, retangulo.position.y, 0),
+		Vector3(retangulo.size.x, 0, 0), Vector3(0, retangulo.size.y, 0))
 	for indice in range(4):
 		var perfil := _perfis[indice]
 		var livre := indice == 0 and _primeiro_plano.button_pressed
@@ -322,14 +325,14 @@ func _projetar_maos() -> void:
 			continue
 		# Desenhar no receptor, em vez de um quad de sombra potencialmente infinito
 		# quando a fonte passa pela altura de parte do plano da mão.
-		if not _aplicar_projecao(sombra, matriz_mesa, indice):
+		if not _aplicar_projecao(sombra, matriz_receptor, indice):
 			continue
 		var material := sombra.material as ShaderMaterial
 		_enviar_inversa(material, matriz_sombra.inverse())
 		_enviar_inversa(material, inversa_mesa, "mesa")
 		material.set_shader_parameter("altura_plano", Vector3(u.z, v.z, ponto.z))
 		material.set_shader_parameter("tamanho_captura", _tamanho_captura)
-		material.set_shader_parameter("margem_feltro", Vector2.ONE * _mesa.largura_moldura / tamanho_mesa)
+		_mesa.configurar_recorte_sombra(material)
 		material.set_shader_parameter("intensidade", intensidade_sombra)
 		material.set_shader_parameter("suavidade", suavidade_sombra)
 		material.set_shader_parameter("suavidade_por_altura", suavidade_por_altura)
@@ -470,7 +473,7 @@ func _botao(texto: String, acao: Callable) -> Button:
 
 
 func _configuracao_fonte() -> Dictionary:
-	var dimensoes := Vector2(_viewport_mesa.size_2d_override)
+	var dimensoes := Vector2(_mesa.tamanho_plano)
 	return {"localizada": usar_fonte_localizada, "x": posicao_fonte.x / dimensoes.x * 100.0,
 		"y": posicao_fonte.y / dimensoes.y * 100.0, "altura": posicao_fonte.z}
 
@@ -532,8 +535,8 @@ func _alterar_fonte(valor: float, chave: String) -> void:
 	if _atualizando_ui:
 		return
 	match chave:
-		"x": posicao_fonte.x = valor / 100.0 * _viewport_mesa.size_2d_override.x
-		"y": posicao_fonte.y = valor / 100.0 * _viewport_mesa.size_2d_override.y
+		"x": posicao_fonte.x = valor / 100.0 * _mesa.tamanho_plano.x
+		"y": posicao_fonte.y = valor / 100.0 * _mesa.tamanho_plano.y
 		"altura": posicao_fonte.z = valor
 	_projetar_maos()
 
@@ -546,7 +549,7 @@ func _aplicar_configuracao_fonte(configuracao: Dictionary) -> void:
 			valores[chave] = clampf(float(valor), LIMITES_FONTE[chave].x, LIMITES_FONTE[chave].y)
 	var localizada: Variant = configuracao.get("localizada", valores["localizada"])
 	usar_fonte_localizada = localizada if localizada is bool else bool(valores["localizada"])
-	var dimensoes := Vector2(_viewport_mesa.size_2d_override)
+	var dimensoes := Vector2(_mesa.tamanho_plano)
 	posicao_fonte = Vector3(float(valores["x"]) / 100.0 * dimensoes.x,
 		float(valores["y"]) / 100.0 * dimensoes.y, float(valores["altura"]))
 	_mostrar_fonte()

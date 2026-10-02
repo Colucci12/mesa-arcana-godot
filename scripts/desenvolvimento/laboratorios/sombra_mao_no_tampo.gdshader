@@ -11,6 +11,8 @@ uniform vec4 regiao_textura;
 uniform vec3 altura_plano;
 uniform vec2 tamanho_captura;
 uniform vec2 margem_feltro;
+uniform bool mesa_arredondada = false;
+uniform vec2 raios_feltro = vec2(0.5);
 uniform float intensidade = 0.30;
 uniform float suavidade = 2.0;
 uniform float suavidade_por_altura = 0.035;
@@ -42,7 +44,9 @@ void fragment() {
 	}
 	vec2 uv = vec2(dot(inversa_x, ponto), dot(inversa_y, ponto)) / denominador;
 	vec2 feltro = vec2(dot(mesa_x, ponto), dot(mesa_y, ponto)) / denominador_mesa;
-	if (any(lessThan(feltro, margem_feltro)) || any(greaterThan(feltro, vec2(1.0) - margem_feltro))) {
+	vec2 local_feltro = (feltro - vec2(0.5)) / max(raios_feltro, vec2(0.00001));
+	float distancia_feltro = mesa_arredondada ? length(local_feltro) : max(abs(local_feltro.x), abs(local_feltro.y));
+	if (any(lessThanEqual(raios_feltro, vec2(0.0))) || distancia_feltro >= 1.0) {
 		discard;
 	}
 	if (any(lessThan(uv, vec2(0.0))) || any(greaterThan(uv, vec2(1.0)))) {
@@ -65,5 +69,6 @@ void fragment() {
 	alpha += silhueta(TEXTURE, uv + passo * vec2(0.707, -0.707)) * 0.10;
 	alpha += silhueta(TEXTURE, uv + passo * vec2(-0.707, -0.707)) * 0.10;
 	// Perto do apoio a sombra fica mais firme; elevada, mais suave e discreta.
-	COLOR = vec4(0.015, 0.020, 0.018, alpha * intensidade / (1.0 + altura * 0.002));
+	float cobertura_feltro = 1.0 - smoothstep(1.0 - max(fwidth(distancia_feltro), 0.0001), 1.0, distancia_feltro);
+	COLOR = vec4(0.015, 0.020, 0.018, alpha * intensidade * cobertura_feltro / (1.0 + altura * 0.002));
 }
