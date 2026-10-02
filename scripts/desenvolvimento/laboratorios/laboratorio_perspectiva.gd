@@ -1,8 +1,9 @@
-extends "res://scripts/desenvolvimento/laboratorios/laboratorio_maos_erguidas.gd"
+extends "res://scripts/desenvolvimento/laboratorios/interno/base_perspectiva.gd"
 
 const CENA_COMPRA = preload("res://scenes/main/componentes/monte.tscn")
 const CENA_JOGADA = preload("res://scenes/main/componentes/descarte.tscn")
 const PLANO_CARTA = preload("res://scripts/desenvolvimento/laboratorios/plano_carta_laboratorio.gd")
+# Nome histórico preservado para carregar os conjuntos já salvos.
 const ARQUIVO_MOVIMENTOS = "user://laboratorio_transferencias_2_5d.json"
 const CAPTURA_PILHA := Vector2(280, 280)
 const DESLOCAMENTOS_COMPRA := [Vector2.ZERO, Vector2(4, -3), Vector2(-4, 2), Vector2(2, 4)]
@@ -234,7 +235,7 @@ func _atualizar_indicadores() -> void:
 
 func _montar_painel() -> void:
 	super._montar_painel()
-	(_controles_ui.get_child(0) as Label).text = "Transferências 2.5D"
+	(_controles_ui.get_child(0) as Label).text = "Laboratório Perspectiva"
 	_comandos_trajeto = VBoxContainer.new()
 	_controles_ui.add_child(_comandos_trajeto)
 	_controles_ui.move_child(_comandos_trajeto, 2)
@@ -252,7 +253,7 @@ func _montar_painel() -> void:
 	_controles_ui = anterior
 	_montar_controles_pilhas()
 	_montar_controles_sombra_inferior()
-	_texto("Importar do laboratório visual", 16)
+	_texto("Importar conjuntos visuais anteriores", 16)
 	_lista_importacoes = OptionButton.new()
 	_controles_ui.add_child(_lista_importacoes)
 	_botao("Importar conjunto visual selecionado", _importar_visual)

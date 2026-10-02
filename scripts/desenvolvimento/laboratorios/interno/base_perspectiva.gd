@@ -1,4 +1,4 @@
-extends "res://scripts/desenvolvimento/laboratorios/laboratorio_maos_no_plano.gd"
+extends "res://scripts/desenvolvimento/laboratorios/interno/base_plano_mesa.gd"
 
 const PROJECAO = preload("res://scripts/desenvolvimento/laboratorios/plano_mao_perspectiva.gdshader")
 const SOMBRA_PLANO = preload("res://scripts/desenvolvimento/laboratorios/sombra_mao_no_tampo.gdshader")
