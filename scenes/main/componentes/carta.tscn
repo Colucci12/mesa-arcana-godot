@@ -45,14 +45,21 @@ script = ExtResource("1_ywsyh")
 
 [node name="CompensacaoVisual" type="Node2D" parent="."]
 
-[node name="ViradaVisual" type="Control" parent="CompensacaoVisual"]
+[node name="HoverVisual" type="Control" parent="CompensacaoVisual"]
 layout_mode = 0
 offset_right = 71.0
 offset_bottom = 95.0
 pivot_offset = Vector2(35, 47)
 mouse_filter = 2
 
-[node name="Sombra" type="TextureRect" parent="CompensacaoVisual/ViradaVisual"]
+[node name="ViradaVisual" type="Control" parent="CompensacaoVisual/HoverVisual"]
+layout_mode = 0
+offset_right = 71.0
+offset_bottom = 95.0
+pivot_offset = Vector2(35, 47)
+mouse_filter = 2
+
+[node name="Sombra" type="TextureRect" parent="CompensacaoVisual/HoverVisual/ViradaVisual"]
 material = SubResource("ShaderMaterial_perspectiva")
 self_modulate = Color(0, 0, 0, 0.3)
 texture_filter = 2
@@ -65,7 +72,7 @@ mouse_filter = 2
 texture = SubResource("ViewportTexture_carta")
 expand_mode = 1
 
-[node name="TexturaCarta" type="TextureRect" parent="CompensacaoVisual/ViradaVisual"]
+[node name="TexturaCarta" type="TextureRect" parent="CompensacaoVisual/HoverVisual/ViradaVisual"]
 material = SubResource("ShaderMaterial_perspectiva")
 texture_filter = 2
 layout_mode = 0

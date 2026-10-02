@@ -352,6 +352,8 @@ func _process(_delta: float) -> void:
 		# Não deixar a margem transparente de um plano bloquear outra mão.
 		var sobre_carta := false
 		for carta in _maos_erguidas[indice].obter_cartas():
+			if carta.mouse_filter == Control.MOUSE_FILTER_IGNORE:
+				continue
 			var local := carta.get_global_transform_with_canvas().affine_inverse() * posicao
 			if Rect2(Vector2.ZERO, carta.size).has_point(local):
 				sobre_carta = true
@@ -663,8 +665,8 @@ func _input(evento: InputEvent) -> void:
 
 
 func _ler_testes() -> void:
-	if FileAccess.file_exists(ARQUIVO_TESTES):
-		var arquivo := FileAccess.open(ARQUIVO_TESTES, FileAccess.READ)
+	if FileAccess.file_exists(_arquivo_testes()):
+		var arquivo := FileAccess.open(_arquivo_testes(), FileAccess.READ)
 		if arquivo != null:
 			var dados: Variant = JSON.parse_string(arquivo.get_as_text())
 			if dados is Dictionary:
@@ -679,6 +681,10 @@ func _ler_testes() -> void:
 						if valido:
 							_testes[String(nome)] = perfil
 	_atualizar_lista()
+
+
+func _arquivo_testes() -> String:
+	return ARQUIVO_TESTES
 
 
 func _atualizar_lista(nome: String = "") -> void:
@@ -700,7 +706,7 @@ func _salvar() -> void:
 	if nome.is_empty():
 		_mensagem.text = "Dê um nome ao conjunto antes de salvar."
 		return
-	var arquivo := FileAccess.open(ARQUIVO_TESTES, FileAccess.WRITE)
+	var arquivo := FileAccess.open(_arquivo_testes(), FileAccess.WRITE)
 	if arquivo == null:
 		_mensagem.text = "Não foi possível salvar."
 		return
@@ -710,6 +716,7 @@ func _salvar() -> void:
 	_testes[nome] = {"maos": _perfis.duplicate(true), "notas": _notas.text,
 		"alteracoes_avancadas": alteracoes, "inferior_livre": _primeiro_plano.button_pressed,
 		"sombras_tampo": _sombras_melhoradas.button_pressed, "fonte_sombra": _configuracao_fonte()}
+	_testes[nome].merge(_parametros_adicionais_teste(), true)
 	arquivo.store_string(JSON.stringify(_testes, "\t"))
 	arquivo.flush()
 	var erro := arquivo.get_error()
@@ -718,12 +725,20 @@ func _salvar() -> void:
 	_mensagem.text = "Salvo: " + nome if erro == OK else "Falha ao gravar; o conjunto está apenas nesta sessão."
 
 
+func _parametros_adicionais_teste() -> Dictionary:
+	return {}
+
+
 func _carregar_teste() -> void:
 	if _testes.is_empty():
 		return
 	_sair_da_mesa()
 	var nome := _lista.get_item_text(_lista.selected)
 	var perfil: Dictionary = _testes[nome]
+	_aplicar_teste(perfil, nome)
+
+
+func _aplicar_teste(perfil: Dictionary, nome: String) -> void:
 	for indice in range(4):
 		var ajustes := _perfil_inicial(indice)
 		for chave in LIMITES:
@@ -928,7 +943,7 @@ func _aplicar_avancados(somente: int = -1) -> void:
 			var carta := cartas[numero]
 			if carta.verso != (not bool(avancados["frentes"])):
 				if bool(avancados["frentes"]):
-					carta.setup_dados(_dados_maos[indice][numero])
+					carta.setup_dados(_dados_da_carta(carta, indice, numero))
 				carta.verso = not bool(avancados["frentes"])
 				virou = true
 		if virou:
@@ -936,6 +951,10 @@ func _aplicar_avancados(somente: int = -1) -> void:
 			_versoes_virada[indice] += 1
 			_aguardar_virada(indice, _versoes_virada[indice])
 	_atualizar_captura()
+
+
+func _dados_da_carta(_carta: Carta, indice: int, numero: int) -> Dictionary:
+	return _dados_maos[indice][numero]
 
 
 func _aguardar_virada(indice: int, versao: int) -> void:
@@ -965,7 +984,7 @@ func _atualizar_captura() -> void:
 				# Quad máximo do shader e margem para escala elástica do hover.
 				var ponto: Vector2 = sinal * (Carta.SIZE + Vector2.ONE * 16.0) * 0.75 * 1.25
 				ponto += Vector2(-sin(angulo), cos(angulo) - 1.0) * ponto.y
-				ponto = carta.get_global_transform() * (Carta.SIZE / 2.0 + ponto)
+				ponto = mao.transformacao_destino_carta(numero) * (Carta.SIZE / 2.0 + ponto)
 				ponto -= _origens_atlas[indice] + _tamanho_captura / 2.0
 				captura = captura.max((ponto.abs() + Vector2.ONE * 16.0) * 2.0)
 	if not captura.is_equal_approx(TAMANHO_MAO):

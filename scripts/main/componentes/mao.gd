@@ -7,7 +7,11 @@ class_name MaoVisual
 @export var separacao := -10
 @export var offset_min := 0
 @export var offset_max := -15
-@export var mao_adversaria := false
+@export var mao_adversaria := false:
+	set(valor):
+		mao_adversaria = valor
+		if is_node_ready():
+			definir_hover_habilitado(_hover_habilitado, _hover_no_verso)
 
 @export_group("Perspectiva do conjunto")
 @export var perspectiva_habilitada := false
@@ -132,7 +136,7 @@ func _configurar_carta(carta: Carta) -> void:
 		carta.animacao_2_5d_habilitada = true
 		carta.limite_inclinacao_total = limite_inclinacao
 		carta.definir_sombra_visivel(sombras_visiveis)
-	carta.definir_hover_habilitado(_hover_habilitado, _hover_no_verso)
+	carta.definir_hover_habilitado(_hover_habilitado and not mao_adversaria, _hover_no_verso)
 	carta.definir_jogavel(carta_permitida(carta.id_carta))
 
 
@@ -140,7 +144,7 @@ func definir_hover_habilitado(habilitado: bool, incluir_verso: bool = false) -> 
 	_hover_habilitado = habilitado
 	_hover_no_verso = incluir_verso
 	for carta in obter_cartas():
-		carta.definir_hover_habilitado(habilitado, incluir_verso)
+		carta.definir_hover_habilitado(habilitado and not mao_adversaria, incluir_verso)
 
 
 func definir_sombras_visiveis(visiveis: bool) -> void:
@@ -239,6 +243,17 @@ func reorganizar(animar: bool = true) -> void:
 			if carta.tween_de_reposicionamento and carta.tween_de_reposicionamento.is_valid():
 				carta.tween_de_reposicionamento.kill()
 			carta.teleportar(estado["posicao"], estado["rotacao"])
+
+
+func transformacao_destino_carta(indice: int) -> Transform2D:
+	var cartas := obter_cartas()
+	if indice < 0 or indice >= cartas.size():
+		return Transform2D.IDENTITY
+	var carta := cartas[indice]
+	var estado := calcular_estado_carta(indice, cartas.size())
+	var destino := Transform2D(deg_to_rad(float(estado["rotacao"])), estado["escala"], 0.0, Vector2.ZERO)
+	destino.origin = estado["posicao"] + carta.pivot_offset - destino.basis_xform(carta.pivot_offset)
+	return carta.get_parent().get_global_transform() * destino
 
 
 func configurar_leque(nova_separacao: int, nova_curvatura: int, nova_abertura: int, animar: bool = true) -> void:

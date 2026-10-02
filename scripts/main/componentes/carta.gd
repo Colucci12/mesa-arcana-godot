@@ -2,11 +2,15 @@ extends Control
 class_name Carta
 
 signal selecionada(id_carta: int)
+signal reorganizacao_iniciada(estado_destino: Dictionary)
+signal reorganizacao_atualizada(progresso: float)
+signal reorganizacao_concluida
 
 @onready var _compensacao_visual: Node2D = $CompensacaoVisual
-@onready var _virada_visual: Control = $CompensacaoVisual/ViradaVisual
-@onready var _textura_carta: TextureRect = $CompensacaoVisual/ViradaVisual/TexturaCarta
-@onready var _sombra: TextureRect = $CompensacaoVisual/ViradaVisual/Sombra
+@onready var _hover_visual: Control = $CompensacaoVisual/HoverVisual
+@onready var _virada_visual: Control = $CompensacaoVisual/HoverVisual/ViradaVisual
+@onready var _textura_carta: TextureRect = $CompensacaoVisual/HoverVisual/ViradaVisual/TexturaCarta
+@onready var _sombra: TextureRect = $CompensacaoVisual/HoverVisual/ViradaVisual/Sombra
 
 @export var deslocamento_sombra := Vector2(3, 5)
 @export_range(0.0, 20.0, 0.5) var inclinacao_maxima: float = 12.0
@@ -119,21 +123,28 @@ func definir_jogavel(jogavel: bool) -> void:
 func definir_sombra_visivel(visivel: bool) -> void:
 	_sombra.visible = visivel
 
+func obter_apresentacao() -> Dictionary:
+	return {"textura": _textura_carta.texture, "material": _textura_carta.material,
+		"virada": _hover_visual.get_transform() * _virada_visual.get_transform()}
+
+func definir_apresentacao_externa(ativa: bool) -> void:
+	# O dono e os tweens continuam na carta; outro canvas pode apresentar sua face.
+	_compensacao_visual.visible = not ativa
+
+func transformacao_da_aparencia() -> Transform2D:
+	return get_global_transform() * _compensacao_visual.transform
+
 func definir_hover_habilitado(habilitado: bool, incluir_verso: bool = false) -> void:
 	_hover_habilitado = habilitado
 	_hover_no_verso = incluir_verso
 	mouse_filter = Control.MOUSE_FILTER_STOP if habilitado else Control.MOUSE_FILTER_IGNORE
 	if not habilitado:
-		if _tween_do_hover and _tween_do_hover.is_valid():
-			_tween_do_hover.kill()
 		state = false
-		_definir_inclinacao(Vector2.ZERO)
-		set_process(false)
-		if not _virando and not _em_reorganizacao:
-			scale = SCALE
+		_animar_hover(Vector2.ONE, 0.2)
+		set_process(not _inclinacao_atual.is_zero_approx())
 
 func _hover_permitido() -> bool:
-	return _hover_habilitado and not _virando and not _em_reorganizacao and (not verso or _hover_no_verso)
+	return _hover_habilitado and not _virando and not _em_transferencia and _compensacao_visual.visible and (not verso or _hover_no_verso)
 
 func definir_deformacao(graus: float) -> void:
 	_deformacao_atual = clampf(graus, -25.0, 25.0)
@@ -152,6 +163,7 @@ func reparentar_preservando_visual(destino: Node) -> void:
 	set_process(false)
 	inclinacao_base += _inclinacao_atual
 	_definir_inclinacao(Vector2.ZERO)
+	_animar_hover(Vector2.ONE, 0.2)
 	reparent(destino, false)
 	_compensacao_visual.transform = get_global_transform().affine_inverse() * aparencia
 	_atualizar_sombra()
@@ -162,21 +174,19 @@ func em_animacao_visual() -> bool:
 func aplicar_estado_visual(estado: Dictionary, animar: bool = true, duracao: float = 1.0) -> void:
 	if tween_de_reposicionamento and tween_de_reposicionamento.is_valid():
 		tween_de_reposicionamento.kill()
-	if _tween_do_hover and _tween_do_hover.is_valid():
-		_tween_do_hover.kill()
 	var inicio := {
 		"posicao": position, "rotacao": rotation,
-		"escala": scale, "inclinacao": inclinacao_base + _inclinacao_atual,
+		"escala": scale, "inclinacao": inclinacao_base,
 		"deformacao": _deformacao_atual, "compensacao": _compensacao_visual.transform
 	}
-	state = false
-	set_process(false)
-	_definir_inclinacao(Vector2.ZERO)
+	# O hover continua independente da posição/escala/inclinação-base do leque.
 	SCALE = estado["escala"]
 	_em_reorganizacao = true
 	if _em_transferencia and animar:
 		z_as_relative = false
 		z_index = 20
+	# Uma apresentação externa acompanha este mesmo tween, inclusive interrupções.
+	reorganizacao_iniciada.emit(estado)
 	var atualizar := _interpolar_estado_visual.bind(inicio, estado)
 	if not animar:
 		atualizar.call(1.0)
@@ -200,6 +210,7 @@ func _interpolar_estado_visual(progresso: float, inicio: Dictionary, fim: Dictio
 	inclinacao_base = inclinacao_inicial.lerp(fim["inclinacao"], progresso)
 	definir_deformacao(lerpf(float(inicio["deformacao"]), float(fim["deformacao"]), progresso))
 	_atualizar_sombra()
+	reorganizacao_atualizada.emit(progresso)
 
 func _finalizar_reorganizacao() -> void:
 	_em_reorganizacao = false
@@ -210,6 +221,7 @@ func _finalizar_reorganizacao() -> void:
 	_em_transferencia = false
 	if not _virando or animacao_2_5d_habilitada:
 		scale = SCALE
+	reorganizacao_concluida.emit()
 	if _hover_permitido() and get_viewport().gui_get_hovered_control() == self:
 		_on_mouse_entered()
 
@@ -231,8 +243,7 @@ func definir_iluminacao(iluminacao: IluminacaoAmbiente) -> void:
 	_atualizar_sombra()
 		
 func virar_carta():
-	if _tween_do_hover and _tween_do_hover.is_valid():
-		_tween_do_hover.kill()
+	_animar_hover(Vector2.ONE, 0.2)
 	if _tween_da_virada and _tween_da_virada.is_valid():
 		_tween_da_virada.kill()
 	_virando = true
@@ -281,17 +292,16 @@ func _limpar_carta():
 
 #ANIMAÇÕES E EMBELEZAMENTOS
 func _on_mouse_entered() -> void:
-	if not _hover_permitido(): return
+	if not _hover_permitido() or state: return
 	
 	state = true
 	set_process(true)
-	_animar_hover(SCALE + Vector2(0.2, 0.2), 0.35)
+	_animar_hover(Vector2.ONE + Vector2.ONE * 0.2 / SCALE.abs().max(Vector2.ONE * 0.01), 0.35)
 
 func _on_mouse_exited() -> void:
-	if not _hover_permitido(): return
-	
 	state = false
-	_animar_hover(SCALE, 0.2)
+	_animar_hover(Vector2.ONE, 0.2)
+	set_process(not _inclinacao_atual.is_zero_approx())
 
 func _animar_hover(escala_destino: Vector2, duracao: float) -> void:
 	if _tween_do_hover and _tween_do_hover.is_valid():
@@ -299,7 +309,7 @@ func _animar_hover(escala_destino: Vector2, duracao: float) -> void:
 	_tween_do_hover = create_tween()
 	_tween_do_hover.set_trans(Tween.TRANS_ELASTIC)
 	_tween_do_hover.set_ease(Tween.EASE_OUT)
-	_tween_do_hover.tween_property(self, "scale", escala_destino, duracao)
+	_tween_do_hover.tween_property(_hover_visual, "scale", escala_destino, duracao)
 
 func _trocar_textura_visual():
 	$SubViewport/Visual/costas_carta.visible = verso
