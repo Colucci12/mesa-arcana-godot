@@ -71,9 +71,9 @@ func _validar_distribuicao() -> void:
 		_falhar("A tela não mostra quatro mãos")
 	for id in tela._maos:
 		var mao: MaoVisual = tela._maos[id]
-		if mao.get_child_count() != 7:
+		if mao.quantidade_cartas() != 7:
 			_falhar("Quantidade visual da mão incorreta")
-		for carta in mao.get_children():
+		for carta in mao.obter_cartas():
 			if carta.verso != (id != _id_local):
 				_falhar("Orientação da carta incorreta")
 	if _papel == 3 and _partidas == 1:

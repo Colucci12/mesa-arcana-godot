@@ -3,6 +3,11 @@ class_name Carta
 
 signal selecionada(id_carta: int)
 
+@onready var _compensacao_visual: Node2D = $CompensacaoVisual
+@onready var _virada_visual: Control = $CompensacaoVisual/ViradaVisual
+@onready var _textura_carta: TextureRect = $CompensacaoVisual/ViradaVisual/TexturaCarta
+@onready var _sombra: TextureRect = $CompensacaoVisual/ViradaVisual/Sombra
+
 @export var deslocamento_sombra := Vector2(3, 5)
 @export_range(0.0, 20.0, 0.5) var inclinacao_maxima: float = 12.0
 @export_range(1.0, 89.0, 1.0) var limite_inclinacao_total: float = 55.0
@@ -28,6 +33,10 @@ var _hover_no_verso: bool = false
 var _inclinacao_atual := Vector2.ZERO
 var _cor_de_fundo: Carta_Base.Cores = Carta_Base.Cores.PRETO
 var _iluminacao: IluminacaoAmbiente
+var _em_reorganizacao := false
+var _em_transferencia := false
+var _deformacao_atual := 0.0
+var animacao_2_5d_habilitada := false
 	
 var verso := true:
 	set(v):
@@ -64,7 +73,7 @@ func _definir_inclinacao(inclinacao: Vector2) -> void:
 	_inclinacao_atual = inclinacao
 	var limite := Vector2.ONE * limite_inclinacao_total
 	var total := (inclinacao_base + inclinacao).clamp(-limite, limite)
-	$TexturaCarta.material.set_shader_parameter("inclinacao", total)
+	_textura_carta.material.set_shader_parameter("inclinacao", total)
 
 func _solicitar_atualizacao_visual() -> void:
 	$SubViewport.render_target_update_mode = SubViewport.UPDATE_ONCE
@@ -74,7 +83,7 @@ func _notification(notificacao: int) -> void:
 		_atualizar_sombra()
 
 func _atualizar_sombra() -> void:
-	var transformacao := get_global_transform_with_canvas()
+	var transformacao := _virada_visual.get_global_transform_with_canvas()
 	if absf(transformacao.determinant()) < 0.0001:
 		return
 	var escala_sombra := minf(transformacao.x.length(), transformacao.y.length())
@@ -85,7 +94,7 @@ func _atualizar_sombra() -> void:
 		var sombra_lampada := _iluminacao.deslocamento_sombra_na_tela(centro_na_tela, dimensoes_tela)
 		deslocamento_na_tela = deslocamento_na_tela.lerp(sombra_lampada * escala_sombra, _iluminacao.intensidade)
 	var deslocamento_local := transformacao.affine_inverse() * (transformacao.origin + deslocamento_na_tela)
-	$Sombra.position = $TexturaCarta.position + deslocamento_local
+	_sombra.position = _textura_carta.position + deslocamento_local
 
 func _gui_input(event: InputEvent) -> void:
 	if not (event is InputEventMouseButton):
@@ -108,7 +117,7 @@ func definir_jogavel(jogavel: bool) -> void:
 	modulate = Color.WHITE if jogavel else Color(0.55, 0.55, 0.55)
 
 func definir_sombra_visivel(visivel: bool) -> void:
-	$Sombra.visible = visivel
+	_sombra.visible = visivel
 
 func definir_hover_habilitado(habilitado: bool, incluir_verso: bool = false) -> void:
 	_hover_habilitado = habilitado
@@ -120,17 +129,92 @@ func definir_hover_habilitado(habilitado: bool, incluir_verso: bool = false) -> 
 		state = false
 		_definir_inclinacao(Vector2.ZERO)
 		set_process(false)
-		if not _virando:
+		if not _virando and not _em_reorganizacao:
 			scale = SCALE
 
 func _hover_permitido() -> bool:
-	return _hover_habilitado and not _virando and (not verso or _hover_no_verso)
+	return _hover_habilitado and not _virando and not _em_reorganizacao and (not verso or _hover_no_verso)
 
 func definir_deformacao(graus: float) -> void:
-	$TexturaCarta.material.set_shader_parameter("deformacao", clampf(graus, -25.0, 25.0))
+	_deformacao_atual = clampf(graus, -25.0, 25.0)
+	_textura_carta.material.set_shader_parameter("deformacao", _deformacao_atual)
+
+func reparentar_preservando_visual(destino: Node) -> void:
+	# A carta muda de dono agora; só a aparência compensa a transformação herdada.
+	var aparencia := get_global_transform() * _compensacao_visual.transform
+	if tween_de_reposicionamento and tween_de_reposicionamento.is_valid():
+		tween_de_reposicionamento.kill()
+	if _tween_do_hover and _tween_do_hover.is_valid():
+		_tween_do_hover.kill()
+	_em_reorganizacao = true
+	_em_transferencia = true
+	state = false
+	set_process(false)
+	inclinacao_base += _inclinacao_atual
+	_definir_inclinacao(Vector2.ZERO)
+	reparent(destino, false)
+	_compensacao_visual.transform = get_global_transform().affine_inverse() * aparencia
+	_atualizar_sombra()
+
+func em_animacao_visual() -> bool:
+	return _em_reorganizacao or _virando
+
+func aplicar_estado_visual(estado: Dictionary, animar: bool = true, duracao: float = 1.0) -> void:
+	if tween_de_reposicionamento and tween_de_reposicionamento.is_valid():
+		tween_de_reposicionamento.kill()
+	if _tween_do_hover and _tween_do_hover.is_valid():
+		_tween_do_hover.kill()
+	var inicio := {
+		"posicao": position, "rotacao": rotation,
+		"escala": scale, "inclinacao": inclinacao_base + _inclinacao_atual,
+		"deformacao": _deformacao_atual, "compensacao": _compensacao_visual.transform
+	}
+	state = false
+	set_process(false)
+	_definir_inclinacao(Vector2.ZERO)
+	SCALE = estado["escala"]
+	_em_reorganizacao = true
+	if _em_transferencia and animar:
+		z_as_relative = false
+		z_index = 20
+	var atualizar := _interpolar_estado_visual.bind(inicio, estado)
+	if not animar:
+		atualizar.call(1.0)
+		_finalizar_reorganizacao()
+		return
+	tween_de_reposicionamento = create_tween()
+	tween_de_reposicionamento.tween_method(atualizar, 0.0, 1.0, duracao).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tween_de_reposicionamento.tween_callback(_finalizar_reorganizacao)
+
+func _interpolar_estado_visual(progresso: float, inicio: Dictionary, fim: Dictionary) -> void:
+	var posicao_inicial: Vector2 = inicio["posicao"]
+	var escala_inicial: Vector2 = inicio["escala"]
+	var inclinacao_inicial: Vector2 = inicio["inclinacao"]
+	position = posicao_inicial.lerp(fim["posicao"], progresso)
+	rotation = lerp_angle(float(inicio["rotacao"]), deg_to_rad(float(fim["rotacao"])), progresso)
+	# No modo 2.5D a virada está no visual, independente da escala do leque.
+	if not _virando or animacao_2_5d_habilitada:
+		scale = escala_inicial.lerp(fim["escala"], progresso)
+	var compensacao: Transform2D = inicio["compensacao"]
+	_compensacao_visual.transform = compensacao.interpolate_with(Transform2D.IDENTITY, progresso)
+	inclinacao_base = inclinacao_inicial.lerp(fim["inclinacao"], progresso)
+	definir_deformacao(lerpf(float(inicio["deformacao"]), float(fim["deformacao"]), progresso))
+	_atualizar_sombra()
+
+func _finalizar_reorganizacao() -> void:
+	_em_reorganizacao = false
+	_compensacao_visual.transform = Transform2D.IDENTITY
+	if _em_transferencia:
+		z_as_relative = true
+		carta_esta_em_foco()
+	_em_transferencia = false
+	if not _virando or animacao_2_5d_habilitada:
+		scale = SCALE
+	if _hover_permitido() and get_viewport().gui_get_hovered_control() == self:
+		_on_mouse_entered()
 
 func definir_acabamento(intensidade_claros: float, intensidade_tinta: float, variacao_tinta: float = 0.0, escala_variacao: float = 18.0) -> void:
-	var material_carta := $TexturaCarta.material as ShaderMaterial
+	var material_carta := _textura_carta.material as ShaderMaterial
 	material_carta.set_shader_parameter("acabamento_claros", clampf(intensidade_claros, 0.0, 0.05))
 	material_carta.set_shader_parameter("acabamento_tinta", clampf(intensidade_tinta, 0.0, 0.08))
 	material_carta.set_shader_parameter("acabamento_variacao_tinta", clampf(variacao_tinta, 0.0, 0.15))
@@ -140,7 +224,7 @@ func definir_iluminacao(iluminacao: IluminacaoAmbiente) -> void:
 	if is_instance_valid(_iluminacao) and _iluminacao.parametros_alterados.is_connected(_atualizar_sombra):
 		_iluminacao.parametros_alterados.disconnect(_atualizar_sombra)
 	_iluminacao = iluminacao
-	_iluminacao.aplicar_em($TexturaCarta.material as ShaderMaterial, true)
+	_iluminacao.aplicar_em(_textura_carta.material as ShaderMaterial, true)
 	_iluminacao.parametros_alterados.connect(_atualizar_sombra)
 	if not get_viewport().size_changed.is_connected(_atualizar_sombra):
 		get_viewport().size_changed.connect(_atualizar_sombra)
@@ -155,22 +239,36 @@ func virar_carta():
 	state = false
 	_definir_inclinacao(Vector2.ZERO)
 	set_process(false)
-	scale.y = SCALE.y
 	_tween_da_virada = create_tween()
-	
-	_tween_da_virada.tween_property(self, "scale:x", 0.0, 0.2).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	var alvo: Control = _virada_visual if animacao_2_5d_habilitada else self
+	var escala_final := 1.0 if animacao_2_5d_habilitada else SCALE.x
+	if animacao_2_5d_habilitada:
+		_virada_visual.pivot_offset = pivot_offset
+	else:
+		scale.y = SCALE.y
+	_tween_da_virada.tween_property(alvo, "scale:x", 0.0, 0.2).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	if animacao_2_5d_habilitada:
+		_tween_da_virada.parallel().tween_method(_atualizar_sombra_da_virada, 0.0, 1.0, 0.2)
 	
 	_tween_da_virada.tween_callback(_trocar_textura_visual)
 	
-	_tween_da_virada.tween_property(self, "scale:x", SCALE.x, 0.5).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_tween_da_virada.tween_property(alvo, "scale:x", escala_final, 0.5).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	if animacao_2_5d_habilitada:
+		_tween_da_virada.parallel().tween_method(_atualizar_sombra_da_virada, 0.0, 1.0, 0.5)
 	
 	if verso: _tween_da_virada.tween_callback(_limpar_carta)
 	_tween_da_virada.tween_callback(_finalizar_virada)
 
 func _finalizar_virada() -> void:
 	_virando = false
+	if not _em_reorganizacao:
+		scale = SCALE
 	if _hover_permitido() and get_viewport().gui_get_hovered_control() == self:
 		_on_mouse_entered()
+	_atualizar_sombra()
+
+func _atualizar_sombra_da_virada(_progresso: float) -> void:
+	_atualizar_sombra()
 
 func _limpar_carta():
 	$SubViewport/Visual/ColorRect.color = Color.TRANSPARENT
@@ -208,8 +306,13 @@ func _trocar_textura_visual():
 	_solicitar_atualizacao_visual()
 
 func reposicionar(p_posicao:Vector2, p_rotacao:float) -> void:
+	if animacao_2_5d_habilitada:
+		aplicar_estado_visual({"posicao": p_posicao, "rotacao": p_rotacao, "escala": SCALE,
+			"inclinacao": inclinacao_base, "deformacao": _deformacao_atual})
+		return
 	if tween_de_reposicionamento and tween_de_reposicionamento.is_valid():
 		tween_de_reposicionamento.kill()
+	_em_reorganizacao = false
 
 	tween_de_reposicionamento = create_tween()
 	tween_de_reposicionamento.set_trans(Tween.TRANS_CUBIC)

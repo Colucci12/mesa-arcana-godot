@@ -29,11 +29,11 @@ func _ready() -> void:
 	mesa.printar_mao_jogadores()
 
 #FUNÇÕES RELACIONADAS À CRIAÇÃO DAS CARTAS
-func testando_cartas(p_dados_carta: Carta_Base, mao:Node):
+func testando_cartas(p_dados_carta: Carta_Base, mao: MaoVisual):
 	var carta = CENA_CARTA.instantiate()
 	carta.setup(p_dados_carta)	
 	
-	mao.add_child(carta)
+	mao.receber_carta(carta)
 
 #FUNÇÕES RELACIONADAS À LISTA CIRCULAR
 func testando_lista_ligada_circular():

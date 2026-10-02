@@ -28,3 +28,9 @@ color = Color(0, 1, 1, 1)
 script = ExtResource("1_g8kpn")
 curvatura = SubResource("Curve_g8kpn")
 rotacao = SubResource("Curve_fviye")
+
+[node name="GrupoVisual" type="Node2D" parent="."]
+
+[node name="Cartas" type="Control" parent="GrupoVisual"]
+layout_mode = 0
+mouse_filter = 2

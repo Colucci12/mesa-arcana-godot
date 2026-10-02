@@ -271,15 +271,15 @@ func _aplicar_mao_atualizada(evento: Dictionary) -> void:
 		return
 	var privado: Dictionary = evento.get("privado", {})
 	var cartas: Array = privado.get("cartas", [])
-	while _mao_jogador.get_child_count() < cartas.size():
+	while _mao_jogador.quantidade_cartas() < cartas.size():
 		var carta_nova := _monte.criar_carta()
 		_mao_jogador.receber_carta_do_monte(carta_nova)
-	while _mao_jogador.get_child_count() > cartas.size():
-		var carta_excedente: Node = _mao_jogador.get_child(_mao_jogador.get_child_count() - 1)
-		_mao_jogador.remove_child(carta_excedente)
+	while _mao_jogador.quantidade_cartas() > cartas.size():
+		var carta_excedente: Carta = _mao_jogador.obter_carta(_mao_jogador.quantidade_cartas() - 1)
+		_mao_jogador.remover_carta(carta_excedente)
 		carta_excedente.queue_free()
 	for indice in range(cartas.size()):
-		var carta := _mao_jogador.get_child(indice) as Carta
+		var carta := _mao_jogador.obter_carta(indice) as Carta
 		carta.setup_dados(cartas[indice])
 		if not carta.selecionada.is_connected(_solicitar_jogada):
 			carta.selecionada.connect(_solicitar_jogada)
@@ -299,17 +299,17 @@ func _adicionar_carta_local(dados_carta: Dictionary) -> void:
 func _definir_quantidade_oponente(id_jogador: int, quantidade: int) -> void:
 	var mao_oponente: MaoVisual = _maos[id_jogador]
 	var quantidade_segura := maxi(quantidade, 0)
-	while mao_oponente.get_child_count() < quantidade_segura:
+	while mao_oponente.quantidade_cartas() < quantidade_segura:
 		var carta := _monte.criar_carta()
 		mao_oponente.receber_carta_do_monte(carta)
-	while mao_oponente.get_child_count() > quantidade_segura:
-		var carta: Node = mao_oponente.get_child(mao_oponente.get_child_count() - 1)
-		mao_oponente.remove_child(carta)
+	while mao_oponente.quantidade_cartas() > quantidade_segura:
+		var carta: Carta = mao_oponente.obter_carta(mao_oponente.quantidade_cartas() - 1)
+		mao_oponente.remover_carta(carta)
 		carta.queue_free()
 	_atualizar_quantidade(id_jogador, quantidade_segura)
 
 func _procurar_carta_local(id_carta: int) -> Carta:
-	for filho in _mao_jogador.get_children():
+	for filho in _mao_jogador.obter_cartas():
 		var carta := filho as Carta
 		if carta and carta.id_carta == id_carta:
 			return carta
@@ -317,14 +317,12 @@ func _procurar_carta_local(id_carta: int) -> Carta:
 
 func _obter_carta_oponente(id_jogador: int) -> Carta:
 	var mao_oponente: MaoVisual = _maos[id_jogador]
-	if mao_oponente.get_child_count() == 0:
+	if mao_oponente.quantidade_cartas() == 0:
 		return null
-	return mao_oponente.get_child(mao_oponente.get_child_count() - 1) as Carta
+	return mao_oponente.obter_carta(mao_oponente.quantidade_cartas() - 1) as Carta
 
-func _limpar_mao(mao: Control) -> void:
-	for carta in mao.get_children():
-		mao.remove_child(carta)
-		carta.queue_free()
+func _limpar_mao(mao: MaoVisual) -> void:
+	mao.limpar()
 
 func _mostrar_carta_inicial(dados_carta: Dictionary) -> void:
 	if dados_carta.is_empty():

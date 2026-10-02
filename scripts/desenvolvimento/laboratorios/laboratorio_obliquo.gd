@@ -113,6 +113,9 @@ func _criar_carta(destino: Node, id: int, cor: String, valor: String) -> Carta:
 	var carta := CENA_CARTA.instantiate() as Carta
 	if destino is CanvasItem:
 		carta.posicao = (destino as CanvasItem).get_global_transform() * Vector2(250, 47.5)
-	destino.add_child(carta)
+	if destino is MaoVisual:
+		destino.receber_carta(carta)
+	else:
+		destino.add_child(carta)
 	carta.setup_dados({"id": id, "cor": cor, "valor": valor})
 	return carta

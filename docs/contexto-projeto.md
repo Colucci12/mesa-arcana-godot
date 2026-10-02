@@ -170,6 +170,39 @@ O seletor **Editar mão inferior/superior/esquerda/direita** determina quais car
 
 As posições são percentuais da área disponível; ocultar o painel amplia essa área, mantendo a distribuição relativa. Os valores iniciais são apenas uma composição de partida: inferior maior, superior menor e laterais rotacionadas. Aplicar os testes individuais e ajustar o tamanho relativo é parte da comparação. Conferir visualmente seleção/arraste independente, frente/verso, hover com Tab e salvar/carregar o conjunto. A execução visual fica com o usuário; não lançar o jogo nem produzir capturas automaticamente.
 
+### Mão visual reutilizável
+
+`scenes/main/componentes/mao.tscn` é a única cena pública da mão. Os laboratórios individual e de quatro mãos instanciam essa cena diretamente, sem um Node2D externo para aplicar a perspectiva. O grupo de deformação e o contêiner das cartas ficam dentro da mão. Posição na composição pertence à cena que a utiliza; leque, escala, compressão, giro, deformação, inclinações por eixo/extremidade e variação de tamanho pertencem ao componente.
+
+No Inspector, habilitar **Perspectiva habilitada** para usar esses parâmetros. Por código, `configurar_visual(ajustes, opcoes, animar)` recebe os perfis existentes dos laboratórios. A raiz representa o centro da mão nesse modo. O modo padrão permanece sem perspectiva adicional para as cenas atuais da partida. O painel dos laboratórios agora apenas envia as configurações ao componente, preservando o formato dos arquivos de testes e composições.
+
+Usar `receber_carta()`, `remover_carta()`, `obter_cartas()`, `obter_carta()`, `quantidade_cartas()` e `limpar()` em vez de depender dos filhos diretos da raiz. `receber_carta_do_monte()` continua disponível. A mão reorganiza automaticamente as cartas após entrada/saída, calculando o estado completo conforme a quantidade: mão vazia não gera posições; carta única usa o meio das inclinações e tamanho sem variação; outras quantidades distribuem os parâmetros entre as extremidades. `Carta.aplicar_estado_visual()` anima posição, rotação, escala, inclinação e deformação com um tween interrompível, enquanto a virada mantém o controle exclusivo da escala quando ativa. O hover fica suspenso durante essa reorganização.
+
+A encapsulação da mão também é usada pelo laboratório de movimento descrito abaixo. Para validar a geometria separadamente, carregar os presets nos laboratórios individual/de quatro mãos, comparar giro/compressão/deformação e testar Tab, hover e alternância de faces. A transferência para o plano projetado da mesa ainda fica para outro experimento. Não executar o jogo ou produzir capturas automaticamente.
+
+### Laboratório de movimento das mãos
+
+As cartas iniciais e as compras usam uma instância independente de `Baralho_Logico`, na composição completa e embaralhada do jogo: números 0–9 nas quatro cores, +2, inverte, pula, troca-cor, +4 e troca-mão. O laboratório usa apenas a geração e os dados das cartas; não executa seus efeitos ou regras. R prepara outro baralho completo embaralhado, e a reposição automática permite continuar comprando quando ele acaba. A escolha é aleatória: cada mão pode receber qualquer cor/tipo, sem garantir um curinga em cada compra.
+
+Executar `scenes/desenvolvimento/laboratorios/laboratorio_movimento_maos.tscn` diretamente com F6. A cena herda o laboratório de quatro mãos, incluindo painel, ajustes, testes individuais e composições salvas. Começa com sete cartas por mão; carregar uma composição aplica os parâmetros às cartas presentes. Monte e descarte ficam no centro do fundo escuro, sem mesa projetada ou regras de partida. A cena principal do projeto permanece a mesma.
+
+- **D / Comprar uma por mão:** cria uma carta fictícia no monte e a leva até o último lugar de cada mão. As cartas anteriores se reorganizam para abrir espaço.
+- **J / Jogar uma por mão:** retira a primeira, a do meio ou a última, conforme o seletor do painel. As restantes se reorganizam; a carta viaja até o descarte, revela sua frente e retorna à inclinação/deformação zero.
+- **R / Esvaziar mãos e descarte:** cancela movimentos em andamento e limpa as cartas, preservando os ajustes e arquivos salvos. Repetir D permite comparar zero, uma, sete e mais cartas.
+- **Tab:** mantém a comparação painel/hover nas quatro mãos, inclusive nos versos. D/J/R funcionam com o painel oculto, ignorando repetição automática e campos de texto em edição.
+
+A transferência mantém o fluxo original: comprar chama `MaoVisual.receber_carta_do_monte()`, a carta vira filha do contêiner da mão imediatamente, e a mão reorganiza todas as filhas conforme a quantidade real. Jogar chama `DescarteVisual.receber_carta()`, que recebe a carta imediatamente; a saída continua disparando a reorganização automática da mão. O laboratório envia os comandos e preserva os dados para revelar as cartas após a limpeza do verso, sem controlar trajetos ou manter uma ordem lógica paralela à árvore.
+
+No modo de perspectiva, `Carta.reparentar_preservando_visual()` captura a transformação da aparência antes da troca de pai. Após o reparent, aplica a matriz inversa da nova transformação numa compensação visual interna e permanente da cena da carta. Assim, a aparência começa exatamente onde estava. `Carta.aplicar_estado_visual()` anima posição, giro, escala, inclinação e deformação; a compensação retorna à identidade no mesmo tween. Novas reorganizações interrompem o tween anterior e partem dos valores atuais, incluindo a compensação restante. Não há portadores temporários nem reparent na chegada.
+
+No modo 2.5D, a virada anima um visual interno separado, em vez de zerar a escala da raiz da carta. Isso permite virar, reorganizar e fazer reparent simultaneamente, sem interferência entre tweens ou inversão de uma matriz singular. A virada tradicional continua como padrão nas cenas sem perspectiva. O descarte tem configuração opcional de perspectiva e duração; nesse modo usa a mesma animação da carta, com escala 1,5 e inclinação/deformação zero como destino.
+
+Comprar/jogar aceitam comandos sobrepostos, pelos botões ou D/J, sem esperar os movimentos terminarem e sem enfileirar comandos. Primeira/meio/última usam as filhas reais da mão, incluindo cartas que já pertencem a ela mas ainda estão se aproximando visualmente. Cada entrada/saída atualiza o leque; compras rápidas podem prolongar reorganizações interrompidas. A ordem do descarte é a ordem do reparent no início, mesmo com animações terminando fora de ordem.
+
+Hover, arraste e edição dos parâmetros ficam suspensos enquanto as cartas animam; os botões de movimento e o seletor primeira/meio/última continuam disponíveis. O laboratório apenas consulta `Carta.em_animacao_visual()` para liberar essa edição, sem orquestrar a animação. R remove as filhas atuais das mãos/descarte e seus tweens são descartados junto com as cartas. No Inspector da raiz, **Duração transferência** ajusta o tempo das reorganizações e do descarte (mínimo 0,8 segundo). As contagens vêm dos filhos atuais; o painel mostra também quantas cartas estão animando. Salvar composição continua gravando somente parâmetros/anotações, sem persistir a distribuição das cartas.
+
+Validação visual pelo usuário: carregar sua composição, apertar D várias vezes rapidamente e alternar D/J antes das chegadas, comparando primeira/meio/última. Após R, comprar e imediatamente jogar a única carta ainda em trânsito. Conferir as contagens, ausência de cartas duplicadas/perdidas, continuidade nas mãos laterais, reorganização gradual, frente restaurada no descarte, hover após terminar o trânsito, Tab/redimensionamento durante o trajeto e R com várias transferências simultâneas. Também repetir D até superar sete cartas. Godot e jogo não foram executados automaticamente.
+
 ### Verificações gerais
 
 - A janela de referência é 1280×720, com stretch `canvas_items`/aspect `expand`; também foram consideradas telas de 1920×1080.

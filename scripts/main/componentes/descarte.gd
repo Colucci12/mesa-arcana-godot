@@ -5,6 +5,9 @@ const COR_PONTILHADO = Color(0.88, 0.94, 0.81, 0.65)
 const DESLOCAMENTOS = [Vector2.ZERO, Vector2(4, -3), Vector2(-4, 2), Vector2(2, 4)]
 const ROTACOES = [0.0, 5.0, -4.0, 2.0]
 
+@export var perspectiva_habilitada := false
+@export_range(0.05, 2.0, 0.05) var duracao_animacao := 1.0
+
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_RESIZED:
 		queue_redraw()
@@ -21,7 +24,12 @@ func _draw() -> void:
 		draw_circle(Vector2(direita, y), 1.8, COR_PONTILHADO)
 
 func receber_carta(carta: Carta) -> void:
-	carta.reparent(self, true)
+	var usar_perspectiva := perspectiva_habilitada or carta.animacao_2_5d_habilitada
+	if usar_perspectiva:
+		carta.animacao_2_5d_habilitada = true
+		carta.reparentar_preservando_visual(self)
+	else:
+		carta.reparent(self, true)
 	carta.state = false
 	carta.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	carta.verso = false
@@ -29,7 +37,13 @@ func receber_carta(carta: Carta) -> void:
 	var posicao_central := (size - Carta.SIZE) / 2.0
 	var deslocamento: Vector2 = DESLOCAMENTOS[indice % DESLOCAMENTOS.size()]
 	var rotacao: float = ROTACOES[indice % ROTACOES.size()]
-	carta.reposicionar(posicao_central + deslocamento, rotacao)
+	if usar_perspectiva:
+		carta.definir_hover_habilitado(false)
+		carta.definir_sombra_visivel(true)
+		carta.aplicar_estado_visual({"posicao": posicao_central + deslocamento, "rotacao": rotacao,
+			"escala": Vector2(1.5, 1.5), "inclinacao": Vector2.ZERO, "deformacao": 0.0}, true, duracao_animacao)
+	else:
+		carta.reposicionar(posicao_central + deslocamento, rotacao)
 
 func alterar_cor_carta(id_carta: int, cor: Carta_Base.Cores) -> void:
 	for filho in get_children():

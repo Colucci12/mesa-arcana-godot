@@ -14,8 +14,7 @@ const PADRAO = {
 }
 
 @onready var _area: Control = $Layout/AreaVisual
-@onready var _grupo: Node2D = $Layout/AreaVisual/Grupo
-@onready var _mao: MaoVisual = $Layout/AreaVisual/Grupo/Leque
+@onready var _mao: MaoVisual = $Layout/AreaVisual/Mao
 @onready var _painel: PanelContainer = $Layout/Painel
 @onready var _rolagem: ScrollContainer = $Layout/Painel/Margem/Rolagem
 @onready var _conteudo: VBoxContainer = $Layout/Painel/Margem/Rolagem/Controles
@@ -55,14 +54,12 @@ func _ready() -> void:
 
 func _montar_cartas() -> void:
 	_mao.custom_minimum_size = Vector2(180, 140)
+	_mao.definir_hover_habilitado(false)
 	for indice in range(7):
 		var carta := CENA_CARTA.instantiate() as Carta
 		var dados := {"id": indice + 1, "cor": CORES[indice % CORES.size()], "valor": str(indice + 1)}
-		_mao.add_child(carta)
-		carta.limite_inclinacao_total = 89.0
+		_mao.receber_carta(carta, false)
 		carta.setup_dados(dados)
-		carta.definir_hover_habilitado(false)
-		carta.definir_sombra_visivel(false)
 		_cartas.append(carta)
 		_dados_cartas.append(dados)
 
@@ -201,32 +198,12 @@ func _aplicar_ajustes() -> void:
 	if _em_virada:
 		return
 	_reposicionar()
-	var tamanho := float(_ajustes["tamanho"])
-	_grupo.scale = Vector2(tamanho, tamanho * float(_ajustes["altura"]))
-	_grupo.rotation_degrees = float(_ajustes["giro"])
-	var deformacao := float(_ajustes["deformacao"])
-	var progressiva := _deformacao_progressiva.button_pressed
-	_grupo.skew = 0.0 if progressiva else deg_to_rad(deformacao)
-	var largura := float(_ajustes["largura"])
-	_mao.size = Vector2(largura, 140)
-	_mao.position = Vector2(-largura / 2.0, -Carta.SIZE.y / 2.0)
-	_mao.configurar_leque(int(_ajustes["separacao"]), int(_ajustes["curvatura"]), int(_ajustes["abertura"]), false)
-	var variacao := float(_ajustes["variacao_tamanho"])
-	for indice in range(_cartas.size()):
-		var carta := _cartas[indice]
-		var fator := lerpf(1.0 - variacao / 2.0, 1.0 + variacao / 2.0, indice / 6.0)
-		carta.SCALE = Vector2.ONE * 1.5 * fator
-		carta.scale = carta.SCALE
-		var centro := (_cartas.size() - 1) / 2.0
-		var posicao_relativa := (indice - centro) / maxf(centro, 1.0)
-		carta.definir_deformacao(deformacao * posicao_relativa if progressiva else 0.0)
-		var inclinacao := Vector2(float(_ajustes["inclinacao_x"]), float(_ajustes["inclinacao_y"]))
-		var progresso := indice / maxf(_cartas.size() - 1.0, 1.0)
-		if _inclinacao_x_progressiva.button_pressed:
-			inclinacao.x = lerpf(float(_ajustes["inclinacao_x_inicio"]), float(_ajustes["inclinacao_x_fim"]), progresso)
-		if _inclinacao_y_progressiva.button_pressed:
-			inclinacao.y = lerpf(float(_ajustes["inclinacao_y_inicio"]), float(_ajustes["inclinacao_y_fim"]), progresso)
-		carta.inclinacao_base = inclinacao
+	_mao.configurar_visual(_ajustes, {
+		"deformacao_progressiva": _deformacao_progressiva.button_pressed,
+		"inclinacao_x_progressiva": _inclinacao_x_progressiva.button_pressed,
+		"inclinacao_y_progressiva": _inclinacao_y_progressiva.button_pressed,
+		"frentes": _frentes.button_pressed, "sombras": _sombras.button_pressed
+	})
 
 
 func _atualizar_controles_inclinacao() -> void:
@@ -243,19 +220,20 @@ func _alternar_gradual(_ativada: bool) -> void:
 
 
 func _reposicionar() -> void:
-	_grupo.position = _area.size * Vector2(float(_ajustes["posicao_x"]), float(_ajustes["posicao_y"])) / 100.0
+	_mao.position = _area.size * Vector2(float(_ajustes["posicao_x"]), float(_ajustes["posicao_y"])) / 100.0
 
 
 func _mudar_faces(mostrar: bool) -> void:
-	if _em_virada or _cartas[0].verso == (not mostrar):
+	_mao.mao_adversaria = not mostrar
+	if _em_virada or _cartas.is_empty() or _cartas[0].verso == (not mostrar):
 		return
 	_em_virada = true
 	_frentes.disabled = true
 	_salvar.disabled = true
 	_carregar.disabled = true
 	_restaurar.disabled = true
+	_mao.definir_hover_habilitado(false)
 	for indice in range(_cartas.size()):
-		_cartas[indice].definir_hover_habilitado(false)
 		if mostrar:
 			# A virada para o verso limpa a arte; os dados do teste ficam fora da carta.
 			_cartas[indice].setup_dados(_dados_cartas[indice])
@@ -267,13 +245,11 @@ func _mudar_faces(mostrar: bool) -> void:
 	_carregar.disabled = _testes.is_empty()
 	_restaurar.disabled = false
 	_aplicar_ajustes()
-	for carta in _cartas:
-		carta.definir_hover_habilitado(not _painel.visible, true)
+	_mao.definir_hover_habilitado(not _painel.visible, true)
 
 
 func _mudar_sombras(mostrar: bool) -> void:
-	for carta in _cartas:
-		carta.definir_sombra_visivel(mostrar)
+	_mao.definir_sombras_visiveis(mostrar)
 
 
 func _entrada_area(evento: InputEvent) -> void:
@@ -310,8 +286,7 @@ func _input(evento: InputEvent) -> void:
 func _alternar_painel() -> void:
 	_painel.visible = not _painel.visible
 	_arrastando = false
-	for carta in _cartas:
-		carta.definir_hover_habilitado(not _painel.visible and not _em_virada, true)
+	_mao.definir_hover_habilitado(not _painel.visible and not _em_virada, true)
 
 
 func _perfil_atual() -> Dictionary:

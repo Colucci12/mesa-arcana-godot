@@ -24,29 +24,25 @@ func _ready() -> void:
 
 
 func _montar_cartas() -> void:
-	var grupo_original := _grupo
 	var mao_original := _mao
 	for indice in range(4):
 		if indice == 0:
-			_grupo = grupo_original
 			_mao = mao_original
 		else:
-			_grupo = Node2D.new()
-			_grupo.name = "Grupo" + NOMES_MAOS[indice]
-			_area.add_child(_grupo)
 			_mao = CENA_MAO.instantiate() as MaoVisual
+			_mao.name = "Mao" + NOMES_MAOS[indice]
 			_mao.set_anchors_preset(Control.PRESET_TOP_LEFT)
 			_mao.color = Color.TRANSPARENT
 			_mao.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			_mao.mao_adversaria = true
-			_grupo.add_child(_mao)
+			_area.add_child(_mao)
 		# A ordem explicita mantém a mão próxima à frente das outras.
-		_grupo.z_index = [3, 0, 1, 2][indice]
+		_mao.z_index = [3, 0, 1, 2][indice]
 		_cartas = []
 		_dados_cartas = []
 		super._montar_cartas()
 		_maos.append({
-			"grupo": _grupo, "mao": _mao, "cartas": _cartas,
+			"mao": _mao, "cartas": _cartas,
 			"dados": _dados_cartas, "perfil": _perfil_inicial(indice)
 		})
 	_usar_mao(0)
@@ -103,7 +99,6 @@ func _montar_painel() -> void:
 func _usar_mao(indice: int) -> void:
 	_selecionada = indice
 	var registro := _maos[indice]
-	_grupo = registro["grupo"]
 	_mao = registro["mao"]
 	_cartas = registro["cartas"]
 	_dados_cartas = registro["dados"]
@@ -139,14 +134,14 @@ func _selecionar_mao(indice: int) -> void:
 func _reposicionar() -> void:
 	for indice in range(_maos.size()):
 		var ajustes: Dictionary = _ajustes if indice == _selecionada else _maos[indice]["perfil"]["ajustes"]
-		var grupo: Node2D = _maos[indice]["grupo"]
-		grupo.position = _area.size * Vector2(float(ajustes["posicao_x"]), float(ajustes["posicao_y"])) / 100.0
+		var mao: MaoVisual = _maos[indice]["mao"]
+		mao.position = _area.size * Vector2(float(ajustes["posicao_x"]), float(ajustes["posicao_y"])) / 100.0
 
 
 func _atualizar_hover() -> void:
 	for registro in _maos:
-		for carta: Carta in registro["cartas"]:
-			carta.definir_hover_habilitado(not _painel.visible and not _em_virada, true)
+		var mao: MaoVisual = registro["mao"]
+		mao.definir_hover_habilitado(not _painel.visible and not _em_virada, true)
 
 
 func _alternar_painel() -> void:
@@ -165,12 +160,13 @@ func _bloquear_controles(bloquear: bool) -> void:
 
 
 func _mudar_faces(mostrar: bool) -> void:
-	if _em_virada or _cartas[0].verso == (not mostrar):
+	_mao.mao_adversaria = not mostrar
+	if _em_virada or _cartas.is_empty() or _cartas[0].verso == (not mostrar):
 		return
 	_bloquear_controles(true)
 	for registro in _maos:
-		for carta: Carta in registro["cartas"]:
-			carta.definir_hover_habilitado(false)
+		var mao: MaoVisual = registro["mao"]
+		mao.definir_hover_habilitado(false)
 	await super._mudar_faces(mostrar)
 	_bloquear_controles(false)
 	_guardar_selecionada()
@@ -267,8 +263,8 @@ func _aplicar_composicao_visual() -> void:
 	var selecionada_anterior := _selecionada
 	var precisa_virar := false
 	for registro in _maos:
-		for carta: Carta in registro["cartas"]:
-			carta.definir_hover_habilitado(false)
+		var mao: MaoVisual = registro["mao"]
+		mao.definir_hover_habilitado(false)
 	for indice in range(4):
 		_usar_mao(indice)
 		_mostrar_perfil(_maos[indice]["perfil"])
