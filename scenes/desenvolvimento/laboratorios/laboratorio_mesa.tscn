@@ -1,0 +1,79 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/desenvolvimento/laboratorios/laboratorio_mesa.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/main/componentes/mesa_visual.tscn" id="2"]
+
+[sub_resource type="StyleBoxFlat" id="Estilo_painel"]
+bg_color = Color(0.075, 0.085, 0.10, 1)
+
+[node name="LaboratorioMesa" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1")
+
+[node name="Layout" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 0
+
+[node name="Painel" type="PanelContainer" parent="Layout"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_override_styles/panel = SubResource("Estilo_painel")
+
+[node name="Margem" type="MarginContainer" parent="Layout/Painel"]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 14
+
+[node name="Rolagem" type="ScrollContainer" parent="Layout/Painel/Margem"]
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="Controles" type="VBoxContainer" parent="Layout/Painel/Margem/Rolagem"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="AreaVisual" type="Control" parent="Layout"]
+layout_mode = 2
+size_flags_horizontal = 3
+clip_contents = true
+
+[node name="Fundo" type="ColorRect" parent="Layout/AreaVisual"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.012, 0.014, 0.018, 1)
+mouse_filter = 2
+
+[node name="Composicao" type="Node2D" parent="Layout/AreaVisual"]
+
+[node name="Mesa" parent="Layout/AreaVisual/Composicao" instance=ExtResource("2")]
+
+[node name="Guia" type="Label" parent="Layout/AreaVisual"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 18.0
+offset_top = 14.0
+offset_right = -18.0
+offset_bottom = 60.0
+grow_horizontal = 2
+mouse_filter = 2
+modulate = Color(0.55, 0.58, 0.62, 1)
+text = "Com painel: arraste para posicionar a mesa\nTab mostra ou oculta os controles"
+horizontal_alignment = 1

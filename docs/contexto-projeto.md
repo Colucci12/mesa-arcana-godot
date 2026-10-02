@@ -203,6 +203,22 @@ Hover, arraste e edição dos parâmetros ficam suspensos enquanto as cartas ani
 
 Validação visual pelo usuário: carregar sua composição, apertar D várias vezes rapidamente e alternar D/J antes das chegadas, comparando primeira/meio/última. Após R, comprar e imediatamente jogar a única carta ainda em trânsito. Conferir as contagens, ausência de cartas duplicadas/perdidas, continuidade nas mãos laterais, reorganização gradual, frente restaurada no descarte, hover após terminar o trânsito, Tab/redimensionamento durante o trajeto e R com várias transferências simultâneas. Também repetir D até superar sete cartas. Godot e jogo não foram executados automaticamente.
 
+### Laboratório da mesa ajustável
+
+Executar `scenes/desenvolvimento/laboratorios/laboratorio_mesa.tscn` diretamente com F6. É um laboratório separado, em fundo escuro, para ajustar a perspectiva da mesa sem mãos ou partida. O tampo é verde liso, a moldura é marrom escura e uma faixa frontal mais escura sugere espessura. Não há textura de madeira, decoração ou iluminação adicional. O estado anterior das mãos/movimentos foi registrado no commit `a826105` antes desta implementação; a cena inicial do projeto não foi alterada para abrir este laboratório.
+
+O painel oferece posição horizontal/vertical, largura da borda próxima, profundidade aparente na tela, largura da borda distante em porcentagem da próxima, giro do conjunto, largura da moldura e espessura frontal. Largura distante de 100% gera um retângulo; reduzir estreita o lado distante. Profundidade controla separadamente a compressão vertical da superfície. São parâmetros geométricos de uma projeção 2D; o giro roda o conjunto no plano da tela, sem simular uma câmera 3D. As posições podem passar um pouco dos limites do enquadramento (-25% a 125%) para testar cortes.
+
+**Mostrar grade** habilita quadrados de 100×100 unidades no plano original. **Mostrar duas cartas apoiadas** exibe cartas do componente atual com a mesma escala, uma próxima e outra distante, sem hover ou sombras. Ambas são referências visuais fixas, sem compra/descarte. Superfície, moldura, grade e cartas são desenhadas no mesmo SubViewport e recebem a mesma projeção; a moldura conserva sua largura no plano original e reduz pela perspectiva. A faixa frontal segue o giro do conjunto e tem espessura ajustada separadamente.
+
+Arrastar na área escura com o painel visível move a mesa. **Tab** mostra/oculta o painel e suspende o arraste quando oculto, ignorando repetição automática. A roda do mouse apenas rola o painel, inclusive sobre sliders e campos numéricos. O enquadramento usa uma referência de 1280×720, uniformemente escalada e centralizada na área disponível; Tab e redimensionamento preservam os parâmetros e proporções da composição, ajustando apenas essa escala de apresentação.
+
+Nomear o teste, escrever observações e usar **Salvar teste** grava `user://laboratorio_mesa.json`, independente dos arquivos das mãos. Salvar com o mesmo nome atualiza o perfil. **Carregar teste selecionado** restaura geometria, grade, referências e anotações; **Copiar valores e anotações** copia o perfil em JSON. **Restaurar ajustes iniciais** preserva o arquivo de testes salvos. Não há gravação automática ao iniciar a cena.
+
+`scenes/main/componentes/mesa_visual.tscn` encapsula a mesa num único nó `MesaVisual`, com parâmetros no Inspector e `configurar_visual(ajustes, grade, cartas)` para o laboratório. `mesa_perspectiva.gdshader` reutiliza a fórmula do experimento oblíquo, com faixa de 15% a 100%; o shader antigo e aquele laboratório continuam iguais. `superficie_mesa.gdshader` desenha apenas cores e grade. Os materiais são locais a cada instância. Esta etapa não integra as mãos nem transferências para o plano projetado.
+
+Validação visual pelo usuário: experimentar 100%, 56% e 15% de largura distante; variar profundidade; comparar moldura/espessura em zero e nos extremos; mostrar/ocultar grade e cartas; testar giro, arraste e Tab; salvar uma combinação, restaurar e carregar de novo. Comparar a composição em 1280×720 e 1920×1080. As verificações automáticas são estáticas e matemáticas; não executar o Godot nem gerar capturas automaticamente.
+
 ### Verificações gerais
 
 - A janela de referência é 1280×720, com stretch `canvas_items`/aspect `expand`; também foram consideradas telas de 1920×1080.
