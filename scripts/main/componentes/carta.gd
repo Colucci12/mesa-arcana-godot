@@ -37,6 +37,7 @@ var _hover_no_verso: bool = false
 var _inclinacao_atual := Vector2.ZERO
 var _cor_de_fundo: Carta_Base.Cores = Carta_Base.Cores.PRETO
 var _iluminacao: IluminacaoAmbiente
+var _sombra_usa_iluminacao := true
 var _em_reorganizacao := false
 var _em_transferencia := false
 var _deformacao_atual := 0.0
@@ -92,7 +93,7 @@ func _atualizar_sombra() -> void:
 		return
 	var escala_sombra := minf(transformacao.x.length(), transformacao.y.length())
 	var deslocamento_na_tela := deslocamento_sombra * escala_sombra
-	if is_instance_valid(_iluminacao):
+	if _sombra_usa_iluminacao and is_instance_valid(_iluminacao):
 		var centro_na_tela := transformacao * (size / 2.0)
 		var dimensoes_tela := get_viewport().get_visible_rect().size
 		var sombra_lampada := _iluminacao.deslocamento_sombra_na_tela(centro_na_tela, dimensoes_tela)
@@ -122,6 +123,12 @@ func definir_jogavel(jogavel: bool) -> void:
 
 func definir_sombra_visivel(visivel: bool) -> void:
 	_sombra.visible = visivel
+
+func configurar_sombra(deslocamento: Vector2, intensidade: float, usar_iluminacao: bool = true) -> void:
+	deslocamento_sombra = deslocamento
+	_sombra.self_modulate.a = clampf(intensidade, 0.0, 1.0)
+	_sombra_usa_iluminacao = usar_iluminacao
+	_atualizar_sombra()
 
 func obter_apresentacao() -> Dictionary:
 	return {"textura": _textura_carta.texture, "material": _textura_carta.material,

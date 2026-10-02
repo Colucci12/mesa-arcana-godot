@@ -83,6 +83,7 @@ var _fonte_localizada: CheckBox
 var _controles_fonte: Dictionary = {}
 var _padrao_fonte: Dictionary = {}
 var _campos_fonte: VBoxContainer
+var _viewport_mouse: SubViewport
 
 
 func _ready() -> void:
@@ -277,23 +278,25 @@ func _aplicar_projecao(poligono: Polygon2D, matriz: Basis, indice: int) -> bool:
 	return true
 
 
-func _matriz_sombra(ponto: Vector3, u: Vector3, v: Vector3) -> Basis:
+func _matriz_sombra(ponto: Vector3, u: Vector3, v: Vector3, altura_receptor: float = 0.0) -> Basis:
 	var chao: Basis
 	if usar_fonte_localizada:
-		# Interseção do raio fonte -> carta com z=0, em coordenadas homogêneas.
+		# Interseção do raio fonte -> carta com o plano receptor, em coordenadas homogêneas.
 		# A divisão por (altura da fonte - altura da carta) varia ao longo da mão.
+		var distancia_fonte := posicao_fonte.z - altura_receptor
 		chao = Basis(
-			Vector3(posicao_fonte.z * u.x - posicao_fonte.x * u.z,
-				posicao_fonte.z * u.y - posicao_fonte.y * u.z, -u.z),
-			Vector3(posicao_fonte.z * v.x - posicao_fonte.x * v.z,
-				posicao_fonte.z * v.y - posicao_fonte.y * v.z, -v.z),
-			Vector3(posicao_fonte.z * ponto.x - posicao_fonte.x * ponto.z,
-				posicao_fonte.z * ponto.y - posicao_fonte.y * ponto.z, posicao_fonte.z - ponto.z))
+			Vector3(distancia_fonte * u.x - posicao_fonte.x * u.z,
+				distancia_fonte * u.y - posicao_fonte.y * u.z, -u.z),
+			Vector3(distancia_fonte * v.x - posicao_fonte.x * v.z,
+				distancia_fonte * v.y - posicao_fonte.y * v.z, -v.z),
+			Vector3(distancia_fonte * ponto.x + posicao_fonte.x * (altura_receptor - ponto.z),
+				distancia_fonte * ponto.y + posicao_fonte.y * (altura_receptor - ponto.z), posicao_fonte.z - ponto.z))
 	else:
 		chao = Basis(Vector3(u.x + u.z * direcao_sombra.x, u.y + u.z * direcao_sombra.y, 0),
 			Vector3(v.x + v.z * direcao_sombra.x, v.y + v.z * direcao_sombra.y, 0),
-			Vector3(ponto.x + ponto.z * direcao_sombra.x, ponto.y + ponto.z * direcao_sombra.y, 1))
-	return _matriz_da_mesa(Vector3.ZERO, Vector3.RIGHT, Vector3.UP) * chao
+			Vector3(ponto.x + (ponto.z - altura_receptor) * direcao_sombra.x,
+				ponto.y + (ponto.z - altura_receptor) * direcao_sombra.y, 1))
+	return _matriz_da_mesa(Vector3(0, 0, altura_receptor), Vector3.RIGHT, Vector3.UP) * chao
 
 
 func _projetar_maos() -> void:
@@ -360,15 +363,18 @@ func _process(_delta: float) -> void:
 				break
 		if not sobre_carta:
 			continue
-		if not _mouse_na_mesa:
-			_atlas.notify_mouse_entered()
+		var viewport := _viewport_da_mao(indice)
+		if _viewport_mouse != viewport:
+			_sair_da_mesa()
+			viewport.notify_mouse_entered()
+			_viewport_mouse = viewport
 			_mouse_na_mesa = true
 			_posicao_mouse_anterior = posicao
 		var evento := InputEventMouseMotion.new()
 		evento.position = posicao
 		evento.global_position = posicao
 		evento.relative = posicao - _posicao_mouse_anterior
-		_atlas.push_input(evento, true)
+		viewport.push_input(evento, true)
 		_posicao_mouse_anterior = posicao
 		return
 	_sair_da_mesa()
@@ -376,8 +382,14 @@ func _process(_delta: float) -> void:
 
 func _sair_da_mesa() -> void:
 	if _mouse_na_mesa:
-		_atlas.notify_mouse_exited()
+		if is_instance_valid(_viewport_mouse):
+			_viewport_mouse.notify_mouse_exited()
+		_viewport_mouse = null
 		_mouse_na_mesa = false
+
+
+func _viewport_da_mao(_indice: int) -> SubViewport:
+	return _atlas
 
 
 func _ajustar_enquadramento() -> void:

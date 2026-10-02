@@ -2,6 +2,7 @@ extends Node2D
 
 const FACE = preload("res://scripts/desenvolvimento/laboratorios/plano_mao_perspectiva.gdshader")
 const SOMBRA = preload("res://scripts/desenvolvimento/laboratorios/sombra_mao_no_tampo.gdshader")
+const SOMBRA_ENTRE_CARTAS = preload("res://scripts/desenvolvimento/laboratorios/sombra_entre_cartas.gdshader")
 const CAPTURA := Vector2(224, 208)
 
 var face: Polygon2D
@@ -13,6 +14,8 @@ var _carta: Carta
 var regiao := Vector4(0, 0, 1, 1)
 var tamanho_textura := CAPTURA
 var _captura_pronta := true
+var _sombras_recebidas: Dictionary = {}
+var _sombras_ativas: Dictionary = {}
 
 
 func _ready() -> void:
@@ -110,7 +113,7 @@ func apresentar(matriz: Basis) -> void:
 	_aplicar(face, matriz)
 
 
-func projetar_sombra(laboratorio: Node, plano: Dictionary, opacidade: float) -> void:
+func projetar_sombra(laboratorio: Node, plano: Dictionary, opacidade: float, intensidade: float = -1.0, suavidade: float = -1.0) -> void:
 	sombra.visible = false
 	if not _captura_pronta or opacidade <= 0.001 or not laboratorio._sombras_melhoradas.button_pressed:
 		return
@@ -129,8 +132,87 @@ func projetar_sombra(laboratorio: Node, plano: Dictionary, opacidade: float) -> 
 	material.set_shader_parameter("altura_plano", Vector3(u.z, v.z, p.z))
 	material.set_shader_parameter("tamanho_captura", tamanho_textura)
 	material.set_shader_parameter("margem_feltro", Vector2.ONE * laboratorio._mesa.largura_moldura / dimensoes)
-	material.set_shader_parameter("intensidade", laboratorio.intensidade_sombra * opacidade)
-	material.set_shader_parameter("suavidade", laboratorio.suavidade_sombra)
+	material.set_shader_parameter("intensidade", (laboratorio.intensidade_sombra if intensidade < 0.0 else intensidade) * opacidade)
+	material.set_shader_parameter("suavidade", laboratorio.suavidade_sombra if suavidade < 0.0 else suavidade)
 	material.set_shader_parameter("suavidade_por_altura", laboratorio.suavidade_por_altura)
 	material.set_shader_parameter("fonte_localizada", laboratorio.usar_fonte_localizada)
 	material.set_shader_parameter("altura_fonte", laboratorio.posicao_fonte.z)
+
+
+func iniciar_sombras_recebidas() -> void:
+	_sombras_ativas.clear()
+	for poligono in _sombras_recebidas.values():
+		poligono.hide()
+
+
+func _limites_projetados(matriz: Basis, margem: Vector2 = Vector2.ZERO) -> Rect2:
+	var limites := Rect2()
+	var cantos := [-margem, Vector2(1.0 + margem.x, -margem.y),
+		Vector2.ONE + margem, Vector2(-margem.x, 1.0 + margem.y)]
+	for indice in range(4):
+		var uv: Vector2 = cantos[indice]
+		var q := matriz * Vector3(uv.x, uv.y, 1)
+		if q.z <= 0.00001:
+			return Rect2()
+		var ponto := Vector2(q.x, q.y) / q.z
+		limites = Rect2(ponto, Vector2.ZERO) if indice == 0 else limites.expand(ponto)
+	return limites
+
+
+func receber_sombra(laboratorio: Node, plano: Dictionary, origem: Node2D, plano_origem: Dictionary,
+		opacidade: float, intensidade: float, suavidade: float) -> bool:
+	if origem == self or not _captura_pronta or not origem._captura_pronta or opacidade <= 0.001 or intensidade <= 0.001:
+		return false
+	if not laboratorio._sombras_melhoradas.button_pressed:
+		return false
+	var ponto: Vector3 = plano["ponto"]
+	var u: Vector3 = plano["u"]
+	var v: Vector3 = plano["v"]
+	# Os receptores desta etapa são as cartas horizontais das duas pilhas.
+	if absf(u.z) > 0.001 or absf(v.z) > 0.001:
+		return false
+	var p_origem: Vector3 = plano_origem["ponto"]
+	var u_origem: Vector3 = plano_origem["u"]
+	var v_origem: Vector3 = plano_origem["v"]
+	var altura_maior := maxf(maxf(p_origem.z, (p_origem + u_origem).z), maxf((p_origem + v_origem).z, (p_origem + u_origem + v_origem).z))
+	if altura_maior <= ponto.z + 0.01 or (laboratorio.usar_fonte_localizada and laboratorio.posicao_fonte.z <= ponto.z + 0.5):
+		return false
+	var receptor: Basis = laboratorio._matriz_da_mesa(ponto, u, v)
+	var projecao: Basis = laboratorio._matriz_sombra(p_origem, u_origem, v_origem, ponto.z)
+	if absf(projecao.determinant()) < 0.00001:
+		return false
+	var alcance := minf(suavidade + (altura_maior - ponto.z) * laboratorio.suavidade_por_altura, 20.0)
+	var limites := _limites_projetados(projecao, Vector2.ONE * alcance / origem.tamanho_textura)
+	if limites.has_area() and not limites.intersects(_limites_projetados(receptor)):
+		return false
+	var id := origem.get_instance_id()
+	if not _sombras_recebidas.has(id):
+		_sombras_recebidas[id] = _poligono(SOMBRA_ENTRE_CARTAS, face.z_index + 1)
+	var poligono: Polygon2D = _sombras_recebidas[id]
+	poligono.z_index = face.z_index + 1
+	if not _aplicar(poligono, receptor):
+		return false
+	_sombras_ativas[id] = true
+	var material := poligono.material as ShaderMaterial
+	_inversa(material, projecao.inverse(), "inversa")
+	_inversa(material, receptor.inverse(), "receptor")
+	material.set_shader_parameter("textura_origem", origem.face.texture)
+	material.set_shader_parameter("textura_receptor", face.texture)
+	material.set_shader_parameter("regiao_origem", origem.regiao)
+	material.set_shader_parameter("regiao_receptor", regiao)
+	material.set_shader_parameter("altura_plano", Vector3(u_origem.z, v_origem.z, p_origem.z))
+	material.set_shader_parameter("altura_receptor", ponto.z)
+	material.set_shader_parameter("tamanho_captura", origem.tamanho_textura)
+	material.set_shader_parameter("intensidade", intensidade * opacidade)
+	material.set_shader_parameter("suavidade", suavidade)
+	material.set_shader_parameter("suavidade_por_altura", laboratorio.suavidade_por_altura)
+	material.set_shader_parameter("fonte_localizada", laboratorio.usar_fonte_localizada)
+	material.set_shader_parameter("altura_fonte", laboratorio.posicao_fonte.z)
+	return true
+
+
+func concluir_sombras_recebidas() -> void:
+	for id in _sombras_recebidas.keys():
+		if not _sombras_ativas.has(id):
+			_sombras_recebidas[id].queue_free()
+			_sombras_recebidas.erase(id)

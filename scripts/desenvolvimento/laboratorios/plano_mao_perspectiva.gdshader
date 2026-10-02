@@ -5,6 +5,7 @@ uniform vec3 inversa_x;
 uniform vec3 inversa_y;
 uniform vec3 inversa_z;
 uniform vec4 regiao_textura;
+uniform vec4 cor_camada : source_color = vec4(0.0);
 varying vec2 ponto_projetado;
 
 void vertex() {
@@ -22,4 +23,5 @@ void fragment() {
 		discard;
 	}
 	COLOR = texture(TEXTURE, regiao_textura.xy + origem * regiao_textura.zw);
+	COLOR.rgb = mix(COLOR.rgb, cor_camada.rgb, cor_camada.a);
 }
