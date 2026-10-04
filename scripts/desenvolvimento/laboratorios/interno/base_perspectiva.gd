@@ -7,7 +7,7 @@ const TAMANHO_ATLAS := Vector2i(1200, 720)
 const NOMES = ["Inferior", "Superior", "Esquerda", "Direita"]
 const ARQUIVO_TESTES = "user://laboratorio_maos_erguidas.json"
 const LIMITES = {
-	"posicao_x": Vector2(5, 95), "posicao_y": Vector2(5, 95),
+	"posicao_x": Vector2(-25, 125), "posicao_y": Vector2(-25, 125),
 	"tamanho": Vector2(0.6, 1.4), "giro": Vector2(-180, 180),
 	"inclinacao": Vector2(-45, 85), "altura": Vector2(0, 100)
 }

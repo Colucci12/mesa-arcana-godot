@@ -3,10 +3,12 @@ extends Node2D
 const FACE = preload("res://scripts/desenvolvimento/laboratorios/plano_mao_perspectiva.gdshader")
 const SOMBRA = preload("res://scripts/desenvolvimento/laboratorios/sombra_mao_no_tampo.gdshader")
 const SOMBRA_ENTRE_CARTAS = preload("res://scripts/desenvolvimento/laboratorios/sombra_entre_cartas.gdshader")
+const SOMBRA_CONTATO = preload("res://scripts/desenvolvimento/laboratorios/sombra_contato_carta.gdshader")
 const CAPTURA := Vector2(224, 208)
 
 var face: Polygon2D
 var sombra: Polygon2D
+var sombra_contato: Polygon2D
 var _captura: SubViewport
 var _virada: Node2D
 var _textura: TextureRect
@@ -21,6 +23,8 @@ var _sombras_ativas: Dictionary = {}
 func _ready() -> void:
 	sombra = _poligono(SOMBRA, 1)
 	face = _poligono(FACE, 15)
+	sombra_contato = _poligono(SOMBRA_CONTATO, 14)
+	sombra_contato.hide()
 
 
 func _poligono(shader: Shader, ordem: int) -> Polygon2D:
@@ -37,6 +41,7 @@ func _poligono(shader: Shader, ordem: int) -> Polygon2D:
 func usar_textura(textura: Texture2D, dimensoes: Vector2, recorte: Vector4) -> void:
 	face.texture = textura
 	sombra.texture = textura
+	sombra_contato.texture = textura
 	tamanho_textura = dimensoes
 	regiao = recorte
 
@@ -111,6 +116,23 @@ func _aplicar(poligono: Polygon2D, matriz: Basis) -> bool:
 
 func apresentar(matriz: Basis) -> void:
 	_aplicar(face, matriz)
+
+
+func apresentar_sombra_contato(matriz: Basis, opacidade: float) -> void:
+	sombra_contato.hide()
+	if not is_instance_valid(_carta) or opacidade <= 0.0:
+		return
+	var contato: Dictionary = _carta.obter_apresentacao()["sombra"]
+	var intensidade := float(contato["intensidade"]) * clampf(opacidade, 0.0, 1.0)
+	if intensidade <= 0.0:
+		return
+	# Mesmo deslocamento local da sombra nativa, projetado com a face.
+	# A captura continua contendo só a face, preservando as demais silhuetas.
+	var deslocamento: Vector2 = contato["deslocamento"] / tamanho_textura
+	var translacao := Basis(Vector3.RIGHT, Vector3.UP, Vector3(deslocamento.x, deslocamento.y, 1))
+	sombra_contato.z_index = face.z_index - 1
+	if _aplicar(sombra_contato, matriz * translacao):
+		(sombra_contato.material as ShaderMaterial).set_shader_parameter("intensidade", intensidade)
 
 
 func projetar_sombra(laboratorio: Node, plano: Dictionary, opacidade: float, intensidade: float = -1.0, suavidade: float = -1.0) -> void:

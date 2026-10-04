@@ -1,8 +1,13 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scripts/main/componentes/mesa_visual.gd" id="1"]
 [ext_resource type="Shader" path="res://scripts/main/componentes/mesa_perspectiva.gdshader" id="2"]
 [ext_resource type="Shader" path="res://scripts/main/componentes/superficie_mesa.gdshader" id="3"]
+[ext_resource type="Shader" path="res://scripts/main/componentes/cor_iluminada_plano.gdshader" id="4"]
+
+[sub_resource type="ShaderMaterial" id="Luz_espessura"]
+resource_local_to_scene = true
+shader = ExtResource("4")
 
 [sub_resource type="ShaderMaterial" id="Projecao"]
 resource_local_to_scene = true
@@ -16,6 +21,7 @@ shader = ExtResource("3")
 script = ExtResource("1")
 
 [node name="Espessura" type="Polygon2D" parent="."]
+material = SubResource("Luz_espessura")
 color = Color(0.115, 0.055, 0.035, 1)
 
 [node name="PlanoMesa" type="TextureRect" parent="."]

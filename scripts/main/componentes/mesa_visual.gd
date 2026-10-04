@@ -105,6 +105,10 @@ func definir_tamanho_plano(tamanho: Vector2) -> void:
 	atualizar_visual()
 
 
+func obter_materiais_apresentacao() -> Array[ShaderMaterial]:
+	return [_plano.material as ShaderMaterial, _espessura.material as ShaderMaterial]
+
+
 func obter_dimensoes_tampo() -> Vector2:
 	return dimensoes_tampo if dimensoes_tampo.x > 0.0 and dimensoes_tampo.y > 0.0 else tamanho_plano
 

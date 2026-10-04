@@ -29,6 +29,13 @@ const LIMITES_MESA := {"largura": Vector2(400, 2400), "profundidade": Vector2(30
 	"perspectiva": Vector2(35, 100), "moldura": Vector2(0, 120), "espessura": Vector2(0, 100)}
 const PADRAO_ENQUADRAMENTO := {"zoom": 100.0, "x": 0.0, "y": 0.0}
 const LIMITES_ENQUADRAMENTO := {"zoom": Vector2(50, 180), "x": Vector2(-50, 50), "y": Vector2(-50, 50)}
+const PADRAO_ILUMINACAO := {"ativa": true, "ambiente": 60.0, "intensidade": 55.0,
+	"minimo_cartas": 72.0, "abrangencia": 100.0, "temperatura": 15.0, "x": 50.0, "y": 45.0}
+const LIMITES_ILUMINACAO := {"ambiente": Vector2(0, 100), "intensidade": Vector2(0, 100),
+	"minimo_cartas": Vector2(0, 100),
+	"abrangencia": Vector2(30, 200), "temperatura": Vector2(0, 100),
+	"x": Vector2(-50, 150), "y": Vector2(-50, 150)}
+const PRESETS_MESAS := "res://scripts/desenvolvimento/laboratorios/presets/mesas_arredondadas.json"
 
 @export_group("Transferências")
 @export_range(0.8, 2.0, 0.05) var duracao_trajeto := 1.0
@@ -78,6 +85,12 @@ var _formato_mesa: OptionButton
 var _ver_inteira: CheckBox
 var _area_enquadramento: Control
 var _secoes: Dictionary = {}
+var _iluminacao := PADRAO_ILUMINACAO.duplicate()
+var _controles_iluminacao: Dictionary = {}
+var _comparar_iluminacao: CheckBox
+var _manter_iluminacao: CheckBox
+var _inversa_iluminacao := Basis.IDENTITY
+var _versao_iluminacao := 0
 
 
 func _ready() -> void:
@@ -102,10 +115,23 @@ func _ready() -> void:
 		_mensagem.text = "Restaurado: " + conjunto_visual_inicial + ". Testes salvos preservados."
 	_atualizar_pilhas()
 	_atualizar_estado_trajeto()
+	_atualizar_iluminacao()
 
 
 func _arquivo_testes() -> String:
 	return ARQUIVO_MOVIMENTOS
+
+
+func _ler_testes() -> void:
+	super._ler_testes()
+	# As cópias aprovadas ficam disponíveis mesmo sem o arquivo local do Godot.
+	var presets: Variant = JSON.parse_string(FileAccess.get_file_as_string(PRESETS_MESAS))
+	if presets is Dictionary:
+		for nome in presets:
+			var perfil: Variant = presets[nome]
+			if not _testes.has(nome) and perfil is Dictionary and perfil.get("maos") is Array and perfil["maos"].size() == 4:
+				_testes[nome] = perfil.duplicate(true)
+	_atualizar_lista()
 
 
 func _parametros_adicionais_teste() -> Dictionary:
@@ -113,7 +139,7 @@ func _parametros_adicionais_teste() -> Dictionary:
 		"compra": [centro_compra.x, centro_compra.y], "descarte": [centro_jogada.x, centro_jogada.y]},
 		"pilhas": _perfis_pilhas.duplicate(true), "sombras_entre_cartas": sombras_entre_cartas,
 		"sombra_inferior": _sombra_inferior.duplicate(), "mesa": _ajustes_mesa.duplicate(),
-		"enquadramento": _enquadramento.duplicate()}
+		"enquadramento": _enquadramento.duplicate(), "iluminacao": _iluminacao.duplicate()}
 
 
 func _padrao_pilha(indice: int) -> Dictionary:
@@ -127,6 +153,12 @@ func _padrao_pilha(indice: int) -> Dictionary:
 
 
 func _aplicar_teste(perfil: Dictionary, nome: String) -> void:
+	if is_instance_valid(_manter_iluminacao) and not _manter_iluminacao.button_pressed:
+		_iluminacao = _validar_ajustes(perfil.get("iluminacao", {}), PADRAO_ILUMINACAO, LIMITES_ILUMINACAO)
+		var ativa: Variant = perfil.get("iluminacao", {}).get("ativa", true) if perfil.get("iluminacao") is Dictionary else true
+		_iluminacao["ativa"] = ativa if ativa is bool else true
+		_mostrar_iluminacao()
+		_versao_iluminacao += 1
 	_ajustes_mesa = _validar_ajustes(perfil.get("mesa", {}), PADRAO_MESA, LIMITES_MESA)
 	var formato: Variant = perfil.get("mesa", {}).get("formato", 1) if perfil.get("mesa") is Dictionary else 1
 	_ajustes_mesa["formato"] = 1.0
@@ -196,6 +228,9 @@ func _aplicar_teste(perfil: Dictionary, nome: String) -> void:
 	for mao in _maos_erguidas:
 		mao.duracao_reorganizacao = duracao_trajeto
 	super._aplicar_teste(perfil, nome)
+	_atualizar_iluminacao()
+	if _manter_iluminacao.button_pressed:
+		_mensagem.text += " · Luz atual mantida para comparação."
 
 
 func _montar_mao(indice: int) -> void:
@@ -257,6 +292,7 @@ func _atualizar_captura() -> void:
 
 func _aplicar_projecao(poligono: Polygon2D, matriz: Basis, indice: int) -> bool:
 	var visivel := super._aplicar_projecao(poligono, matriz, indice)
+	_configurar_material_iluminacao(poligono.material as ShaderMaterial, true)
 	if indice == 0 and is_instance_valid(_captura_inferior):
 		(poligono.material as ShaderMaterial).set_shader_parameter("regiao_textura", Vector4(0, 0, 1, 1))
 	return visivel
@@ -274,7 +310,7 @@ func _atualizar_indicadores() -> void:
 
 func _montar_painel() -> void:
 	_texto("Laboratório Perspectiva", 20)
-	_texto("Base teste 8. Ajuste a mesa e o enquadramento; abra as outras seções quando precisar.")
+	_texto("Base teste 8. Ajuste a luz em Iluminação e compare seus conjuntos de mesa.")
 	_botao("Ocultar controles · Tab", _alternar_painel)
 	_seletor = OptionButton.new()
 	for nome in NOMES:
@@ -309,6 +345,7 @@ func _montar_painel() -> void:
 	_texto("Ajustes da mão selecionada", 16)
 	_ajuste("posicao_x", "Posição horizontal", 1, "%")
 	_ajuste("posicao_y", "Posição vertical", 1, "%")
+	_texto("No modo mesa, posições menores afastam para a esquerda ou para o fundo. Valores fora de 0–100% permitem alcançar a área ampliada do tampo.")
 	_ajuste("tamanho", "Tamanho uniforme", 0.05)
 	_ajuste("giro", "Giro na mesa", 1, "°")
 	_ajuste("inclinacao", "Erguer a mão", 1, "°")
@@ -323,6 +360,9 @@ func _montar_painel() -> void:
 	_controles_ui = _criar_secao("Monte e descarte")
 	_montar_controles_pilhas()
 	_controles_ui = anterior
+	_controles_ui = _criar_secao("Iluminação", true)
+	_montar_controles_iluminacao()
+	_controles_ui = anterior
 	_controles_ui = _criar_secao("Luz e sombras")
 	_sombras_melhoradas = CheckBox.new()
 	_sombras_melhoradas.text = "Sombras projetadas no tampo"
@@ -333,6 +373,11 @@ func _montar_painel() -> void:
 	_montar_controles_sombra_inferior()
 	_controles_ui = anterior
 	_controles_ui = _criar_secao("Conjuntos", true)
+	_manter_iluminacao = CheckBox.new()
+	_manter_iluminacao.text = "Comparar mantendo a luz atual"
+	_manter_iluminacao.button_pressed = false
+	_controles_ui.add_child(_manter_iluminacao)
+	_texto("Carregar recupera também a iluminação salva. Marque esta opção para comparar composições com a mesma luz. Conjuntos antigos usam a luz inicial.")
 	_nome = LineEdit.new()
 	_nome.placeholder_text = "Nome do conjunto"
 	_nome.max_length = 80
@@ -345,10 +390,10 @@ func _montar_painel() -> void:
 	_botao("Salvar conjunto completo", _salvar)
 	_lista = OptionButton.new()
 	_controles_ui.add_child(_lista)
-	_carregar = _botao("Carregar conjunto selecionado", _carregar_teste)
+	_carregar = _botao("Carregar conjunto completo", _carregar_teste)
 	_botao("Voltar à base teste 8", _restaurar_base)
 	_botao("Restaurar padrões completos", _restaurar_todas)
-	_mensagem = _texto("Salvar guarda mesa, enquadramento, mãos, pilhas e sombras juntos.")
+	_mensagem = _texto("Salvar guarda mesa, enquadramento, mãos, pilhas, sombras e iluminação juntos.")
 	_texto("Importar conjuntos visuais anteriores", 16)
 	_lista_importacoes = OptionButton.new()
 	_controles_ui.add_child(_lista_importacoes)
@@ -428,6 +473,80 @@ func _montar_controles_enquadramento() -> void:
 		_ajustar_enquadramento())
 	_texto("100% mantém o enquadramento anterior; 75% abre a visão. Aumentar aproxima a cena e pode cortar suas bordas. A visão inteira preserva a aproximação escolhida e não é salva.")
 	_botao("Restaurar somente o enquadramento", _restaurar_enquadramento)
+
+
+func _montar_controles_iluminacao() -> void:
+	_comparar_iluminacao = CheckBox.new()
+	_comparar_iluminacao.text = "Aplicar iluminação principal"
+	_comparar_iluminacao.button_pressed = bool(_iluminacao["ativa"])
+	_controles_ui.add_child(_comparar_iluminacao)
+	_comparar_iluminacao.toggled.connect(func(ativa: bool):
+		_iluminacao["ativa"] = ativa
+		_versao_iluminacao += 1
+		_atualizar_iluminacao())
+	_texto("Um foco amplo acompanha a perspectiva da mesa. Desligue para comparar com a aparência original. Claridade mínima das cartas em 0% permite que elas escureçam totalmente quando não houver luz.")
+	var legendas := {"ambiente": "Claridade ambiente", "intensidade": "Intensidade do foco",
+		"minimo_cartas": "Claridade mínima das cartas",
+		"abrangencia": "Abrangência do foco", "temperatura": "Aquecimento da luz",
+		"x": "Centro horizontal na mesa", "y": "Centro em profundidade na mesa"}
+	for chave in LIMITES_ILUMINACAO:
+		_controle_ambiente(chave, legendas[chave], LIMITES_ILUMINACAO[chave], _iluminacao[chave],
+			_controles_iluminacao, _alterar_iluminacao, 1.0, "%")
+	_botao("Restaurar somente a iluminação", _restaurar_iluminacao)
+
+
+func _mostrar_iluminacao() -> void:
+	for chave in _controles_iluminacao:
+		(_controles_iluminacao[chave] as HSlider).set_value_no_signal(_iluminacao[chave])
+	if is_instance_valid(_comparar_iluminacao):
+		_comparar_iluminacao.set_pressed_no_signal(bool(_iluminacao["ativa"]))
+
+
+func _alterar_iluminacao(valor: float, chave: String) -> void:
+	_iluminacao[chave] = valor
+	_versao_iluminacao += 1
+	_atualizar_iluminacao()
+
+
+func _restaurar_iluminacao() -> void:
+	_iluminacao = PADRAO_ILUMINACAO.duplicate()
+	_mostrar_iluminacao()
+	_versao_iluminacao += 1
+	_atualizar_iluminacao()
+
+
+func _atualizar_iluminacao() -> void:
+	if not is_instance_valid(_mesa):
+		return
+	var transformacao := _composicao.get_global_transform()
+	var canvas := Basis(Vector3(transformacao.x.x, transformacao.x.y, 0),
+		Vector3(transformacao.y.x, transformacao.y.y, 0), Vector3(transformacao.origin.x, transformacao.origin.y, 1))
+	var plano := _matriz_da_mesa(Vector3.ZERO, Vector3(_mesa.tamanho_plano.x, 0, 0),
+		Vector3(0, _mesa.tamanho_plano.y, 0))
+	var inversa := (canvas * plano).inverse()
+	if inversa != _inversa_iluminacao:
+		_inversa_iluminacao = inversa
+		_versao_iluminacao += 1
+	for material in _mesa.obter_materiais_apresentacao():
+		_configurar_material_iluminacao(material, false)
+	for poligono in _poligonos:
+		_configurar_material_iluminacao(poligono.material as ShaderMaterial, true)
+	for visual in _planos_pilhas:
+		_configurar_material_iluminacao(visual.face.material as ShaderMaterial, true)
+	for registro in _cartas_descarte.values() + _transitos.values():
+		_configurar_material_iluminacao(registro["visual"].face.material as ShaderMaterial, true)
+
+
+func _configurar_material_iluminacao(material: ShaderMaterial, cartas: bool) -> void:
+	if material.get_meta("versao_iluminacao", -1) == _versao_iluminacao:
+		return
+	material.set_meta("versao_iluminacao", _versao_iluminacao)
+	_enviar_inversa(material, _inversa_iluminacao, "iluminacao_inversa")
+	material.set_shader_parameter("iluminacao_ativa", _iluminacao["ativa"])
+	material.set_shader_parameter("iluminacao_cartas", cartas)
+	material.set_shader_parameter("iluminacao_centro", Vector2(_iluminacao["x"], _iluminacao["y"]) / 100.0)
+	for chave in ["ambiente", "intensidade", "minimo_cartas", "abrangencia", "temperatura"]:
+		material.set_shader_parameter("iluminacao_" + chave, float(_iluminacao[chave]) / 100.0)
 
 
 func _validar_ajustes(dados: Variant, padrao: Dictionary, limites: Dictionary) -> Dictionary:
@@ -520,6 +639,7 @@ func _ajustar_enquadramento() -> void:
 	_composicao.scale = Vector2.ONE * fator * zoom
 	_composicao.position = area / 2.0 - centro * fator * zoom + deslocamento * fator
 	($Guia as Label).offset_left = margem + 18.0
+	_atualizar_iluminacao()
 
 
 func _limites_composicao() -> Rect2:
@@ -707,6 +827,7 @@ func _restaurar_pilha() -> void:
 
 
 func _restaurar_todas() -> void:
+	_restaurar_iluminacao()
 	_ajustes_mesa = PADRAO_MESA.duplicate()
 	_enquadramento = PADRAO_ENQUADRAMENTO.duplicate()
 	_ver_inteira.set_pressed_no_signal(false)
@@ -872,6 +993,7 @@ func _atualizar_pilhas() -> void:
 	for indice in range(_planos_pilhas.size()):
 		var plano := _plano_pilha(0, indice)
 		var visual: Node2D = _planos_pilhas[indice]
+		_configurar_material_iluminacao(visual.face.material as ShaderMaterial, true)
 		visual.apresentar(_matriz_da_mesa(plano["ponto"], plano["u"], plano["v"]))
 		visual.face.visible = visual.face.visible and _pilhas_prontas
 		_sombra_pilha(visual, plano, 0, 1.0 if indice == _planos_pilhas.size() - 1 and _pilhas_prontas else 0.0)
@@ -885,6 +1007,7 @@ func _atualizar_pilhas() -> void:
 		var registro: Dictionary = descarte[indice]
 		var carta: Carta = registro["carta"]
 		var visual: Node2D = registro["visual"]
+		_configurar_material_iluminacao(visual.face.material as ShaderMaterial, true)
 		# Cada face e sua sombra recebida têm ordens distintas, também após pousar.
 		visual.face.z_index = ORDEM_DESCARTE + indice * 2
 		var plano := _plano_carta(carta, -1, true)
@@ -1146,10 +1269,14 @@ func _preparar_visual(carta: Carta, inicio: Dictionary, destino: int) -> void:
 	var id := carta.get_instance_id()
 	var visual: Node2D
 	var sombra_atual := _sombra_do_destino(-1)
+	var contato_atual := 0.0
 	if _transitos.has(id):
 		visual = _transitos[id]["visual"]
 		sombra_atual = _transitos[id]["sombra_atual"]
+		contato_atual = float(_transitos[id]["contato_atual"])
 	else:
+		if _maos_erguidas[0].obter_cartas().has(carta) and _maos_erguidas[0].sombras_visiveis:
+			contato_atual = 1.0
 		if carta.get_parent() == _compra:
 			sombra_atual = _sombra_do_destino(0)
 		visual = PLANO_CARTA.new()
@@ -1159,11 +1286,13 @@ func _preparar_visual(carta: Carta, inicio: Dictionary, destino: int) -> void:
 		carta.reorganizacao_iniciada.connect(_ao_iniciar_reorganizacao.bind(carta))
 		carta.reorganizacao_atualizada.connect(_ao_atualizar_reorganizacao.bind(carta))
 		carta.reorganizacao_concluida.connect(_ao_concluir_reorganizacao.bind(carta))
+	if destino == 0:
+		_configurar_sombra_inferior(carta)
 	# A carta muda de pai agora. Só a apresentação atravessa os dois canvases.
 	carta.definir_apresentacao_externa(true)
 	_transitos[id] = {"carta": carta, "visual": visual, "inicio": inicio, "atual": inicio,
 		"destino": destino, "novo_trajeto": true, "altura_arco": altura_trajeto,
-		"sombra_atual": sombra_atual}
+		"sombra_atual": sombra_atual, "contato_atual": contato_atual, "pousada": false}
 	_apresentar_trajeto(_transitos[id], inicio)
 	_travar_edicao(true)
 
@@ -1173,10 +1302,13 @@ func _ao_iniciar_reorganizacao(_estado: Dictionary, carta: Carta) -> void:
 	if not _transitos.has(id):
 		return
 	var registro: Dictionary = _transitos[id]
+	registro["pousada"] = false
 	# A mão reiniciou o tween da carta: preservar também sua aparência projetada.
 	registro["inicio"] = registro["atual"]
 	registro["sombra_inicio"] = registro["sombra_atual"].duplicate()
 	registro["sombra_fim"] = _sombra_do_destino(1 if int(registro["destino"]) < 0 else -1)
+	registro["contato_inicio"] = registro["contato_atual"]
+	registro["contato_fim"] = 1.0 if int(registro["destino"]) == 0 and _maos_erguidas[0].sombras_visiveis else 0.0
 	registro["fim"] = _plano_carta(carta, int(registro["destino"]), true)
 	registro["altura_arco"] = altura_trajeto if registro["novo_trajeto"] else 0.0
 	registro["novo_trajeto"] = false
@@ -1194,6 +1326,9 @@ func _ao_atualizar_reorganizacao(progresso: float, carta: Carta) -> void:
 	registro["atual"] = atual
 	for chave in ["intensidade", "suavidade"]:
 		registro["sombra_atual"][chave] = lerpf(float(registro["sombra_inicio"][chave]), float(registro["sombra_fim"][chave]), progresso)
+	var chegada := float(registro["contato_fim"]) > 0.0
+	var contato := smoothstep(0.55, 1.0, progresso) if chegada else smoothstep(0.0, 0.45, progresso)
+	registro["contato_atual"] = lerpf(float(registro["contato_inicio"]), float(registro["contato_fim"]), contato)
 	_apresentar_trajeto(registro, atual)
 
 
@@ -1204,18 +1339,52 @@ func _ao_concluir_reorganizacao(carta: Carta) -> void:
 	var destino := int(_transitos[id]["destino"])
 	var visual: Node2D = _transitos[id]["visual"]
 	var plano_atual: Dictionary = _transitos[id]["atual"]
+	if destino == 0:
+		# As compras sobrepostas permanecem intercaladas no mesmo canvas até pousar.
+		_transitos[id]["pousada"] = true
+		_transitos[id]["contato_atual"] = 1.0 if _maos_erguidas[0].sombras_visiveis else 0.0
+		_apresentar_trajeto(_transitos[id], plano_atual)
+		_devolver_apresentacao_inferior.call_deferred()
+		return
 	carta.definir_apresentacao_externa(destino < 0)
-	carta.definir_hover_habilitado(destino == 0 and not _maos_erguidas[0].mao_adversaria)
+	carta.definir_hover_habilitado(false)
 	_desconectar_apresentacao(carta)
 	_transitos.erase(id)
 	if destino < 0:
+		visual.sombra_contato.hide()
 		_manter_visual_descarte(carta, visual, float(plano_atual["ponto"].z))
 	else:
-		if destino == 0:
-			_configurar_sombra_inferior(carta)
 		carta.definir_sombra_visivel(_maos_erguidas[destino].sombras_visiveis)
 		visual.hide()
 		visual.queue_free()
+	_devolver_apresentacao_inferior.call_deferred()
+
+
+func _devolver_apresentacao_inferior() -> void:
+	for registro in _transitos.values():
+		if int(registro["destino"]) == 0 and not bool(registro["pousada"]):
+			return
+	# Trocar o grupo no mesmo quadro evita colocar uma face entre duas camadas.
+	for id in _transitos.keys():
+		var registro: Dictionary = _transitos[id]
+		if int(registro["destino"]) != 0:
+			continue
+		var carta: Carta = registro["carta"]
+		_configurar_sombra_inferior(carta)
+		carta.definir_sombra_visivel(_maos_erguidas[0].sombras_visiveis)
+		carta.definir_apresentacao_externa(false)
+		carta.definir_hover_habilitado(not _maos_erguidas[0].mao_adversaria)
+		_desconectar_apresentacao(carta)
+		registro["visual"].hide()
+		registro["visual"].queue_free()
+		_transitos.erase(id)
+
+
+func _ordem_apresentacao_trajeto(registro: Dictionary) -> int:
+	if int(registro["destino"]) == 0:
+		var indice := _maos_erguidas[0].obter_cartas().find(registro["carta"])
+		return ORDEM_TRANSITO + maxi(indice, 0) * 2
+	return ORDEM_TRANSITO + _maos_erguidas[0].quantidade_cartas() * 2 + 2
 
 
 func _desconectar_apresentacao(carta: Carta) -> void:
@@ -1274,8 +1443,12 @@ func _matriz_apresentacao(plano: Dictionary) -> Basis:
 
 func _apresentar_trajeto(registro: Dictionary, plano: Dictionary) -> void:
 	var visual: Node2D = registro["visual"]
+	visual.face.z_index = _ordem_apresentacao_trajeto(registro)
+	_configurar_material_iluminacao(visual.face.material as ShaderMaterial, true)
 	visual.sincronizar_carta()
-	visual.apresentar(_matriz_apresentacao(plano))
+	var matriz := _matriz_apresentacao(plano)
+	visual.apresentar(matriz)
+	visual.apresentar_sombra_contato(matriz, float(registro["contato_atual"]))
 	var ajustes: Dictionary = registro["sombra_atual"]
 	visual.projetar_sombra(self, plano, 1.0 - float(plano["frontal"]), float(ajustes["intensidade"]), float(ajustes["suavidade"]))
 
@@ -1288,6 +1461,7 @@ func _sombra_do_destino(pilha: int) -> Dictionary:
 
 
 func _process(delta: float) -> void:
+	_atualizar_iluminacao()
 	for id in _transitos.keys():
 		var registro: Dictionary = _transitos[id]
 		var carta: Carta = registro["carta"]
@@ -1297,6 +1471,7 @@ func _process(delta: float) -> void:
 			continue
 		# Só sincroniza virada/captura e luz; o tween da Carta avança o trajeto.
 		_apresentar_trajeto(registro, registro["atual"])
+	_devolver_apresentacao_inferior()
 	if _transitos.is_empty():
 		_travar_edicao(false)
 	_atualizar_pilhas()
@@ -1313,7 +1488,7 @@ func _travar_edicao(ativo: bool) -> void:
 		if foco != null:
 			foco.release_focus()
 		for controle in _controles_ui.find_children("*", "Control", true, false):
-			if controle.has_meta("secao") or _secoes["Enquadramento"].is_ancestor_of(controle) or _comandos_trajeto.is_ancestor_of(controle) or _campos_fonte.is_ancestor_of(controle) or controle == _fonte_localizada or controle == _seletor:
+			if controle.has_meta("secao") or _secoes["Enquadramento"].is_ancestor_of(controle) or _secoes["Iluminação"].is_ancestor_of(controle) or _comandos_trajeto.is_ancestor_of(controle) or _campos_fonte.is_ancestor_of(controle) or controle == _fonte_localizada or controle == _seletor:
 				continue
 			var propriedade := "disabled" if controle is BaseButton else "editable"
 			if controle is BaseButton or controle is Slider or controle is SpinBox:

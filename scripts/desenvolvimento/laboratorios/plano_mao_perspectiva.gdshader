@@ -1,15 +1,19 @@
 shader_type canvas_item;
 render_mode unshaded;
 
+#include "res://scripts/main/componentes/iluminacao_plano.gdshaderinc"
+
 uniform vec3 inversa_x;
 uniform vec3 inversa_y;
 uniform vec3 inversa_z;
 uniform vec4 regiao_textura;
 uniform vec4 cor_camada : source_color = vec4(0.0);
 varying vec2 ponto_projetado;
+varying vec2 posicao_canvas;
 
 void vertex() {
 	ponto_projetado = VERTEX;
+	posicao_canvas = (MODEL_MATRIX * vec4(VERTEX, 0.0, 1.0)).xy;
 }
 
 void fragment() {
@@ -24,4 +28,5 @@ void fragment() {
 	}
 	COLOR = texture(TEXTURE, regiao_textura.xy + origem * regiao_textura.zw);
 	COLOR.rgb = mix(COLOR.rgb, cor_camada.rgb, cor_camada.a);
+	COLOR.rgb = iluminar_plano(COLOR.rgb, posicao_canvas);
 }
