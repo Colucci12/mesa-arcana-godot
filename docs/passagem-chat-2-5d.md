@@ -35,3 +35,17 @@
 - O usuário aprovou a nitidez e pediu calibrar a sombra inferior: bloco **Sombra entre cartas da mão inferior**, com intensidade 0–100% e deslocamentos X/Y de −20 a 20. Padrões anteriores (14%, −2, 3) preservados. Salvar/copy incluem `sombra_inferior` (`intensidade` em porcentagem, `x`, `y`); perfis antigos/inválidos recebem padrões, valores fora de faixa são limitados. Restore completo recupera padrões. Estilo aplicado também às cartas que chegam; sombras adversárias preservadas.
 - O corte de sombra no descarte continuou após o ajuste de Z. Diagnóstico posterior: em trânsito a carta sombreava todos os receptores; ao pousar, apenas a vizinha imediata. Isso apagava sombras nos pedaços expostos das outras cartas. `_projetar_sombra_nas_pilhas()` agora é compartilhado por trânsito e pouso, com os mesmos receptores. Conserva o polígono/material e parâmetros sobre uma carta não adjacente; luz e assentamento continuam dinâmicos. Passaram 441 verificações headless de continuidade, persistência isolada, controles/novas cartas, perfis antigos/inválidos, limite 20, comandos sobrepostos, comparação e R. Aparência do descarte ainda precisa da confirmação do usuário; nenhum arquivo real de testes foi escrito automaticamente.
 - Verificações de componentes e continuidade passaram em headless. **O usuário executa e valida a aparência: não abrir o jogo nem tirar prints automaticamente.** Manter iterações pequenas e discutir mudanças maiores antes de implementar.
+
+### Vela experimental — 04/10/2026
+
+O usuário autorizou acrescentar uma vela provisória ao Laboratório Perspectiva existente. A seção Vela permite mostrar/ocultar o prop, posicionar X/profundidade, ajustar tamanho e comparar separadamente halo da chama (tamanho/intensidade) e luz quente nas superfícies (alcance/intensidade/aquecimento). Chama estática e formas simples, sem asset final. Corpo e base usam a projeção matemática compartilhada; chama e halo permanecem luminosos. Ajustes que atravessam o plano da câmera ocultam a geometria para evitar coordenadas inválidas.
+
+O halo é decorativo, com mistura aditiva. A luz local soma um campo quente ao shader compartilhado da apresentação final da mesa/cartas/vela; acompanha o plano da mesa, sem calcular altura, oclusão ou novas sombras. Não usa PointLight2D. Claridade mínima e proteção dos brancos das cartas continuam valendo. Sombras já aprovadas preservadas. Controles da vela ficam disponíveis durante transferências.
+
+Salvar/copiar conjunto inclui `vela`. Carregar conjunto completo recupera luz principal e vela; Comparar mantendo a luz atual mantém ambas. Perfis antigos recebem a vela inicial em X 20%/profundidade 20%. Restaurar padrões completos também restaura a vela, e há um botão para restaurar somente ela. Ver inteira inclui seus limites e o halo.
+
+Revisão por leitura do código, sem executar Godot nem testes conforme pedido do usuário. Validação visual e funcional pendente com o usuário; sem commit automático.
+
+#### Correção do corpo da vela
+
+O usuário relatou corpo visível apenas em X próximo de 48–52%. A lateral ligava dois semicírculos fixos; a projeção desloca o topo horizontalmente fora do centro, fazendo esse contorno cruzar suas próprias bordas. A lateral agora usa a silhueta convexa dos anéis completos da base e do topo (`Geometry2D.convex_hull`), sem o ponto terminal duplicado. Anéis têm 32 pontos sem repetir o fechamento. Topo, chama, halo e iluminação preservados. Diagnóstico por leitura; sem executar Godot/testes. Confirmação visual pendente com o usuário.

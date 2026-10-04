@@ -316,3 +316,7 @@ Implementação revisada por leitura; validação funcional e aparência ainda p
 - Em alterações visuais, revisar a composição nas cenas reais e preservar o teste original. Em alterações de regra/rede, revisar eventos, destinatários, ordem e tratamento do anfitrião.
 
 Este arquivo é um ponto de entrada. Antes de editar, ler o código do componente envolvido e confirmar o pedido atual do usuário; evitar reconstruir funcionalidades que já existem.
+
+### Experimento de vela no laboratório (04/10/2026)
+
+Laboratório Perspectiva recebeu uma vela provisória com seção Vela: posição/tamanho, halo decorativo e luz quente local nas superfícies, com controles independentes. A luz soma um campo no shader existente da apresentação projetada; não calcula alturas/oclusões nem altera as sombras aprovadas. Chama estática; sem PointLight2D ou arte final. Os conjuntos guardam `vela` junto da iluminação principal, e a comparação mantendo luz preserva ambas. Perfis anteriores usam a vela inicial. Implementação revisada por leitura; o usuário executará e validará, sem testes automáticos.

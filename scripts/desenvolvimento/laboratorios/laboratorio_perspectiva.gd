@@ -2,6 +2,7 @@ extends "res://scripts/desenvolvimento/laboratorios/interno/base_perspectiva.gd"
 
 const CENA_COMPRA = preload("res://scenes/main/componentes/monte.tscn")
 const CENA_JOGADA = preload("res://scenes/main/componentes/descarte.tscn")
+const CENA_VELA = preload("res://scenes/desenvolvimento/laboratorios/vela_laboratorio.tscn")
 const PLANO_CARTA = preload("res://scripts/desenvolvimento/laboratorios/plano_carta_laboratorio.gd")
 # Nome histórico preservado para carregar os conjuntos já salvos.
 const ARQUIVO_MOVIMENTOS = "user://laboratorio_transferencias_2_5d.json"
@@ -36,6 +37,13 @@ const LIMITES_ILUMINACAO := {"ambiente": Vector2(0, 100), "intensidade": Vector2
 	"abrangencia": Vector2(30, 200), "temperatura": Vector2(0, 100),
 	"x": Vector2(-50, 150), "y": Vector2(-50, 150)}
 const PRESETS_MESAS := "res://scripts/desenvolvimento/laboratorios/presets/mesas_arredondadas.json"
+const PADRAO_VELA := {"visivel": true, "halo_ativo": true, "luz_ativa": true,
+	"x": 20.0, "y": 20.0, "tamanho": 1.0, "halo_tamanho": 100.0,
+	"halo_intensidade": 30.0, "alcance": 250.0, "intensidade": 45.0, "aquecimento": 75.0}
+const LIMITES_VELA := {"x": Vector2(-25, 125), "y": Vector2(-25, 125),
+	"tamanho": Vector2(0.5, 2), "halo_tamanho": Vector2(20, 250),
+	"halo_intensidade": Vector2(0, 100), "alcance": Vector2(50, 600),
+	"intensidade": Vector2(0, 100), "aquecimento": Vector2(0, 100)}
 
 @export_group("Transferências")
 @export_range(0.8, 2.0, 0.05) var duracao_trajeto := 1.0
@@ -91,6 +99,10 @@ var _comparar_iluminacao: CheckBox
 var _manter_iluminacao: CheckBox
 var _inversa_iluminacao := Basis.IDENTITY
 var _versao_iluminacao := 0
+var _vela: Node2D
+var _ajustes_vela := PADRAO_VELA.duplicate()
+var _controles_vela: Dictionary = {}
+var _opcoes_vela: Dictionary = {}
 
 
 func _ready() -> void:
@@ -104,6 +116,10 @@ func _ready() -> void:
 	_area_enquadramento.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_composicao.reparent(_area_enquadramento, false)
 	super._ready()
+	_vela = CENA_VELA.instantiate()
+	_vela.z_index = ORDEM_MAOS - 1
+	_composicao.add_child(_vela)
+	_atualizar_vela()
 	_montar_pilhas()
 	_ler_importacoes()
 	var base: Variant = _testes.get("teste 8", JSON.parse_string(FileAccess.get_file_as_string(PRESET_BASE)))
@@ -139,7 +155,8 @@ func _parametros_adicionais_teste() -> Dictionary:
 		"compra": [centro_compra.x, centro_compra.y], "descarte": [centro_jogada.x, centro_jogada.y]},
 		"pilhas": _perfis_pilhas.duplicate(true), "sombras_entre_cartas": sombras_entre_cartas,
 		"sombra_inferior": _sombra_inferior.duplicate(), "mesa": _ajustes_mesa.duplicate(),
-		"enquadramento": _enquadramento.duplicate(), "iluminacao": _iluminacao.duplicate()}
+		"enquadramento": _enquadramento.duplicate(), "iluminacao": _iluminacao.duplicate(),
+		"vela": _ajustes_vela.duplicate()}
 
 
 func _padrao_pilha(indice: int) -> Dictionary:
@@ -158,6 +175,13 @@ func _aplicar_teste(perfil: Dictionary, nome: String) -> void:
 		var ativa: Variant = perfil.get("iluminacao", {}).get("ativa", true) if perfil.get("iluminacao") is Dictionary else true
 		_iluminacao["ativa"] = ativa if ativa is bool else true
 		_mostrar_iluminacao()
+		_ajustes_vela = _validar_ajustes(perfil.get("vela", {}), PADRAO_VELA, LIMITES_VELA)
+		var dados_vela: Variant = perfil.get("vela", {})
+		for chave in ["visivel", "halo_ativo", "luz_ativa"]:
+			if dados_vela is Dictionary and dados_vela.get(chave) is bool:
+				_ajustes_vela[chave] = dados_vela[chave]
+		_mostrar_vela()
+		_atualizar_vela()
 		_versao_iluminacao += 1
 	_ajustes_mesa = _validar_ajustes(perfil.get("mesa", {}), PADRAO_MESA, LIMITES_MESA)
 	var formato: Variant = perfil.get("mesa", {}).get("formato", 1) if perfil.get("mesa") is Dictionary else 1
@@ -363,6 +387,9 @@ func _montar_painel() -> void:
 	_controles_ui = _criar_secao("Iluminação", true)
 	_montar_controles_iluminacao()
 	_controles_ui = anterior
+	_controles_ui = _criar_secao("Vela", true)
+	_montar_controles_vela()
+	_controles_ui = anterior
 	_controles_ui = _criar_secao("Luz e sombras")
 	_sombras_melhoradas = CheckBox.new()
 	_sombras_melhoradas.text = "Sombras projetadas no tampo"
@@ -377,7 +404,7 @@ func _montar_painel() -> void:
 	_manter_iluminacao.text = "Comparar mantendo a luz atual"
 	_manter_iluminacao.button_pressed = false
 	_controles_ui.add_child(_manter_iluminacao)
-	_texto("Carregar recupera também a iluminação salva. Marque esta opção para comparar composições com a mesma luz. Conjuntos antigos usam a luz inicial.")
+	_texto("Carregar recupera a luz principal e a vela salvas. Marque esta opção para manter ambas ao comparar composições. Conjuntos antigos usam os ajustes iniciais.")
 	_nome = LineEdit.new()
 	_nome.placeholder_text = "Nome do conjunto"
 	_nome.max_length = 80
@@ -484,7 +511,7 @@ func _montar_controles_iluminacao() -> void:
 		_iluminacao["ativa"] = ativa
 		_versao_iluminacao += 1
 		_atualizar_iluminacao())
-	_texto("Um foco amplo acompanha a perspectiva da mesa. Desligue para comparar com a aparência original. Claridade mínima das cartas em 0% permite que elas escureçam totalmente quando não houver luz.")
+	_texto("Um foco amplo acompanha a perspectiva da mesa. Para comparar com a aparência original, desligue também a luz quente da vela. Claridade mínima das cartas em 0% permite que elas escureçam totalmente quando não houver luz.")
 	var legendas := {"ambiente": "Claridade ambiente", "intensidade": "Intensidade do foco",
 		"minimo_cartas": "Claridade mínima das cartas",
 		"abrangencia": "Abrangência do foco", "temperatura": "Aquecimento da luz",
@@ -493,6 +520,72 @@ func _montar_controles_iluminacao() -> void:
 		_controle_ambiente(chave, legendas[chave], LIMITES_ILUMINACAO[chave], _iluminacao[chave],
 			_controles_iluminacao, _alterar_iluminacao, 1.0, "%")
 	_botao("Restaurar somente a iluminação", _restaurar_iluminacao)
+
+
+func _montar_controles_vela() -> void:
+	_texto("Vela provisória com chama estática. Compare o halo junto à chama e a luz quente na mesa e nas cartas separadamente. O alcance segue o plano da mesa; não calcula altura nem novas sombras.")
+	var opcoes := {"visivel": "Mostrar vela", "halo_ativo": "Halo da chama", "luz_ativa": "Luz quente nas superfícies"}
+	for chave in opcoes:
+		var opcao := CheckBox.new()
+		opcao.text = opcoes[chave]
+		opcao.button_pressed = bool(_ajustes_vela[chave])
+		_controles_ui.add_child(opcao)
+		_opcoes_vela[chave] = opcao
+		opcao.toggled.connect(_alterar_opcao_vela.bind(chave))
+	var legendas := {"x": "Posição horizontal", "y": "Posição em profundidade",
+		"tamanho": "Tamanho da vela", "halo_tamanho": "Tamanho do halo",
+		"halo_intensidade": "Intensidade do halo", "alcance": "Alcance da luz",
+		"intensidade": "Intensidade da luz quente", "aquecimento": "Aquecimento da luz da vela"}
+	for chave in LIMITES_VELA:
+		var passo := 0.05 if chave == "tamanho" else 1.0
+		var unidade := "" if chave in ["tamanho", "alcance"] else "%"
+		_controle_ambiente(chave, legendas[chave], LIMITES_VELA[chave], _ajustes_vela[chave],
+			_controles_vela, _alterar_vela, passo, unidade)
+	_botao("Restaurar somente a vela", _restaurar_vela)
+
+
+func _mostrar_vela() -> void:
+	for chave in _controles_vela:
+		(_controles_vela[chave] as HSlider).set_value_no_signal(_ajustes_vela[chave])
+	for chave in _opcoes_vela:
+		(_opcoes_vela[chave] as CheckBox).set_pressed_no_signal(bool(_ajustes_vela[chave]))
+
+
+func _alterar_opcao_vela(ativa: bool, chave: String) -> void:
+	_ajustes_vela[chave] = ativa
+	_aplicar_ajustes_vela()
+
+
+func _alterar_vela(valor: float, chave: String) -> void:
+	_ajustes_vela[chave] = valor
+	_aplicar_ajustes_vela()
+
+
+func _restaurar_vela() -> void:
+	_ajustes_vela = PADRAO_VELA.duplicate()
+	_mostrar_vela()
+	_aplicar_ajustes_vela()
+
+
+func _aplicar_ajustes_vela() -> void:
+	_versao_iluminacao += 1
+	_atualizar_vela()
+	if is_instance_valid(_ver_inteira) and _ver_inteira.button_pressed:
+		_ajustar_enquadramento()
+	_atualizar_iluminacao()
+
+
+func _atualizar_vela() -> void:
+	if is_instance_valid(_vela) and is_instance_valid(_mesa):
+		_vela.configurar(_ajustes_vela, _mesa.tamanho_plano, _projetar_ponto_vela)
+
+
+func _projetar_ponto_vela(ponto: Vector3) -> Vector2:
+	var matriz := _matriz_da_mesa(ponto, Vector3.RIGHT, Vector3.UP)
+	var projetado := matriz * Vector3(0, 0, 1)
+	if projetado.z <= 0.001:
+		return Vector2(NAN, NAN)
+	return Vector2(projetado.x, projetado.y) / projetado.z
 
 
 func _mostrar_iluminacao() -> void:
@@ -527,6 +620,9 @@ func _atualizar_iluminacao() -> void:
 	if inversa != _inversa_iluminacao:
 		_inversa_iluminacao = inversa
 		_versao_iluminacao += 1
+		_atualizar_vela()
+	if is_instance_valid(_vela):
+		_configurar_material_iluminacao(_vela.material as ShaderMaterial, false)
 	for material in _mesa.obter_materiais_apresentacao():
 		_configurar_material_iluminacao(material, false)
 	for poligono in _poligonos:
@@ -547,6 +643,11 @@ func _configurar_material_iluminacao(material: ShaderMaterial, cartas: bool) -> 
 	material.set_shader_parameter("iluminacao_centro", Vector2(_iluminacao["x"], _iluminacao["y"]) / 100.0)
 	for chave in ["ambiente", "intensidade", "minimo_cartas", "abrangencia", "temperatura"]:
 		material.set_shader_parameter("iluminacao_" + chave, float(_iluminacao[chave]) / 100.0)
+	material.set_shader_parameter("vela_luz_ativa", _ajustes_vela["visivel"] and _ajustes_vela["luz_ativa"])
+	material.set_shader_parameter("vela_centro", Vector2(_ajustes_vela["x"], _ajustes_vela["y"]) / 100.0)
+	material.set_shader_parameter("vela_raios", Vector2.ONE * float(_ajustes_vela["alcance"]) / _mesa.tamanho_plano)
+	material.set_shader_parameter("vela_intensidade", float(_ajustes_vela["intensidade"]) / 100.0)
+	material.set_shader_parameter("vela_aquecimento", float(_ajustes_vela["aquecimento"]) / 100.0)
 
 
 func _validar_ajustes(dados: Variant, padrao: Dictionary, limites: Dictionary) -> Dictionary:
@@ -588,6 +689,8 @@ func _aplicar_mesa() -> void:
 	_mesa.largura_moldura = _ajustes_mesa["moldura"]
 	_mesa.espessura = _ajustes_mesa["espessura"]
 	_mesa.atualizar_visual()
+	_versao_iluminacao += 1
+	_atualizar_vela()
 	_projetar_maos()
 	_ajustar_enquadramento()
 
@@ -644,6 +747,9 @@ func _ajustar_enquadramento() -> void:
 
 func _limites_composicao() -> Rect2:
 	var limites := Rect2(_mesa.position, Vector2.ONE)
+	_atualizar_vela()
+	if is_instance_valid(_vela) and _vela.visible:
+		limites = limites.merge(_vela.obter_limites())
 	var dimensoes := _mesa.obter_dimensoes_tampo()
 	for indice in range(128):
 		var angulo := TAU * indice / 128.0
@@ -828,6 +934,7 @@ func _restaurar_pilha() -> void:
 
 func _restaurar_todas() -> void:
 	_restaurar_iluminacao()
+	_restaurar_vela()
 	_ajustes_mesa = PADRAO_MESA.duplicate()
 	_enquadramento = PADRAO_ENQUADRAMENTO.duplicate()
 	_ver_inteira.set_pressed_no_signal(false)
@@ -1488,7 +1595,7 @@ func _travar_edicao(ativo: bool) -> void:
 		if foco != null:
 			foco.release_focus()
 		for controle in _controles_ui.find_children("*", "Control", true, false):
-			if controle.has_meta("secao") or _secoes["Enquadramento"].is_ancestor_of(controle) or _secoes["Iluminação"].is_ancestor_of(controle) or _comandos_trajeto.is_ancestor_of(controle) or _campos_fonte.is_ancestor_of(controle) or controle == _fonte_localizada or controle == _seletor:
+			if controle.has_meta("secao") or _secoes["Enquadramento"].is_ancestor_of(controle) or _secoes["Iluminação"].is_ancestor_of(controle) or _secoes["Vela"].is_ancestor_of(controle) or _comandos_trajeto.is_ancestor_of(controle) or _campos_fonte.is_ancestor_of(controle) or controle == _fonte_localizada or controle == _seletor:
 				continue
 			var propriedade := "disabled" if controle is BaseButton else "editable"
 			if controle is BaseButton or controle is Slider or controle is SpinBox:

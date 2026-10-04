@@ -10,19 +10,33 @@ uniform float iluminacao_minimo_cartas : hint_range(0.0, 1.0) = 0.72;
 uniform float iluminacao_intensidade = 0.55;
 uniform float iluminacao_abrangencia = 1.0;
 uniform float iluminacao_temperatura = 0.15;
+uniform bool vela_luz_ativa = false;
+uniform vec2 vela_centro = vec2(0.10, 0.15);
+uniform vec2 vela_raios = vec2(0.15, 0.35);
+uniform float vela_intensidade = 0.45;
+uniform float vela_aquecimento = 0.75;
 
 vec3 iluminar_plano(vec3 original, vec2 posicao_canvas) {
-	if (!iluminacao_ativa) { return original; }
+	if (!iluminacao_ativa && !vela_luz_ativa) { return original; }
 	vec3 ponto = vec3(posicao_canvas, 1.0);
 	float denominador = dot(iluminacao_inversa_z, ponto);
 	float foco = 0.0;
+	float foco_vela = 0.0;
 	if (denominador > 0.00001) {
 		vec2 mesa = vec2(dot(iluminacao_inversa_x, ponto), dot(iluminacao_inversa_y, ponto)) / denominador;
 		vec2 distancia = (mesa - iluminacao_centro) / (vec2(0.70, 0.90) * iluminacao_abrangencia);
 		foco = exp(-2.0 * dot(distancia, distancia));
+		vec2 distancia_vela = (mesa - vela_centro) / max(vela_raios, vec2(0.00001));
+		foco_vela = exp(-2.0 * dot(distancia_vela, distancia_vela));
 	}
-	float brilho = iluminacao_ambiente + iluminacao_intensidade * foco;
-	vec3 temperatura = mix(vec3(1.0), vec3(1.0, 0.90, 0.74), iluminacao_temperatura * foco);
+	float brilho = iluminacao_ativa ? iluminacao_ambiente + iluminacao_intensidade * foco : 1.0;
+	vec3 temperatura = iluminacao_ativa ? mix(vec3(1.0), vec3(1.0, 0.90, 0.74), iluminacao_temperatura * foco) : vec3(1.0);
+	vec3 energia = brilho * temperatura;
+	if (vela_luz_ativa) {
+		energia += vela_intensidade * foco_vela * mix(vec3(1.0), vec3(1.0, 0.63, 0.27), vela_aquecimento);
+	}
+	brilho = max(energia.r, max(energia.g, energia.b));
+	temperatura = brilho > 0.00001 ? energia / brilho : vec3(1.0);
 	if (iluminacao_cartas) {
 		// Preservar leitura, papel e pretos também durante as transferências.
 		brilho = max(brilho, iluminacao_minimo_cartas);
