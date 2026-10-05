@@ -5,6 +5,8 @@ const CENA_JOGADA = preload("res://scenes/main/componentes/descarte.tscn")
 const CENA_VELA = preload("res://scenes/desenvolvimento/laboratorios/vela_laboratorio.tscn")
 const CENA_FUNDO_AMBIENTE = preload("res://scenes/desenvolvimento/laboratorios/fundo_ambiente_laboratorio.tscn")
 const CENA_ESTANTE = preload("res://scenes/desenvolvimento/laboratorios/estante_laboratorio.tscn")
+const PRESETS_MOVEIS = preload("res://scripts/desenvolvimento/laboratorios/interno/presets_moveis.gd")
+const PROJECAO_SALA = preload("res://scripts/desenvolvimento/laboratorios/interno/projecao_laboratorio.gd")
 const PLANO_CARTA = preload("res://scripts/desenvolvimento/laboratorios/plano_carta_laboratorio.gd")
 # Nome histórico preservado para carregar os conjuntos já salvos.
 const ARQUIVO_MOVIMENTOS = "user://laboratorio_transferencias_2_5d.json"
@@ -50,11 +52,8 @@ const PADRAO_FUNDO_AMBIENTE := {"visivel": true, "x": 0.0, "y": 0.0, "tamanho": 
 	"claridade": 65.0, "distancia": 500.0}
 const LIMITES_FUNDO_AMBIENTE := {"x": Vector2(-50, 50), "y": Vector2(-50, 50),
 	"tamanho": Vector2(0.5, 2), "claridade": Vector2(0, 100), "distancia": Vector2(0, 2400)}
-const PADRAO_ESTANTE := {"visivel": true, "livros": true, "verticais_retas": false, "x": -1100.0, "distancia": 500.0,
-	"altura_base": -350.0, "largura": 600.0, "altura": 600.0, "angulo": -35.0, "claridade": 75.0}
-const LIMITES_ESTANTE := {"x": Vector2(-2200, 2200), "distancia": Vector2(0, 2400),
-	"altura_base": Vector2(-800, 200), "largura": Vector2(200, 1200), "altura": Vector2(200, 1000),
-	"angulo": Vector2(-75, 75), "claridade": Vector2(0, 100)}
+const PADRAO_ESTANTE = PRESETS_MOVEIS.PADRAO
+const LIMITES_ESTANTE = PRESETS_MOVEIS.LIMITES
 const CATEGORIAS_PAINEL := ["Ambiente", "Mesa", "Mãos", "Pilhas", "Luz", "Conjuntos"]
 
 @export_group("Transferências")
@@ -118,11 +117,17 @@ var _opcoes_vela: Dictionary = {}
 var _fundo_ambiente: Node2D
 var _estantes: Array[Node2D] = []
 var _ajustes_estantes: Array[Dictionary] = []
+var _camera_moveis := PRESETS_MOVEIS.PADRAO_CAMERA.duplicate()
+var _controles_camera_moveis: Dictionary = {}
 var _controles_estantes: Dictionary = {}
 var _seletor_estante: OptionButton
 var _projecao_estante: OptionButton
 var _mostrar_estante: CheckBox
 var _mostrar_livros: CheckBox
+var _cores_estante: Dictionary = {}
+var _nome_movel: LineEdit
+var _lista_moveis: OptionButton
+var _mensagem_moveis: Label
 var _ajustes_fundo_ambiente := PADRAO_FUNDO_AMBIENTE.duplicate()
 var _controles_fundo_ambiente: Dictionary = {}
 var _mostrar_fundo_ambiente: CheckBox
@@ -214,7 +219,8 @@ func _parametros_adicionais_teste() -> Dictionary:
 		"sombra_inferior": _sombra_inferior.duplicate(), "mesa": _ajustes_mesa.duplicate(),
 		"enquadramento": _enquadramento.duplicate(), "iluminacao": _iluminacao.duplicate(),
 		"vela": _ajustes_vela.duplicate(), "ambiente": {
-			"fundo": _ajustes_fundo_ambiente.duplicate(), "estantes": _ajustes_estantes.duplicate(true)}}
+			"fundo": _ajustes_fundo_ambiente.duplicate(), "estantes": _ajustes_estantes.duplicate(true),
+			"camera_moveis": _camera_moveis.duplicate()}}
 
 
 func _padrao_pilha(indice: int) -> Dictionary:
@@ -234,10 +240,7 @@ func _aplicar_teste(perfil: Dictionary, nome: String) -> void:
 	var estantes: Variant = ambiente.get("estantes", []) if ambiente is Dictionary else []
 	for indice in range(2):
 		var dados: Variant = estantes[indice] if estantes is Array and estantes.size() == 2 else {}
-		_ajustes_estantes[indice] = _validar_ajustes_visiveis(dados, _padrao_estante(indice), LIMITES_ESTANTE)
-		for chave in ["livros", "verticais_retas"]:
-			if dados is Dictionary and dados.get(chave) is bool:
-				_ajustes_estantes[indice][chave] = dados[chave]
+		_ajustes_estantes[indice] = PRESETS_MOVEIS.validar(dados, indice)
 	_mostrar_ajustes_entorno()
 	if is_instance_valid(_manter_iluminacao) and not _manter_iluminacao.button_pressed:
 		_iluminacao = _validar_ajustes(perfil.get("iluminacao", {}), PADRAO_ILUMINACAO, LIMITES_ILUMINACAO)
@@ -253,6 +256,9 @@ func _aplicar_teste(perfil: Dictionary, nome: String) -> void:
 		_atualizar_vela()
 		_versao_iluminacao += 1
 	_ajustes_mesa = _validar_ajustes(perfil.get("mesa", {}), PADRAO_MESA, LIMITES_MESA)
+	_camera_moveis = PRESETS_MOVEIS.validar_camera(
+		ambiente.get("camera_moveis") if ambiente is Dictionary else null, _ajustes_mesa)
+	_mostrar_ajustes_entorno()
 	var formato: Variant = perfil.get("mesa", {}).get("formato", 1) if perfil.get("mesa") is Dictionary else 1
 	_ajustes_mesa["formato"] = 1.0
 	if (formato is float or formato is int) and is_finite(float(formato)):
@@ -649,7 +655,7 @@ func _montar_controles_mesa() -> void:
 		_controle_ambiente(chave, legendas[chave], LIMITES_MESA[chave], _ajustes_mesa[chave],
 			_controles_mesa, _alterar_mesa, 5.0 if chave in ["largura", "profundidade", "profundidade_camera"] else 1.0,
 			"%" if chave in ["x", "y", "perspectiva"] else "")
-	_texto("Profundidade na tela e largura distante ajustam a perspectiva compartilhada, incluindo as cartas apoiadas.")
+	_texto("Profundidade na tela e largura distante ajustam a mesa e as cartas apoiadas. Os móveis têm perspectiva própria em Ambiente > Estantes.")
 	_botao("Restaurar somente a mesa", _restaurar_mesa)
 
 
@@ -773,14 +779,24 @@ func _montar_controles_fundo_ambiente() -> void:
 
 
 func _padrao_estante(indice: int) -> Dictionary:
-	var ajustes := PADRAO_ESTANTE.duplicate()
-	if indice == 1:
-		ajustes["x"] = -float(ajustes["x"])
-		ajustes["angulo"] = -float(ajustes["angulo"])
-	return ajustes
+	return PRESETS_MOVEIS.padrao(indice)
 
 
 func _montar_controles_estantes() -> void:
+	_botao("Abrir Laboratório de Móveis", func():
+		get_tree().change_scene_to_file("res://scenes/desenvolvimento/laboratorios/laboratorio_moveis.tscn"))
+	_texto("Perspectiva dos móveis")
+	var legendas_camera := {"profundidade_camera": "Profundidade na tela dos móveis",
+		"perspectiva": "Largura distante dos móveis"}
+	for chave in PRESETS_MOVEIS.LIMITES_CAMERA:
+		_controle_ambiente(chave, legendas_camera[chave], PRESETS_MOVEIS.LIMITES_CAMERA[chave],
+			_camera_moveis[chave], _controles_camera_moveis, _alterar_camera_moveis,
+			5.0 if chave == "profundidade_camera" else 1.0, "%" if chave == "perspectiva" else "")
+	_texto("Vale para as duas estantes, independente da mesa. Zoom e deslocamento geral continuam compartilhados.")
+	_botao("Restaurar perspectiva dos móveis (200)", func():
+		_camera_moveis = PRESETS_MOVEIS.PADRAO_CAMERA.duplicate()
+		_mostrar_ajustes_entorno()
+		_aplicar_ajustes_entorno())
 	_seletor_estante = OptionButton.new()
 	_seletor_estante.add_item("Estante esquerda")
 	_seletor_estante.add_item("Estante direita")
@@ -804,13 +820,42 @@ func _montar_controles_estantes() -> void:
 	_texto("Posição horizontal 0 fica no centro da sala. Distância maior afasta a estante para o fundo. Altura da base 0 fica no nível do tampo.")
 	var legendas := {"x": "Posição horizontal", "distancia": "Distância da mesa",
 		"altura_base": "Altura da base", "largura": "Largura do móvel", "altura": "Altura do móvel",
-		"angulo": "Ângulo na sala", "claridade": "Claridade da estante"}
+		"angulo": "Ângulo na sala", "inclinacao": "Inclinação na tela (volante)",
+		"claridade": "Claridade da estante",
+		"profundidade": "Profundidade do móvel", "espessura": "Espessura da estrutura", "contraste": "Contraste do volume",
+		"prateleiras": "Quantidade de prateleiras", "quantidade_livros": "Livros por prateleira (máximo)",
+		"largura_livros": "Largura das lombadas", "altura_livros": "Altura dos livros",
+		"profundidade_livros": "Profundidade dos livros", "ocupacao_livros": "Faixa ocupada na prateleira"}
 	for chave in LIMITES_ESTANTE:
 		_controle_ambiente(chave, legendas[chave], LIMITES_ESTANTE[chave], _ajustes_estantes[0][chave],
-			_controles_estantes, _alterar_estante, 1.0 if chave in ["angulo", "claridade"] else 10.0,
-			"°" if chave == "angulo" else ("%" if chave == "claridade" else ""))
+			_controles_estantes, _alterar_estante,
+			10.0 if chave in ["x", "distancia", "altura_base", "largura", "altura", "profundidade"] else 1.0,
+			"°" if chave in ["angulo", "inclinacao"] else ("%" if chave in ["claridade", "contraste", "ocupacao_livros"] else ""))
+	_texto("Inclinação gira o móvel inteiro na tela. Positivo abaixa a direita; negativo abaixa a esquerda. Zero recupera a orientação original.")
+	_botao("Zerar somente a inclinação", func():
+		_alterar_estante(0.0, "inclinacao")
+		_mostrar_perfil_estante())
+	_texto("Ampliar a estante não aumenta seus livros ou tábuas. Ajuste a quantidade de prateleiras e livros para preencher o espaço. Se faltar espaço, entram menos livros.")
+	for chave in ["cor_estrutura", "cor_fundo"]:
+		_texto("Cor da estrutura" if chave == "cor_estrutura" else "Cor do interior")
+		var cor := ColorPickerButton.new()
+		cor.edit_alpha = false
+		cor.custom_minimum_size.y = 30
+		_controles_ui.add_child(cor)
+		_cores_estante[chave] = cor
+		cor.color_changed.connect(_alterar_cor_estante.bind(chave))
 	_botao("Espelhar na outra estante", _espelhar_estante)
 	_botao("Restaurar estante selecionada", _restaurar_estante)
+	_nome_movel = LineEdit.new()
+	_nome_movel.placeholder_text = "Nome do móvel para guardar"
+	_nome_movel.max_length = 80
+	_controles_ui.add_child(_nome_movel)
+	_botao("Salvar móvel na biblioteca", _salvar_movel)
+	_lista_moveis = OptionButton.new()
+	_controles_ui.add_child(_lista_moveis)
+	_botao("Carregar móvel da biblioteca", _carregar_movel)
+	_mensagem_moveis = _texto("A biblioteca é compartilhada com o Laboratório de Móveis. Carregar preserva a posição, o ângulo e a inclinação atuais.")
+	_atualizar_lista_moveis()
 	_mostrar_perfil_estante()
 
 
@@ -823,6 +868,8 @@ func _mostrar_perfil_estante() -> void:
 	_mostrar_estante.set_pressed_no_signal(bool(ajustes["visivel"]))
 	_mostrar_livros.set_pressed_no_signal(bool(ajustes["livros"]))
 	_projecao_estante.select(1 if bool(ajustes["verticais_retas"]) else 0)
+	for chave in _cores_estante:
+		(_cores_estante[chave] as ColorPickerButton).color = Color.html(ajustes[chave])
 
 
 func _alterar_estante(valor: float, chave: String) -> void:
@@ -832,6 +879,11 @@ func _alterar_estante(valor: float, chave: String) -> void:
 
 func _alterar_opcao_estante(ativa: bool, chave: String) -> void:
 	_ajustes_estantes[_seletor_estante.selected][chave] = ativa
+	_aplicar_ajustes_entorno()
+
+
+func _alterar_cor_estante(valor: Color, chave: String) -> void:
+	_ajustes_estantes[_seletor_estante.selected][chave] = valor.to_html(false)
 	_aplicar_ajustes_entorno()
 
 
@@ -845,8 +897,39 @@ func _espelhar_estante() -> void:
 	var ajustes := _ajustes_estantes[indice].duplicate()
 	ajustes["x"] = -float(ajustes["x"])
 	ajustes["angulo"] = -float(ajustes["angulo"])
+	ajustes["inclinacao"] = -float(ajustes["inclinacao"])
 	_ajustes_estantes[1 - indice] = ajustes
 	_aplicar_ajustes_entorno()
+
+
+func _atualizar_lista_moveis() -> void:
+	_lista_moveis.clear()
+	for nome in PRESETS_MOVEIS.ler("moveis"):
+		_lista_moveis.add_item(nome)
+
+
+func _salvar_movel() -> void:
+	var nome := _nome_movel.text.strip_edges()
+	if nome.is_empty():
+		_mensagem_moveis.text = "Dê um nome ao móvel antes de salvar."
+		return
+	var erro: Error = PRESETS_MOVEIS.salvar("moveis", nome, _ajustes_estantes[_seletor_estante.selected])
+	_mensagem_moveis.text = "Móvel salvo: " + nome if erro == OK else "Não foi possível salvar: " + error_string(erro)
+	_atualizar_lista_moveis()
+
+
+func _carregar_movel() -> void:
+	if _lista_moveis.selected < 0:
+		return
+	var nome := _lista_moveis.get_item_text(_lista_moveis.selected)
+	var dados: Dictionary = PRESETS_MOVEIS.ler("moveis")
+	if not dados.has(nome):
+		return
+	var indice := _seletor_estante.selected
+	_ajustes_estantes[indice] = PRESETS_MOVEIS.aplicar_movel(dados[nome], _ajustes_estantes[indice], indice)
+	_mostrar_perfil_estante()
+	_aplicar_ajustes_entorno()
+	_mensagem_moveis.text = "Móvel carregado: " + nome + ". Posição, ângulo e inclinação preservados."
 
 
 func _validar_ajustes_visiveis(dados: Variant, padrao: Dictionary, limites: Dictionary) -> Dictionary:
@@ -857,11 +940,20 @@ func _validar_ajustes_visiveis(dados: Variant, padrao: Dictionary, limites: Dict
 
 
 func _mostrar_ajustes_entorno() -> void:
+	for chave in _controles_camera_moveis:
+		(_controles_camera_moveis[chave] as HSlider).set_value_no_signal(_camera_moveis[chave])
 	for chave in _controles_fundo_ambiente:
 		(_controles_fundo_ambiente[chave] as HSlider).set_value_no_signal(_ajustes_fundo_ambiente[chave])
 	if is_instance_valid(_mostrar_fundo_ambiente):
 		_mostrar_fundo_ambiente.set_pressed_no_signal(bool(_ajustes_fundo_ambiente["visivel"]))
 	_mostrar_perfil_estante()
+
+
+func _alterar_camera_moveis(valor: float, chave: String) -> void:
+	if _atualizando_ui:
+		return
+	_camera_moveis[chave] = valor
+	_aplicar_ajustes_entorno()
 
 
 func _alterar_fundo_ambiente(valor: float, chave: String) -> void:
@@ -879,10 +971,15 @@ func _projetar_ponto_sala(ponto: Vector3) -> Vector2:
 	return _projetar_ponto_vela(ponto) + REFERENCIA * Vector2(0.5, 0.55) - _mesa.position
 
 
+func _projetar_ponto_moveis(ponto: Vector3) -> Vector2:
+	return PROJECAO_SALA.ponto_sala(_mesa, ponto, _camera_moveis)
+
+
 func _atualizar_ambiente() -> void:
 	_atualizar_fundo_ambiente()
 	for indice in range(_estantes.size()):
-		_estantes[indice].configurar(_ajustes_estantes[indice], _mesa.tamanho_plano, _projetar_ponto_sala)
+		_estantes[indice].configurar(_ajustes_estantes[indice], _mesa.tamanho_plano, _projetar_ponto_moveis,
+			{}, PROJECAO_SALA.posicao_camera(_mesa, _camera_moveis))
 
 
 func _aplicar_ajustes_entorno() -> void:
@@ -906,6 +1003,7 @@ func _restaurar_estante() -> void:
 
 func _restaurar_ambiente() -> void:
 	_ajustes_fundo_ambiente = PADRAO_FUNDO_AMBIENTE.duplicate()
+	_camera_moveis = PRESETS_MOVEIS.PADRAO_CAMERA.duplicate()
 	_ajustes_estantes = [_padrao_estante(0), _padrao_estante(1)]
 	_mostrar_ajustes_entorno()
 	_aplicar_ajustes_entorno()

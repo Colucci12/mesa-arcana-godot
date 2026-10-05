@@ -208,24 +208,7 @@ func _ponto_no_mundo(local: Vector2, perfil: Dictionary) -> Vector3:
 
 
 func _matriz_da_mesa(ponto: Vector3, eixo_u: Vector3, eixo_v: Vector3) -> Basis:
-	# Uma câmera matemática comum aos planos, sem nós ou renderização 3D.
-	# Para z=0, reproduz exatamente a homografia usada pelo shader da mesa.
-	var profundidade := float(_mesa.tamanho_plano.y)
-	var cosseno := _mesa.profundidade_aparente / profundidade
-	var seno := sqrt(1.0 - cosseno * cosseno)
-	var distante := _mesa.largura_distante
-	var perspectiva_y := (1.0 - distante) / profundidade
-	var perspectiva_z := perspectiva_y * cosseno / seno
-	var origem_tela := _mesa.position - Vector2(_mesa.largura_proxima / 2.0, _mesa.profundidade_aparente / 2.0)
-	# A origem horizontal é o centro da mesa, ao contrário da vertical.
-	origem_tela.x = _mesa.position.x
-	var denominador := Vector3(-perspectiva_y * eixo_u.y - perspectiva_z * eixo_u.z,
-		-perspectiva_y * eixo_v.y - perspectiva_z * eixo_v.z,
-		1.0 - perspectiva_y * ponto.y - perspectiva_z * ponto.z)
-	var linha_x := distante * Vector3(eixo_u.x, eixo_v.x, ponto.x - _mesa.largura_proxima / 2.0) + origem_tela.x * denominador
-	var linha_y := distante * Vector3(cosseno * eixo_u.y - seno * eixo_u.z,
-		cosseno * eixo_v.y - seno * eixo_v.z, cosseno * ponto.y - seno * ponto.z) + origem_tela.y * denominador
-	return _matriz_por_linhas(linha_x, linha_y, denominador)
+	return preload("res://scripts/desenvolvimento/laboratorios/interno/projecao_laboratorio.gd").matriz(_mesa, ponto, eixo_u, eixo_v)
 
 
 func _matriz_por_linhas(x: Vector3, y: Vector3, z: Vector3) -> Basis:

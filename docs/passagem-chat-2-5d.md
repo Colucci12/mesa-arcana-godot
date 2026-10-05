@@ -1,5 +1,42 @@
 # Contexto para o próximo chat
 
+## Começar por aqui — estado de 05/10/2026
+
+Esta seção resume a entrega atual; o restante é histórico das iterações. Não retomar versões antigas da projeção/ordenação nem interpretar verificações headless históricas como validação das mudanças recentes.
+
+### Direção e avaliação mais recente
+
+- JUNO, Godot 4.6.2, branch `codex/experimento-2-5d`; projeção matemática em 2D, sem nós 3D nativos. Ler também `docs/contexto-projeto.md`.
+- O usuário conseguiu aproximar as estantes da composição desejada e gostou muito do ângulo com profundidade de câmera **200**. Para a mesa ser jogável, precisa de **335 ou mais**. Por isso separou-se a perspectiva dos móveis da mesa, sem checkbox, preservando zoom/pan gerais.
+- As últimas capturas mostram as duas estantes grandes, cortadas no topo/laterais e escondidas parcialmente pela mesa; a última inclui quatro mãos, compra, descarte e vela. A leitura das pilhas/mão inferior está clara nessas imagens. Os cruzamentos grosseiros de faces anteriores não aparecem nas últimas capturas; não afirmar validação completa de todos os ângulos/animações.
+- Continuar o experimento de móveis. Não trocar automaticamente por fundo fixo. Próxima sugestão discutida: parede/janela discreta no centro entre as estantes. Também foram apontados corpo da vela muito claro e possível mistura visual dos versos das mãos laterais com os livros. São propostas para discutir, não implementação já autorizada.
+- Concept art orienta composição, paleta e clima; não é asset final. Nenhuma nova arte/fundo gerado nesta entrega.
+
+### O que está implementado
+
+- **Laboratório Perspectiva**: `scenes/desenvolvimento/laboratorios/laboratorio_perspectiva.tscn`, cena inicial atual em `project.godot`, com mesa/cartas/sombras/vela e ambiente. Não mudar a cena inicial por iniciativa própria. A sombra da inferior já foi aprovada pelo usuário em etapa anterior.
+- **Laboratório de Móveis**: `scenes/desenvolvimento/laboratorios/laboratorio_moveis.tscn`, aberto pelo botão Ambiente > Estantes no Perspectiva ou F6; botão de retorno. Mesa opcional, sem cartas, uma ou duas estantes, foco no móvel, seis abas (Estrutura, Livros, Posição, Luz, Composição, Conjuntos). Tab só oculta o painel; UI em CanvasLayer acima da cena.
+- Estante compartilhada em `scripts/desenvolvimento/laboratorios/estante_laboratorio.gd`: caixas projetadas para laterais/tampo/prateleiras/livros, cores e contraste por face, modos Perspectiva atual/Verticais retas. Tamanho até 4000×4000; 1–16 prateleiras, espessura e livros independentes do tamanho geral. Livros: quantidade máxima 0–120, lombada/altura/profundidade/faixa ocupada; limitados ao espaço disponível.
+- Giro **Inclinação na tela (volante)**, −180° a 180°, positivo abaixa a direita. Gira todos os polígonos e suas cores pelo centro visual após a projeção; não recalcula normais/posições de iluminação como uma rotação física. Botão para zerar, espelhamento inverte sinal, limites recalculados para foco/enquadramento.
+- Correção das sobreposições: `_ordem_blocos` percorre divisões espaciais da estante e livros; `_lado_positivo` usa orientação projetada para determinar o lado observado. Substituiu completamente ordenar faces por distância média/agrupamento com centroides. Tampo interior termina nas laterais, sem caixas atravessadas nos cantos; faixas douradas no plano da lombada. Aplica-se aos dois laboratórios.
+- `interno/projecao_laboratorio.gd` concentra a projeção e aceita câmera própria opcional. Estado `_camera_moveis`: profundidade 60–650 (padrão 200), largura distante 35–100% (padrão 50). Controla as duas estantes; ajustes em Composição no Móveis, Ambiente > Estantes no Perspectiva. Mesa/cartas/vela e parede/janela do Perspectiva continuam usando a projeção existente. Marcador da luz no Móveis usa a câmera dos móveis.
+- Luz local do novo laboratório afeta só as superfícies dos móveis por distância/incidência nos vértices e contraste artístico. Não projeta sombras nem calcula oclusão da luz; não ilumina a mesa de referência. A luz/halo da vela do Perspectiva conserva o comportamento anterior.
+
+### Persistência e referência
+
+- `interno/presets_moveis.gd`: padrões/limites/validação e biblioteca em `user://laboratorio_moveis.json` (grupos `moveis` e `composicoes`). Carregar uma peça preserva posição, ângulo, inclinação e visibilidade atuais; não muda câmera da composição. Salvar composição guarda os dois móveis, mesa, câmera dos móveis, enquadramento, luz e opções de exibição.
+- Perspectiva conserva `user://laboratorio_transferencias_2_5d.json`; conjunto completo contém `ambiente.estantes`, `ambiente.fundo` e `ambiente.camera_moveis`, além das mãos/pilhas/mesa/luzes. Na carga de composições antigas, a câmera salva da mesa é copiada uma única vez para os móveis, e os controles ficam independentes. Não sobrescrever presets locais automaticamente.
+- Snapshot versionado em `scripts/desenvolvimento/laboratorios/presets/teste_ambiente_2_moveis.json`, baseado em **Teste ambiente 2**: mesa 2150×950, moldura 35, espessura 100, câmera 335/50%, posição 50%/58%, zoom 75%. Câmera dos móveis agora 200/50%. As poses iniciais vêm do teste antigo e não necessariamente reproduzem as últimas prints; nome/valores completos do último preset do usuário não foram confirmados nem copiados para o Git.
+- Últimos commits anteriores a esta entrega: `542895c` ambiente/painel/projeção das estantes; `0040457` vela; `7925122` iluminação/sombras. O usuário pediu commitar agora o Laboratório de Móveis e todas as evoluções descritas acima, após atualizar estes documentos.
+
+### Forma de continuar
+
+- Não executar Godot, testes automatizados ou capturas por iniciativa própria. O usuário executa e valida. Houve revisão por leitura e avaliação de capturas enviadas por ele, sem nova bateria de testes nesta entrega.
+- Separar discussão de implementação; o usuário já corrigiu implementações prematuras. Preservar componentes e efeitos aprovados, especialmente cartas, sombras e transferências. Não alterar regras/rede para evoluir este cenário.
+- Código em português, scripts em `scripts`, cenas em `scenes`; manter `.uid`. Commitar quando solicitado. Antes de ampliar o ambiente/arte, combinar o próximo recorte com o usuário.
+
+## Histórico das iterações
+
 - **Aprovado pelo usuário em 04/10/2026:** a sombra entre cartas da mão inferior foi resolvida. Manter a apresentação atual; novos ajustes só conforme relato. Referência mais recente: **Teste com luz 3**, salvo no arquivo local das transferências: laterais X 0%/100%, superior Y −15%, iluminação igual ao teste 1, sombras das pilhas 30%, sombra inferior 30%/X −5/Y 6, zoom salvo 75%. A imagem enviada também mostrou o enquadramento próximo com laterais cortadas. Esses testes locais não foram copiados automaticamente para o Git.
 
 - **Teste com luz 2**: superior Y −15%, zoom salvo 75%, pilhas tamanho 1,1 e descarte com espessura 1,5/máximo 10; luz igual ao teste 1. Notas pediram afastar as laterais e corrigir a sombra entre cartas ao chegar à inferior; o usuário aprovou a sombra sobre a mesa. Em 04/10, X no modo mesa também passou a −25–125%. Na inferior, sombra/face externas agora têm Z intercalado por ordem na mão; cartas já pousadas preservam sua apresentação externa até acabar o grupo de chegadas e todas retornam à captura da mão juntas. Isso evita sombras ocultadas por outras faces em trânsito e mudanças de camada durante compras sobrepostas. Reaproveita capturas/tweens existentes, preserva a projeção de sombras da mesa e seus ajustes de intensidade. Sem execuções, aguardando confirmação visual do usuário.
@@ -71,3 +108,57 @@ Implementação revisada por leitura apenas. Conforme pedido repetido do usuári
 A nota do usuário em **Teste ambiente 2** descreveu estantes parecendo tombadas, com alturas 1000 e ângulos próximos de 60°. O usuário autorizou comparar **Perspectiva atual** e **Verticais retas** no mesmo laboratório. Ambiente > Estantes agora tem o seletor Projeção da estante, independente por móvel. No modo novo, a posição da base de cada coluna segue a câmera compartilhada; a altura se estende apenas na vertical da tela, usando escala pela distância de cada ponto e uma proporção vertical comum calculada na origem do móvel. Isso conserva linhas retas das prateleiras e elimina a convergência vertical, como aproximação artística. Livros e molduras usam a mesma rotina. Zoom/pan, distância, ângulo, claridade, limites de Ver composição inteira e demais controles continuam disponíveis.
 
 O booleano `verticais_retas` integra cada perfil em `ambiente.estantes`, com validação na carga. Perfis antigos e restauração usam false (Perspectiva atual); espelhar copia também o modo. Não gravar automaticamente conjuntos locais do usuário. Fundo e vela não foram alterados nesta etapa. Revisão por leitura, sem executar Godot/testes; avaliação dos dois modos pendente com o usuário.
+
+### Laboratório de Móveis — 04/10/2026
+
+- Commit solicitado antes da implementação: **542895c**, ambiente, painel e comparação de projeção das estantes. A entrega do Laboratório de Móveis e evoluções posteriores é registrada no commit solicitado em 05/10/2026.
+- Nova cena `scenes/desenvolvimento/laboratorios/laboratorio_moveis.tscn` e script correspondente, sem herdar a lógica de cartas do Perspectiva. Abrir por F6 ou Ambiente > Estantes > Abrir Laboratório de Móveis; botão de retorno disponível. Cena inicial preservada.
+- Base de mesa/câmera extraída do conjunto local **Teste ambiente 2** e copiada para `scripts/desenvolvimento/laboratorios/presets/teste_ambiente_2_moveis.json`: mesa 2150×950, moldura 35, espessura 100, câmera 335/50%, posição 50%/58%, enquadramento 75%/0/0. Posições iniciais dos móveis também aproveitadas; verticais retas inicialmente. Não houve gravação do arquivo local do usuário.
+- Mesa de referência opcional, sem cartas/mãos/pilhas. Mostrar outra estante e Focar móvel selecionado permitem trabalhar uma peça ou a composição. Zoom/pan comuns à mesa/móveis, Tab apenas oculta painel. Painel por abas Estrutura, Posição, Luz, Composição e Conjuntos, acima da cena em CanvasLayer.
+- Estante compartilhada agora desenha faces de caixas para laterais, tampo, prateleiras e livros. Três parâmetros novos de volume: profundidade 40–600 (padrão 180), espessura 4–100 (padrão 24, limitada à geometria), contraste 0–100% (padrão 40%). Cores estrutura/interior editáveis; largura até 1600 e altura até 1400. Recuo dos livros acompanha profundidade. Faces omitidas se inválidas ou viradas para longe da câmera; fundo desenhado antes das demais faces, restante ordenado em profundidade. Volume reaparece também no Perspectiva, sem mexer nas sombras/cartas aprovadas.
+- Luz local do novo laboratório: claridade geral, posição horizontal, distância, altura, intensidade, alcance, cor e marcador opcional. Energia interpolada pelos vértices por distância/incidência, com contraste artístico por face. Não cria sombras projetadas/oclusão de luz. Afeta apenas os móveis; mesa permanece referência. Configurações desta luz são próprias do novo laboratório.
+- Projeção extraída para `interno/projecao_laboratorio.gd`, conservando a fórmula anterior. Base Perspectiva chama esse helper; novo laboratório usa a mesma projeção da sala, com âncora independente da posição do tampo.
+- Biblioteca compartilhada em `user://laboratorio_moveis.json`, gerenciada por `interno/presets_moveis.gd`: móveis individuais e composições do novo espaço. Salvar móvel disponível também no Perspectiva; carregar estrutura/aparência/projeção conserva posição, distância, altura da base, ângulo e visibilidade atuais. Salvar composição recupera também posicionamento dos dois móveis, mesa/câmera/luz e opções de exibição. Escrita somente pelo usuário no botão Salvar; dados numéricos/booleanos/cores validados na carga. Conjuntos completos da mesa continuam no arquivo de transferências e incluem os novos campos.
+- Não executar Godot, testes ou capturas. Revisão por leitura; aparência e funcionamento aguardam o usuário.
+
+#### Proporções, prateleiras e livros independentes
+
+O usuário pediu ampliar os móveis para continuarem além do enquadramento, sem aumentar livros ou tábuas como se tudo fosse gigante. Limites compartilhados de largura/altura passaram a 4000, e altura da base a −1200–400. Quantidade de prateleiras 1–16 (padrão 3), distribuídas na altura interna. Espessura conserva seu valor escolhido, com limitação pela dimensão/vãos para impedir sobreposição em móveis baixos com muitas prateleiras.
+
+Campos novos do perfil: `prateleiras`, `quantidade_livros` (0–120, padrão 20), `largura_livros` (5–100, padrão 20), `altura_livros` (40–400, padrão 160), `profundidade_livros` (10–300, padrão 90), `ocupacao_livros` (10–100%, padrão 85). Livros não usam mais proporções da largura/altura total da estante. Variações fixas pequenas por exemplar; quantidade é máxima por prateleira e limitada à largura disponível, dimensões verticais/profundidade limitadas ao vão. Faixa ocupada define a extensão da distribuição, mantendo livros centralizados e separados. Prateleiras e quantidade são arredondadas na carga. Biblioteca e composições completas incluem os novos campos; dados antigos recebem padrões, sem escrita automática.
+
+Laboratório de Móveis tem agora seis abas: Estrutura, Livros, Posição, Luz, Composição, Conjuntos. Perspectiva também permite esses ajustes nas estantes. O usuário relatou laterais de livros com sobreposição estranha nas prints: faces eram ordenadas individualmente por profundidade média. Agora cada livro é um grupo, com chave de ordem pela posição na prateleira, independente de sua altura; faces/faixas do mesmo livro ficam juntas. Confirmação visual da correção pendente com o usuário, sem execuções.
+
+O usuário alternou a cena inicial durante sua avaliação, inclusive para `laboratorio_moveis.tscn`. A configuração atual voltou a `laboratorio_perspectiva.tscn`, como registrado no resumo inicial; preservar a escolha encontrada em `project.godot`.
+
+#### Giro como volante — 05/10/2026
+
+Após a avaliação, o usuário relatou que as sobreposições de faces persistem e que conseguiu se aproximar da composição desejada nos dois laboratórios. Quer experimentar inclinar o móvel como um volante (direita desce/esquerda sobe ou vice-versa) antes de considerar um fundo fixo; não migrar o cenário nesta etapa.
+
+- Campo `inclinacao`, padrão 0°, limites −180° a 180°, passo 1°. Laboratório de Móveis > Posição e Perspectiva > Ambiente > Estantes exibem **Inclinação na tela (volante)** e botão **Zerar somente a inclinação**.
+- `estante_laboratorio.gd` gira todos os polígonos depois da projeção e ordenação, em torno do centro dos limites visuais anteriores. Recalcula limites para Focar móvel/Ver composição inteira. Positivo é horário na tela, abaixando a direita. Vale nos dois modos de projeção; a iluminação calculada acompanha as faces, sem recalcular posições/normais como uma rotação física na sala. Marcador da fonte de luz permanece na posição configurada.
+- Campo validado e incluído automaticamente em conjuntos/composições. Dados antigos recebem zero. Biblioteca mantém inclinação atual ao carregar/restaurar a estrutura, assim como o ângulo e a posição; espelhar inverte o sinal. Valores 0° mantêm a apresentação anterior.
+- A correção anterior das laterais dos livros foi insuficiente: a ordem aproximada por profundidade não resolve todas as oclusões entre livros, laterais e prateleiras. O giro novo não pretende corrigir isso. Problema ainda pendente; não afirmar que foi resolvido.
+- Sem execução do Godot, testes ou capturas; apenas edição e leitura. Nenhum commit solicitado nesta rodada.
+
+#### Correção da ordem de desenho da estante — 05/10/2026
+
+O usuário esclareceu que queria corrigir as sobreposições junto com o giro. A implementação compartilhada `estante_laboratorio.gd` removeu a ordenação global por profundidade média e os metadados de agrupamento dos livros usados na tentativa anterior.
+
+- A geometria é dividida em regiões que não se atravessam: lateral esquerda, interior e lateral direita. O tampo agora ocupa somente o vão entre as laterais; estas já chegam ao topo, evitando volumes sobrepostos nos cantos.
+- Interior dividido verticalmente entre tábuas e vãos com livros. Livros divididos horizontalmente por suas posições reais. `_ordem_blocos` percorre essas divisões do lado distante para o próximo, preservando cada bloco completo.
+- `_lado_positivo` identifica o lado observado de cada divisão pela orientação de um plano projetado. Assim vale para Perspectiva atual e Verticais retas, inclusive se o usuário mudar ângulo/posição. Não calcula distância média de cada face nem mistura tábuas com faces de livros. A câmera no espaço serve como fallback para divisões degeneradas/fora da projeção.
+- Faces de uma caixa convexa continuam omitidas conforme sua orientação. Faixas douradas são desenhadas imediatamente após o livro, sobre o mesmo plano da lombada; área projetada calculada com coordenadas relativas para reduzir cancelamento numérico.
+- Giro de volante permanece após a montagem dos polígonos; limites, iluminação e parâmetros existentes preservados. Ambos os laboratórios recebem a correção pelo componente compartilhado.
+- Sem execução, testes ou capturas. A correção está implementada e revisada por leitura; confirmação visual ainda com o usuário. Nenhum commit solicitado.
+
+#### Perspectivas independentes — 05/10/2026
+
+O usuário aprovou o ângulo dos móveis com profundidade de câmera 200, mas precisa da mesa em pelo menos 335 para jogar. Autorizou separar os ajustes sem checkbox de vínculo.
+
+- `interno/presets_moveis.gd` centraliza `PADRAO_CAMERA` (profundidade_camera 200, perspectiva 50%) e `LIMITES_CAMERA` (60–650, 35–100%). `validar_camera` aplica validação de números finitos e limites, usando a câmera da mesa como referência ao carregar composições antigas.
+- `projecao_laboratorio.gd` aceita um dicionário opcional de câmera em matriz/ponto_sala/posicao_camera. Sem argumento, conserva os valores da mesa. Com argumento, usa profundidade e perspectiva independentes, sem alterar o nó MesaVisual. Origem da sala continua independente da posição do tampo.
+- Laboratório de Móveis > Composição: Perspectiva dos móveis e Perspectiva da mesa em grupos próprios, com botão de restaurar móveis para 200/50%. Estado `_camera_moveis` controla ambas as estantes e o marcador de luz; zoom/pan geral compartilhados. Referência inicial JSON mantém mesa 335 e acrescenta móveis 200/50%.
+- Perspectiva > Ambiente > Estantes: mesmos controles antes do seletor de estante. `_projetar_ponto_moveis` usa a câmera independente; fundo/parede/janela continuam na projeção existente, e mesa/cartas/vela não recebem o novo ajuste. Restaurar mesa não altera câmera dos móveis; restaurar ambiente inclui sua câmera.
+- Salvar composição do novo laboratório inclui `camera_moveis` na raiz. Conjunto completo do Perspectiva inclui `ambiente.camera_moveis`. Composições anteriores copiam a câmera da mesa durante a carga, depois ficam independentes; salvar novamente inclui ambos os valores. Biblioteca de móveis individuais permanece de estrutura/aparência, sem mudar câmera de composição. Arquivos locais do usuário não foram gravados pelo agente.
+- Revisão por leitura apenas, sem Godot, testes ou capturas, conforme pedido do usuário. `project.godot` tem alteração do usuário e foi preservado. Sem commit solicitado nesta rodada.

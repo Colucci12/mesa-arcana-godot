@@ -1,0 +1,15 @@
+{
+  "origem": "Teste ambiente 2",
+  "mesa": {"formato": 1, "largura": 2150, "profundidade": 950, "moldura": 35,
+    "espessura": 100, "perspectiva": 50, "profundidade_camera": 335, "x": 50, "y": 58},
+  "enquadramento": {"zoom": 75, "x": 0, "y": 0},
+  "camera_moveis": {"profundidade_camera": 200, "perspectiva": 50},
+  "estantes": [
+    {"altura": 1000, "altura_base": -330, "angulo": -63, "claridade": 60,
+      "distancia": 600, "largura": 1200, "livros": true, "visivel": true, "x": -1500,
+      "verticais_retas": true},
+    {"altura": 1000, "altura_base": -800, "angulo": 60, "claridade": 60,
+      "distancia": 650, "largura": 1200, "livros": true, "visivel": true, "x": 1870,
+      "verticais_retas": true}
+  ]
+}
