@@ -92,6 +92,8 @@ func _montar_painel() -> void:
 	margem.add_child(coluna)
 	_texto(coluna, "Laboratório de Móveis", 18)
 	_botao(coluna, "Ocultar painel · Tab", _alternar_painel)
+	_botao(coluna, "Abrir Laboratório de Cenário 2D", func():
+		get_tree().change_scene_to_file("res://scenes/desenvolvimento/laboratorios/laboratorio_cenario_2d.tscn"))
 	_botao(coluna, "Voltar ao laboratório da mesa", func():
 		get_tree().change_scene_to_file("res://scenes/desenvolvimento/laboratorios/laboratorio_perspectiva.tscn"))
 	_seletor = OptionButton.new()

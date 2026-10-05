@@ -7,6 +7,7 @@ const CENA_FUNDO_AMBIENTE = preload("res://scenes/desenvolvimento/laboratorios/f
 const CENA_ESTANTE = preload("res://scenes/desenvolvimento/laboratorios/estante_laboratorio.tscn")
 const PRESETS_MOVEIS = preload("res://scripts/desenvolvimento/laboratorios/interno/presets_moveis.gd")
 const PROJECAO_SALA = preload("res://scripts/desenvolvimento/laboratorios/interno/projecao_laboratorio.gd")
+const LUZ_CENARIO = preload("res://scripts/desenvolvimento/laboratorios/interno/luz_cenario_2d.gd")
 const PLANO_CARTA = preload("res://scripts/desenvolvimento/laboratorios/plano_carta_laboratorio.gd")
 # Nome histórico preservado para carregar os conjuntos já salvos.
 const ARQUIVO_MOVIMENTOS = "user://laboratorio_transferencias_2_5d.json"
@@ -139,6 +140,9 @@ var _categoria_ativa := ""
 @onready var _guia_laboratorio: Label = $Guia
 
 var _area_controles: Control
+var _modo_referencia_cenario := false
+var _luz_cenario_referencia: Dictionary = {}
+var _transformacao_cenario_referencia := Transform2D.IDENTITY
 
 
 func _ready() -> void:
@@ -194,6 +198,51 @@ func _preparar_camada_controles() -> void:
 	camada.add_child(_area_controles)
 	_painel.reparent(_area_controles, false)
 	_guia_laboratorio.reparent(_area_controles, false)
+
+
+func configurar_referencia_cenario(perfil: Dictionary, mostrar_mesa: bool) -> void:
+	# Reutiliza a mesma mesa, mãos, pilhas e projeção em uma captura sem a interface.
+	_modo_referencia_cenario = true
+	_manter_iluminacao.set_pressed_no_signal(false)
+	_aplicar_teste(perfil, "Referência do cenário")
+	_iluminacao["ativa"] = false
+	_ajustes_vela["visivel"] = false
+	_ajustes_fundo_ambiente["visivel"] = false
+	for ajustes in _ajustes_estantes:
+		ajustes["visivel"] = false
+	_atualizar_ambiente()
+	_atualizar_vela()
+	_versao_iluminacao += 1
+	_atualizar_iluminacao()
+	get_node("Fundo").hide()
+	_area_controles.hide()
+	_painel.hide()
+	_guia_laboratorio.hide()
+	_sair_da_mesa()
+	for mao in _maos_erguidas:
+		mao.definir_hover_habilitado(false)
+	set_process_input(false)
+	set_process_unhandled_input(false)
+	set_process_unhandled_key_input(false)
+	mostrar_mesa_referencia(mostrar_mesa)
+
+
+func mostrar_mesa_referencia(mostrar: bool) -> void:
+	# As mãos e pilhas são irmãs da mesa; ocultá-la não muda sua projeção.
+	_mesa.visible = mostrar
+
+
+func configurar_luz_cenario_referencia(dados: Dictionary, mesa: Dictionary, transformacao: Transform2D) -> void:
+	_luz_cenario_referencia = dados
+	_transformacao_cenario_referencia = transformacao
+	_iluminacao = _validar_ajustes(mesa, PADRAO_ILUMINACAO, LIMITES_ILUMINACAO)
+	_iluminacao["ativa"] = bool(dados["ativa"]) and bool(mesa["ativa"])
+	_versao_iluminacao += 1
+	_atualizar_iluminacao()
+
+
+func obter_inversa_luz_referencia() -> Basis:
+	return _inversa_iluminacao
 
 
 func _arquivo_testes() -> String:
@@ -785,6 +834,8 @@ func _padrao_estante(indice: int) -> Dictionary:
 func _montar_controles_estantes() -> void:
 	_botao("Abrir Laboratório de Móveis", func():
 		get_tree().change_scene_to_file("res://scenes/desenvolvimento/laboratorios/laboratorio_moveis.tscn"))
+	_botao("Abrir Laboratório de Cenário 2D", func():
+		get_tree().change_scene_to_file("res://scenes/desenvolvimento/laboratorios/laboratorio_cenario_2d.tscn"))
 	_texto("Perspectiva dos móveis")
 	var legendas_camera := {"profundidade_camera": "Profundidade na tela dos móveis",
 		"perspectiva": "Largura distante dos móveis"}
@@ -1070,6 +1121,8 @@ func _configurar_material_iluminacao(material: ShaderMaterial, cartas: bool) -> 
 	material.set_shader_parameter("vela_raios", Vector2.ONE * float(_ajustes_vela["alcance"]) / _mesa.tamanho_plano)
 	material.set_shader_parameter("vela_intensidade", float(_ajustes_vela["intensidade"]) / 100.0)
 	material.set_shader_parameter("vela_aquecimento", float(_ajustes_vela["aquecimento"]) / 100.0)
+	if _modo_referencia_cenario and not _luz_cenario_referencia.is_empty():
+		LUZ_CENARIO.enviar(material, _luz_cenario_referencia, -1, _transformacao_cenario_referencia)
 
 
 func _validar_ajustes(dados: Variant, padrao: Dictionary, limites: Dictionary) -> Dictionary:
@@ -1977,6 +2030,10 @@ func _sombra_do_destino(pilha: int) -> Dictionary:
 
 
 func _process(delta: float) -> void:
+	if _modo_referencia_cenario:
+		_devolver_apresentacao_inferior()
+		_atualizar_pilhas()
+		return
 	_atualizar_iluminacao()
 	for id in _transitos.keys():
 		var registro: Dictionary = _transitos[id]

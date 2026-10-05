@@ -1,4 +1,5 @@
 // Desligada por padrão: apenas o laboratório registra seus materiais.
+#include "res://scripts/main/componentes/luz_cenario_2d.gdshaderinc"
 uniform bool iluminacao_ativa = false;
 uniform bool iluminacao_cartas = false;
 uniform vec3 iluminacao_inversa_x;
@@ -17,7 +18,7 @@ uniform float vela_intensidade = 0.45;
 uniform float vela_aquecimento = 0.75;
 
 vec3 iluminar_plano(vec3 original, vec2 posicao_canvas) {
-	if (!iluminacao_ativa && !vela_luz_ativa) { return original; }
+	if (!iluminacao_ativa && !vela_luz_ativa && !cenario_ativo) { return original; }
 	vec3 ponto = vec3(posicao_canvas, 1.0);
 	float denominador = dot(iluminacao_inversa_z, ponto);
 	float foco = 0.0;
@@ -35,6 +36,14 @@ vec3 iluminar_plano(vec3 original, vec2 posicao_canvas) {
 	if (vela_luz_ativa) {
 		energia += vela_intensidade * foco_vela * mix(vec3(1.0), vec3(1.0, 0.63, 0.27), vela_aquecimento);
 	}
+	float sombra_cenario = 1.0;
+	vec3 brilho_cenario = vec3(0.0);
+	if (cenario_ativo) {
+		vec4 campo = luzes_cenario(posicao_canvas);
+		energia = energia * cenario_ambiente + campo.rgb;
+		sombra_cenario = campo.a;
+		brilho_cenario = brilhos_cenario(original, posicao_canvas);
+	}
 	brilho = max(energia.r, max(energia.g, energia.b));
 	temperatura = brilho > 0.00001 ? energia / brilho : vec3(1.0);
 	if (iluminacao_cartas) {
@@ -45,7 +54,7 @@ vec3 iluminar_plano(vec3 original, vec2 posicao_canvas) {
 		papel += max(brilho - 1.0, 0.0) * pigmento * (vec3(1.0) - pigmento);
 		float clareza = dot(pigmento, vec3(0.2126, 0.7152, 0.0722));
 		temperatura = mix(temperatura, vec3(1.0), 0.8 * smoothstep(0.65, 1.0, clareza));
-		return papel * temperatura;
+		return (papel * temperatura + brilho_cenario) * sombra_cenario;
 	}
-	return original * brilho * temperatura;
+	return (original * brilho * temperatura + brilho_cenario) * sombra_cenario;
 }
