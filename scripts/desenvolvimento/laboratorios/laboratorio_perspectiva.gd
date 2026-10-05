@@ -3,6 +3,8 @@ extends "res://scripts/desenvolvimento/laboratorios/interno/base_perspectiva.gd"
 const CENA_COMPRA = preload("res://scenes/main/componentes/monte.tscn")
 const CENA_JOGADA = preload("res://scenes/main/componentes/descarte.tscn")
 const CENA_VELA = preload("res://scenes/desenvolvimento/laboratorios/vela_laboratorio.tscn")
+const CENA_FUNDO_AMBIENTE = preload("res://scenes/desenvolvimento/laboratorios/fundo_ambiente_laboratorio.tscn")
+const CENA_ESTANTE = preload("res://scenes/desenvolvimento/laboratorios/estante_laboratorio.tscn")
 const PLANO_CARTA = preload("res://scripts/desenvolvimento/laboratorios/plano_carta_laboratorio.gd")
 # Nome histórico preservado para carregar os conjuntos já salvos.
 const ARQUIVO_MOVIMENTOS = "user://laboratorio_transferencias_2_5d.json"
@@ -38,12 +40,22 @@ const LIMITES_ILUMINACAO := {"ambiente": Vector2(0, 100), "intensidade": Vector2
 	"x": Vector2(-50, 150), "y": Vector2(-50, 150)}
 const PRESETS_MESAS := "res://scripts/desenvolvimento/laboratorios/presets/mesas_arredondadas.json"
 const PADRAO_VELA := {"visivel": true, "halo_ativo": true, "luz_ativa": true,
-	"x": 20.0, "y": 20.0, "tamanho": 1.0, "halo_tamanho": 100.0,
+	"x": 20.0, "y": 20.0, "altura": 0.0, "tamanho": 1.0, "halo_tamanho": 100.0,
 	"halo_intensidade": 30.0, "alcance": 250.0, "intensidade": 45.0, "aquecimento": 75.0}
-const LIMITES_VELA := {"x": Vector2(-25, 125), "y": Vector2(-25, 125),
+const LIMITES_VELA := {"x": Vector2(-75, 175), "y": Vector2(-50, 125), "altura": Vector2(-200, 200),
 	"tamanho": Vector2(0.5, 2), "halo_tamanho": Vector2(20, 250),
 	"halo_intensidade": Vector2(0, 100), "alcance": Vector2(50, 600),
 	"intensidade": Vector2(0, 100), "aquecimento": Vector2(0, 100)}
+const PADRAO_FUNDO_AMBIENTE := {"visivel": true, "x": 0.0, "y": 0.0, "tamanho": 1.0,
+	"claridade": 65.0, "distancia": 500.0}
+const LIMITES_FUNDO_AMBIENTE := {"x": Vector2(-50, 50), "y": Vector2(-50, 50),
+	"tamanho": Vector2(0.5, 2), "claridade": Vector2(0, 100), "distancia": Vector2(0, 2400)}
+const PADRAO_ESTANTE := {"visivel": true, "livros": true, "verticais_retas": false, "x": -1100.0, "distancia": 500.0,
+	"altura_base": -350.0, "largura": 600.0, "altura": 600.0, "angulo": -35.0, "claridade": 75.0}
+const LIMITES_ESTANTE := {"x": Vector2(-2200, 2200), "distancia": Vector2(0, 2400),
+	"altura_base": Vector2(-800, 200), "largura": Vector2(200, 1200), "altura": Vector2(200, 1000),
+	"angulo": Vector2(-75, 75), "claridade": Vector2(0, 100)}
+const CATEGORIAS_PAINEL := ["Ambiente", "Mesa", "Mãos", "Pilhas", "Luz", "Conjuntos"]
 
 @export_group("Transferências")
 @export_range(0.8, 2.0, 0.05) var duracao_trajeto := 1.0
@@ -103,10 +115,31 @@ var _vela: Node2D
 var _ajustes_vela := PADRAO_VELA.duplicate()
 var _controles_vela: Dictionary = {}
 var _opcoes_vela: Dictionary = {}
+var _fundo_ambiente: Node2D
+var _estantes: Array[Node2D] = []
+var _ajustes_estantes: Array[Dictionary] = []
+var _controles_estantes: Dictionary = {}
+var _seletor_estante: OptionButton
+var _projecao_estante: OptionButton
+var _mostrar_estante: CheckBox
+var _mostrar_livros: CheckBox
+var _ajustes_fundo_ambiente := PADRAO_FUNDO_AMBIENTE.duplicate()
+var _controles_fundo_ambiente: Dictionary = {}
+var _mostrar_fundo_ambiente: CheckBox
+var _categorias_painel: Dictionary = {}
+var _botoes_categorias: Dictionary = {}
+var _rolagens_categorias: Dictionary = {}
+var _categoria_ativa := ""
+
+@onready var _guia_laboratorio: Label = $Guia
+
+var _area_controles: Control
 
 
 func _ready() -> void:
 	_perfis_pilhas = [_padrao_pilha(0), _padrao_pilha(1)]
+	_ajustes_estantes = [_padrao_estante(0), _padrao_estante(1)]
+	_preparar_camada_controles()
 	_area_enquadramento = Control.new()
 	_area_enquadramento.name = "AreaEnquadramento"
 	_area_enquadramento.clip_contents = true
@@ -116,10 +149,19 @@ func _ready() -> void:
 	_area_enquadramento.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_composicao.reparent(_area_enquadramento, false)
 	super._ready()
+	_fundo_ambiente = CENA_FUNDO_AMBIENTE.instantiate()
+	_composicao.add_child(_fundo_ambiente)
+	_composicao.move_child(_fundo_ambiente, 0)
+	for indice in range(2):
+		var estante: Node2D = CENA_ESTANTE.instantiate()
+		_composicao.add_child(estante)
+		_composicao.move_child(estante, indice + 1)
+		_estantes.append(estante)
 	_vela = CENA_VELA.instantiate()
 	_vela.z_index = ORDEM_MAOS - 1
 	_composicao.add_child(_vela)
 	_atualizar_vela()
+	_atualizar_ambiente()
 	_montar_pilhas()
 	_ler_importacoes()
 	var base: Variant = _testes.get("teste 8", JSON.parse_string(FileAccess.get_file_as_string(PRESET_BASE)))
@@ -132,6 +174,21 @@ func _ready() -> void:
 	_atualizar_pilhas()
 	_atualizar_estado_trajeto()
 	_atualizar_iluminacao()
+
+
+func _preparar_camada_controles() -> void:
+	# Uma camada própria mantém o painel acima até das cartas em trânsito.
+	var camada := CanvasLayer.new()
+	camada.name = "CamadaControles"
+	camada.layer = 1
+	add_child(camada)
+	_area_controles = Control.new()
+	_area_controles.name = "AreaControles"
+	_area_controles.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_area_controles.size = size
+	camada.add_child(_area_controles)
+	_painel.reparent(_area_controles, false)
+	_guia_laboratorio.reparent(_area_controles, false)
 
 
 func _arquivo_testes() -> String:
@@ -156,7 +213,8 @@ func _parametros_adicionais_teste() -> Dictionary:
 		"pilhas": _perfis_pilhas.duplicate(true), "sombras_entre_cartas": sombras_entre_cartas,
 		"sombra_inferior": _sombra_inferior.duplicate(), "mesa": _ajustes_mesa.duplicate(),
 		"enquadramento": _enquadramento.duplicate(), "iluminacao": _iluminacao.duplicate(),
-		"vela": _ajustes_vela.duplicate()}
+		"vela": _ajustes_vela.duplicate(), "ambiente": {
+			"fundo": _ajustes_fundo_ambiente.duplicate(), "estantes": _ajustes_estantes.duplicate(true)}}
 
 
 func _padrao_pilha(indice: int) -> Dictionary:
@@ -170,6 +228,17 @@ func _padrao_pilha(indice: int) -> Dictionary:
 
 
 func _aplicar_teste(perfil: Dictionary, nome: String) -> void:
+	var ambiente: Variant = perfil.get("ambiente", {})
+	_ajustes_fundo_ambiente = _validar_ajustes_visiveis(ambiente.get("fundo", {}) if ambiente is Dictionary else {},
+		PADRAO_FUNDO_AMBIENTE, LIMITES_FUNDO_AMBIENTE)
+	var estantes: Variant = ambiente.get("estantes", []) if ambiente is Dictionary else []
+	for indice in range(2):
+		var dados: Variant = estantes[indice] if estantes is Array and estantes.size() == 2 else {}
+		_ajustes_estantes[indice] = _validar_ajustes_visiveis(dados, _padrao_estante(indice), LIMITES_ESTANTE)
+		for chave in ["livros", "verticais_retas"]:
+			if dados is Dictionary and dados.get(chave) is bool:
+				_ajustes_estantes[indice][chave] = dados[chave]
+	_mostrar_ajustes_entorno()
 	if is_instance_valid(_manter_iluminacao) and not _manter_iluminacao.button_pressed:
 		_iluminacao = _validar_ajustes(perfil.get("iluminacao", {}), PADRAO_ILUMINACAO, LIMITES_ILUMINACAO)
 		var ativa: Variant = perfil.get("iluminacao", {}).get("ativa", true) if perfil.get("iluminacao") is Dictionary else true
@@ -333,9 +402,29 @@ func _atualizar_indicadores() -> void:
 
 
 func _montar_painel() -> void:
-	_texto("Laboratório Perspectiva", 20)
-	_texto("Base teste 8. Ajuste a luz em Iluminação e compare seus conjuntos de mesa.")
-	_botao("Ocultar controles · Tab", _alternar_painel)
+	var raiz := _controles_ui
+	var coluna := VBoxContainer.new()
+	_painel.get_node("Margem").add_child(coluna)
+	_rolagem.reparent(coluna, false)
+	_rolagem.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var cabecalho := VBoxContainer.new()
+	coluna.add_child(cabecalho)
+	coluna.move_child(cabecalho, 0)
+	_controles_ui = cabecalho
+	_texto("Laboratório 2.5D", 18)
+	_botao("Ocultar painel · Tab", _alternar_painel)
+	var navegacao := GridContainer.new()
+	navegacao.columns = 3
+	cabecalho.add_child(navegacao)
+	for categoria in CATEGORIAS_PAINEL:
+		var botao := Button.new()
+		botao.text = categoria
+		botao.toggle_mode = true
+		botao.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		navegacao.add_child(botao)
+		_botoes_categorias[categoria] = botao
+		botao.pressed.connect(_selecionar_categoria.bind(categoria))
+	cabecalho.add_child(HSeparator.new())
 	_seletor = OptionButton.new()
 	for nome in NOMES:
 		_seletor.add_item("Mão " + nome.to_lower())
@@ -343,16 +432,26 @@ func _montar_painel() -> void:
 	_seletor.item_selected.connect(_selecionar_mao)
 	_comandos_trajeto = VBoxContainer.new()
 	_controles_ui.add_child(_comandos_trajeto)
-	var anterior := _controles_ui
+	var anterior := raiz
 	_controles_ui = _comandos_trajeto
-	_botao("Comprar para a mão selecionada · D", _comprar)
-	_botao("Jogar da mão selecionada · J", _jogar_carta)
-	_escolha_jogada = OptionButton.new()
-	for texto in ["Jogar a primeira", "Jogar a carta do meio", "Jogar a última"]:
-		_escolha_jogada.add_item(texto)
-	_controles_ui.add_child(_escolha_jogada)
-	_botao("Esvaziar mãos e descarte · R", _esvaziar)
+	var acoes := HBoxContainer.new()
+	_comandos_trajeto.add_child(acoes)
+	var comprar := _botao("Comprar · D", _comprar)
+	comprar.reparent(acoes, false)
+	comprar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var jogar := _botao("Jogar · J", _jogar_carta)
+	jogar.reparent(acoes, false)
+	jogar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var esvaziar := _botao("Limpar · R", _esvaziar)
+	esvaziar.reparent(acoes, false)
+	esvaziar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_estado_trajeto = _texto("")
+	_controles_ui = anterior
+	_controles_ui = _criar_secao("Fundo distante", true)
+	_montar_controles_fundo_ambiente()
+	_controles_ui = anterior
+	_controles_ui = _criar_secao("Estantes", true)
+	_montar_controles_estantes()
 	_controles_ui = anterior
 	_controles_ui = _criar_secao("Mesa", true)
 	_montar_controles_mesa()
@@ -360,7 +459,7 @@ func _montar_painel() -> void:
 	_controles_ui = _criar_secao("Enquadramento", true)
 	_montar_controles_enquadramento()
 	_controles_ui = anterior
-	_controles_ui = _criar_secao("Mãos e cartas")
+	_controles_ui = _criar_secao("Mãos e cartas", true)
 	_primeiro_plano = CheckBox.new()
 	_primeiro_plano.text = "Mão inferior em primeiro plano"
 	_primeiro_plano.button_pressed = true
@@ -381,7 +480,11 @@ func _montar_painel() -> void:
 	_comparar.toggled.connect(_comparar_planas)
 	_botao("Restaurar mão selecionada", _restaurar_mao)
 	_controles_ui = anterior
-	_controles_ui = _criar_secao("Monte e descarte")
+	_controles_ui = _criar_secao("Monte e descarte", true)
+	_escolha_jogada = OptionButton.new()
+	for texto in ["Jogar a primeira", "Jogar a carta do meio", "Jogar a última"]:
+		_escolha_jogada.add_item(texto)
+	_controles_ui.add_child(_escolha_jogada)
 	_montar_controles_pilhas()
 	_controles_ui = anterior
 	_controles_ui = _criar_secao("Iluminação", true)
@@ -420,24 +523,72 @@ func _montar_painel() -> void:
 	_carregar = _botao("Carregar conjunto completo", _carregar_teste)
 	_botao("Voltar à base teste 8", _restaurar_base)
 	_botao("Restaurar padrões completos", _restaurar_todas)
-	_mensagem = _texto("Salvar guarda mesa, enquadramento, mãos, pilhas, sombras e iluminação juntos.")
+	_mensagem = _texto("Salvar guarda ambiente, mesa, enquadramento, mãos, pilhas, sombras, luz e vela juntos.")
 	_texto("Importar conjuntos visuais anteriores", 16)
 	_lista_importacoes = OptionButton.new()
 	_controles_ui.add_child(_lista_importacoes)
 	_botao("Importar conjunto visual selecionado", _importar_visual)
 	_controles_ui = anterior
+	_acomodar_controles_painel()
+	_selecionar_categoria("Ambiente")
+
+
+func _selecionar_categoria(titulo: String) -> void:
+	if not _categoria_ativa.is_empty():
+		_rolagens_categorias[_categoria_ativa] = _rolagem.scroll_vertical
+	_categoria_ativa = titulo
+	for categoria in _categorias_painel:
+		(_categorias_painel[categoria] as VBoxContainer).visible = categoria == titulo
+	for categoria in _botoes_categorias:
+		(_botoes_categorias[categoria] as Button).set_pressed_no_signal(categoria == titulo)
+	_restaurar_rolagem_categoria.call_deferred(titulo)
+
+
+func _restaurar_rolagem_categoria(titulo: String) -> void:
+	if _categoria_ativa == titulo:
+		_rolagem.scroll_vertical = int(_rolagens_categorias.get(titulo, 0))
+
+
+func _acomodar_controles_painel() -> void:
+	for controle in _painel.find_children("*", "BaseButton", true, false):
+		(controle as BaseButton).custom_minimum_size.y = 30
+		if controle is Button:
+			controle.clip_text = true
+			if controle.tooltip_text.is_empty():
+				controle.tooltip_text = controle.text
+		if controle is OptionButton:
+			controle.fit_to_longest_item = false
+	for legenda in _painel.find_children("*", "Label", true, false):
+		(legenda as Label).autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	# Avançados deixam de parecer um alerta permanente.
+	var estilo := (_painel.theme.get_stylebox("normal", "Button") as StyleBoxFlat).duplicate() as StyleBoxFlat
+	for estado in ["normal", "hover", "pressed", "focus"]:
+		_avancados_botao.add_theme_stylebox_override(estado, estilo)
+	_avancados_painel.add_theme_stylebox_override("panel", estilo)
 
 
 func _criar_secao(titulo: String, aberta: bool = false) -> VBoxContainer:
+	var categorias := {"Fundo distante": "Ambiente", "Estantes": "Ambiente", "Mesa": "Mesa",
+		"Enquadramento": "Mesa", "Mãos e cartas": "Mãos", "Monte e descarte": "Pilhas",
+		"Iluminação": "Luz", "Vela": "Luz", "Luz e sombras": "Luz", "Conjuntos": "Conjuntos"}
+	var categoria: String = categorias[titulo]
+	if not _categorias_painel.has(categoria):
+		var grupo := VBoxContainer.new()
+		grupo.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_controles_ui.add_child(grupo)
+		_categorias_painel[categoria] = grupo
+	var pai := _categorias_painel[categoria] as VBoxContainer
 	var botao := Button.new()
 	botao.toggle_mode = true
 	botao.button_pressed = aberta
 	botao.text = ("▼ " if aberta else "▶ ") + titulo
 	botao.set_meta("secao", true)
-	_controles_ui.add_child(botao)
+	botao.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	pai.add_child(botao)
 	var conteudo := VBoxContainer.new()
 	conteudo.visible = aberta
-	_controles_ui.add_child(conteudo)
+	conteudo.add_theme_constant_override("separation", 12)
+	pai.add_child(conteudo)
 	_secoes[titulo] = conteudo
 	botao.toggled.connect(func(ativo: bool):
 		conteudo.visible = ativo
@@ -447,22 +598,37 @@ func _criar_secao(titulo: String, aberta: bool = false) -> VBoxContainer:
 
 func _controle_ambiente(chave: String, legenda: String, limites: Vector2,
 		valor: float, destino: Dictionary, callback: Callable, passo: float = 1.0, unidade: String = "") -> void:
-	_texto(legenda)
+	var bloco := VBoxContainer.new()
+	_controles_ui.add_child(bloco)
+	var linha := HBoxContainer.new()
+	bloco.add_child(linha)
+	var rotulo := Label.new()
+	rotulo.text = legenda
+	rotulo.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rotulo.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	linha.add_child(rotulo)
 	var numero := SpinBox.new()
+	numero.custom_minimum_size.x = 96
 	numero.min_value = limites.x
 	numero.max_value = limites.y
 	numero.step = passo
 	numero.suffix = unidade
-	_controles_ui.add_child(numero)
+	linha.add_child(numero)
 	var controle := HSlider.new()
 	controle.min_value = limites.x
 	controle.max_value = limites.y
 	controle.step = passo
 	controle.share(numero)
 	controle.value = valor
-	_controles_ui.add_child(controle)
+	bloco.add_child(controle)
+	controle.set_meta("legenda", rotulo)
 	destino[chave] = controle
 	controle.value_changed.connect(callback.bind(chave))
+
+
+func _ajuste(chave: String, texto: String, passo: float, unidade: String = "") -> void:
+	_controle_ambiente(chave, texto, LIMITES[chave], 0.0, _controles, _alterar, passo, unidade)
+	_legendas_basicas[chave] = _controles[chave].get_meta("legenda")
 
 
 func _montar_controles_mesa() -> void:
@@ -498,7 +664,7 @@ func _montar_controles_enquadramento() -> void:
 	_ver_inteira.toggled.connect(func(_ativo: bool):
 		_sair_da_mesa()
 		_ajustar_enquadramento())
-	_texto("100% mantém o enquadramento anterior; 75% abre a visão. Aumentar aproxima a cena e pode cortar suas bordas. A visão inteira preserva a aproximação escolhida e não é salva.")
+	_texto("75% abre a visão; aumentar aproxima toda a cena. Tab oculta o painel sem mover a câmera. Ver composição inteira ajusta temporariamente a visão para incluir mesa, vela, janela e estantes.")
 	_botao("Restaurar somente o enquadramento", _restaurar_enquadramento)
 
 
@@ -532,13 +698,13 @@ func _montar_controles_vela() -> void:
 		_controles_ui.add_child(opcao)
 		_opcoes_vela[chave] = opcao
 		opcao.toggled.connect(_alterar_opcao_vela.bind(chave))
-	var legendas := {"x": "Posição horizontal", "y": "Posição em profundidade",
+	var legendas := {"x": "Posição horizontal", "y": "Posição em profundidade", "altura": "Altura da base",
 		"tamanho": "Tamanho da vela", "halo_tamanho": "Tamanho do halo",
 		"halo_intensidade": "Intensidade do halo", "alcance": "Alcance da luz",
 		"intensidade": "Intensidade da luz quente", "aquecimento": "Aquecimento da luz da vela"}
 	for chave in LIMITES_VELA:
 		var passo := 0.05 if chave == "tamanho" else 1.0
-		var unidade := "" if chave in ["tamanho", "alcance"] else "%"
+		var unidade := "" if chave in ["tamanho", "alcance", "altura"] else "%"
 		_controle_ambiente(chave, legendas[chave], LIMITES_VELA[chave], _ajustes_vela[chave],
 			_controles_vela, _alterar_vela, passo, unidade)
 	_botao("Restaurar somente a vela", _restaurar_vela)
@@ -588,6 +754,163 @@ func _projetar_ponto_vela(ponto: Vector3) -> Vector2:
 	return Vector2(projetado.x, projetado.y) / projetado.z
 
 
+func _montar_controles_fundo_ambiente() -> void:
+	_mostrar_fundo_ambiente = CheckBox.new()
+	_mostrar_fundo_ambiente.text = "Mostrar fundo distante"
+	_mostrar_fundo_ambiente.button_pressed = bool(_ajustes_fundo_ambiente["visivel"])
+	_controles_ui.add_child(_mostrar_fundo_ambiente)
+	_mostrar_fundo_ambiente.toggled.connect(func(ativa: bool):
+		_ajustes_fundo_ambiente["visivel"] = ativa
+		_aplicar_ajustes_entorno())
+	_texto("Parede e janela usam a mesma câmera da mesa. Ajuste a distância para abrir espaço atrás dela; as estantes têm posições próprias.")
+	var legendas := {"x": "Deslocamento horizontal", "y": "Deslocamento vertical",
+		"tamanho": "Escala da parede e janela", "claridade": "Claridade do fundo", "distancia": "Distância da parede"}
+	for chave in LIMITES_FUNDO_AMBIENTE:
+		_controle_ambiente(chave, legendas[chave], LIMITES_FUNDO_AMBIENTE[chave], _ajustes_fundo_ambiente[chave],
+			_controles_fundo_ambiente, _alterar_fundo_ambiente, 0.05 if chave == "tamanho" else 1.0,
+			"" if chave in ["tamanho", "distancia"] else "%")
+	_botao("Restaurar fundo", _restaurar_fundo_ambiente)
+
+
+func _padrao_estante(indice: int) -> Dictionary:
+	var ajustes := PADRAO_ESTANTE.duplicate()
+	if indice == 1:
+		ajustes["x"] = -float(ajustes["x"])
+		ajustes["angulo"] = -float(ajustes["angulo"])
+	return ajustes
+
+
+func _montar_controles_estantes() -> void:
+	_seletor_estante = OptionButton.new()
+	_seletor_estante.add_item("Estante esquerda")
+	_seletor_estante.add_item("Estante direita")
+	_controles_ui.add_child(_seletor_estante)
+	_seletor_estante.item_selected.connect(func(_indice: int): _mostrar_perfil_estante())
+	_mostrar_estante = CheckBox.new()
+	_mostrar_estante.text = "Mostrar estante selecionada"
+	_controles_ui.add_child(_mostrar_estante)
+	_mostrar_estante.toggled.connect(_alterar_opcao_estante.bind("visivel"))
+	_mostrar_livros = CheckBox.new()
+	_mostrar_livros.text = "Mostrar livros"
+	_controles_ui.add_child(_mostrar_livros)
+	_mostrar_livros.toggled.connect(_alterar_opcao_estante.bind("livros"))
+	_texto("Projeção da estante")
+	_projecao_estante = OptionButton.new()
+	_projecao_estante.add_item("Perspectiva atual")
+	_projecao_estante.add_item("Verticais retas")
+	_controles_ui.add_child(_projecao_estante)
+	_projecao_estante.item_selected.connect(_alterar_projecao_estante)
+	_texto("Verticais retas mantém laterais e livros em pé na tela. Distância, ângulo e enquadramento continuam funcionando nos dois modos.")
+	_texto("Posição horizontal 0 fica no centro da sala. Distância maior afasta a estante para o fundo. Altura da base 0 fica no nível do tampo.")
+	var legendas := {"x": "Posição horizontal", "distancia": "Distância da mesa",
+		"altura_base": "Altura da base", "largura": "Largura do móvel", "altura": "Altura do móvel",
+		"angulo": "Ângulo na sala", "claridade": "Claridade da estante"}
+	for chave in LIMITES_ESTANTE:
+		_controle_ambiente(chave, legendas[chave], LIMITES_ESTANTE[chave], _ajustes_estantes[0][chave],
+			_controles_estantes, _alterar_estante, 1.0 if chave in ["angulo", "claridade"] else 10.0,
+			"°" if chave == "angulo" else ("%" if chave == "claridade" else ""))
+	_botao("Espelhar na outra estante", _espelhar_estante)
+	_botao("Restaurar estante selecionada", _restaurar_estante)
+	_mostrar_perfil_estante()
+
+
+func _mostrar_perfil_estante() -> void:
+	if not is_instance_valid(_seletor_estante):
+		return
+	var ajustes := _ajustes_estantes[_seletor_estante.selected]
+	for chave in _controles_estantes:
+		(_controles_estantes[chave] as HSlider).set_value_no_signal(ajustes[chave])
+	_mostrar_estante.set_pressed_no_signal(bool(ajustes["visivel"]))
+	_mostrar_livros.set_pressed_no_signal(bool(ajustes["livros"]))
+	_projecao_estante.select(1 if bool(ajustes["verticais_retas"]) else 0)
+
+
+func _alterar_estante(valor: float, chave: String) -> void:
+	_ajustes_estantes[_seletor_estante.selected][chave] = valor
+	_aplicar_ajustes_entorno()
+
+
+func _alterar_opcao_estante(ativa: bool, chave: String) -> void:
+	_ajustes_estantes[_seletor_estante.selected][chave] = ativa
+	_aplicar_ajustes_entorno()
+
+
+func _alterar_projecao_estante(indice: int) -> void:
+	_ajustes_estantes[_seletor_estante.selected]["verticais_retas"] = indice == 1
+	_aplicar_ajustes_entorno()
+
+
+func _espelhar_estante() -> void:
+	var indice := _seletor_estante.selected
+	var ajustes := _ajustes_estantes[indice].duplicate()
+	ajustes["x"] = -float(ajustes["x"])
+	ajustes["angulo"] = -float(ajustes["angulo"])
+	_ajustes_estantes[1 - indice] = ajustes
+	_aplicar_ajustes_entorno()
+
+
+func _validar_ajustes_visiveis(dados: Variant, padrao: Dictionary, limites: Dictionary) -> Dictionary:
+	var ajustes := _validar_ajustes(dados, padrao, limites)
+	if dados is Dictionary and dados.get("visivel") is bool:
+		ajustes["visivel"] = dados["visivel"]
+	return ajustes
+
+
+func _mostrar_ajustes_entorno() -> void:
+	for chave in _controles_fundo_ambiente:
+		(_controles_fundo_ambiente[chave] as HSlider).set_value_no_signal(_ajustes_fundo_ambiente[chave])
+	if is_instance_valid(_mostrar_fundo_ambiente):
+		_mostrar_fundo_ambiente.set_pressed_no_signal(bool(_ajustes_fundo_ambiente["visivel"]))
+	_mostrar_perfil_estante()
+
+
+func _alterar_fundo_ambiente(valor: float, chave: String) -> void:
+	_ajustes_fundo_ambiente[chave] = valor
+	_aplicar_ajustes_entorno()
+
+
+func _atualizar_fundo_ambiente() -> void:
+	if is_instance_valid(_fundo_ambiente):
+		_fundo_ambiente.configurar(_ajustes_fundo_ambiente, _mesa.tamanho_plano, _projetar_ponto_sala)
+
+
+func _projetar_ponto_sala(ponto: Vector3) -> Vector2:
+	# Compartilha a câmera; mover o tampo não arrasta a sala.
+	return _projetar_ponto_vela(ponto) + REFERENCIA * Vector2(0.5, 0.55) - _mesa.position
+
+
+func _atualizar_ambiente() -> void:
+	_atualizar_fundo_ambiente()
+	for indice in range(_estantes.size()):
+		_estantes[indice].configurar(_ajustes_estantes[indice], _mesa.tamanho_plano, _projetar_ponto_sala)
+
+
+func _aplicar_ajustes_entorno() -> void:
+	_atualizar_ambiente()
+	if is_instance_valid(_ver_inteira) and _ver_inteira.button_pressed:
+		_ajustar_enquadramento()
+
+
+func _restaurar_fundo_ambiente() -> void:
+	_ajustes_fundo_ambiente = PADRAO_FUNDO_AMBIENTE.duplicate()
+	_mostrar_ajustes_entorno()
+	_aplicar_ajustes_entorno()
+
+
+func _restaurar_estante() -> void:
+	var indice := _seletor_estante.selected
+	_ajustes_estantes[indice] = _padrao_estante(indice)
+	_mostrar_perfil_estante()
+	_aplicar_ajustes_entorno()
+
+
+func _restaurar_ambiente() -> void:
+	_ajustes_fundo_ambiente = PADRAO_FUNDO_AMBIENTE.duplicate()
+	_ajustes_estantes = [_padrao_estante(0), _padrao_estante(1)]
+	_mostrar_ajustes_entorno()
+	_aplicar_ajustes_entorno()
+
+
 func _mostrar_iluminacao() -> void:
 	for chave in _controles_iluminacao:
 		(_controles_iluminacao[chave] as HSlider).set_value_no_signal(_iluminacao[chave])
@@ -621,6 +944,7 @@ func _atualizar_iluminacao() -> void:
 		_inversa_iluminacao = inversa
 		_versao_iluminacao += 1
 		_atualizar_vela()
+		_atualizar_ambiente()
 	if is_instance_valid(_vela):
 		_configurar_material_iluminacao(_vela.material as ShaderMaterial, false)
 	for material in _mesa.obter_materiais_apresentacao():
@@ -691,6 +1015,7 @@ func _aplicar_mesa() -> void:
 	_mesa.atualizar_visual()
 	_versao_iluminacao += 1
 	_atualizar_vela()
+	_atualizar_ambiente()
 	_projetar_maos()
 	_ajustar_enquadramento()
 
@@ -726,9 +1051,11 @@ func _restaurar_base() -> void:
 func _ajustar_enquadramento() -> void:
 	if not is_instance_valid(_area_enquadramento):
 		return
+	_area_controles.size = size
 	var margem := _painel.size.x if _painel.visible else 0.0
-	_area_enquadramento.offset_left = margem
-	var area := Vector2(maxf(size.x - margem, 1.0), maxf(size.y, 1.0))
+	# O painel se sobrepõe à cena; Tab não altera a câmera nem a escala da sala.
+	_area_enquadramento.offset_left = 0.0
+	var area := Vector2(maxf(size.x, 1.0), maxf(size.y, 1.0))
 	var fator := maxf(minf(area.x / REFERENCIA.x, area.y / REFERENCIA.y), 0.001)
 	var zoom := float(_enquadramento["zoom"]) / 100.0
 	var centro := REFERENCIA / 2.0
@@ -741,7 +1068,7 @@ func _ajustar_enquadramento() -> void:
 		deslocamento = Vector2.ZERO
 	_composicao.scale = Vector2.ONE * fator * zoom
 	_composicao.position = area / 2.0 - centro * fator * zoom + deslocamento * fator
-	($Guia as Label).offset_left = margem + 18.0
+	_guia_laboratorio.offset_left = margem + 18.0
 	_atualizar_iluminacao()
 
 
@@ -750,6 +1077,14 @@ func _limites_composicao() -> Rect2:
 	_atualizar_vela()
 	if is_instance_valid(_vela) and _vela.visible:
 		limites = limites.merge(_vela.obter_limites())
+	_atualizar_ambiente()
+	for estante in _estantes:
+		if estante.visible:
+			limites = limites.merge(estante.obter_limites())
+	if is_instance_valid(_fundo_ambiente) and _fundo_ambiente.visible:
+		var janela: Rect2 = _fundo_ambiente.obter_limites_janela()
+		if janela.has_area():
+			limites = limites.merge(janela)
 	var dimensoes := _mesa.obter_dimensoes_tampo()
 	for indice in range(128):
 		var angulo := TAU * indice / 128.0
@@ -788,21 +1123,9 @@ func _montar_controles_sombra_inferior() -> void:
 	_texto("Horizontal negativo leva a sombra para a esquerda; vertical positivo, para baixo. Salvar conjunto guarda estes ajustes.")
 	var legendas := {"intensidade": "Intensidade", "x": "Deslocamento horizontal", "y": "Deslocamento vertical"}
 	for chave in LIMITES_SOMBRA_INFERIOR:
-		_texto(legendas[chave])
-		var numero := SpinBox.new()
-		numero.min_value = LIMITES_SOMBRA_INFERIOR[chave].x
-		numero.max_value = LIMITES_SOMBRA_INFERIOR[chave].y
-		numero.step = 1.0 if chave == "intensidade" else 0.5
-		numero.suffix = "%" if chave == "intensidade" else ""
-		_controles_ui.add_child(numero)
-		var controle := HSlider.new()
-		controle.min_value = numero.min_value
-		controle.max_value = numero.max_value
-		controle.step = numero.step
-		controle.share(numero)
-		_controles_ui.add_child(controle)
-		_controles_sombra_inferior[chave] = controle
-		controle.value_changed.connect(_alterar_sombra_inferior.bind(chave))
+		_controle_ambiente(chave, legendas[chave], LIMITES_SOMBRA_INFERIOR[chave], _sombra_inferior[chave],
+			_controles_sombra_inferior, _alterar_sombra_inferior, 1.0 if chave == "intensidade" else 0.5,
+			"%" if chave == "intensidade" else "")
 	_controles_ui = anterior
 	_mostrar_sombra_inferior()
 
@@ -842,27 +1165,14 @@ func _montar_controles_pilhas() -> void:
 		"variacao_x": "Variação em X (±)", "variacao_y": "Variação em Y (±)", "variacao_rotacao": "Variação de rotação (±)",
 		"suavidade_sombra": "Suavidade da sombra"}
 	for chave in LIMITES_PILHAS:
-		var campo := VBoxContainer.new()
-		_controles_ui.add_child(campo)
-		var legenda := Label.new()
-		legenda.text = legendas[chave]
-		campo.add_child(legenda)
-		var numero := SpinBox.new()
-		numero.min_value = LIMITES_PILHAS[chave].x
-		numero.max_value = LIMITES_PILHAS[chave].y
-		numero.step = 1.0 if chave in ["x", "y", "giro", "camadas", "maximo_visiveis"] else 0.05
-		numero.suffix = "%" if chave in ["x", "y"] else ("°" if chave == "variacao_rotacao" else "")
-		campo.add_child(numero)
-		var controle := HSlider.new()
-		controle.min_value = numero.min_value
-		controle.max_value = numero.max_value
-		controle.step = numero.step
-		controle.share(numero)
-		campo.add_child(controle)
-		_controles_pilhas[chave] = controle
-		controle.value_changed.connect(_alterar_pilha.bind(chave))
+		_controle_ambiente(chave, legendas[chave], LIMITES_PILHAS[chave], _perfis_pilhas[0][chave],
+			_controles_pilhas, _alterar_pilha,
+			1.0 if chave in ["x", "y", "giro", "camadas", "maximo_visiveis"] else 0.05,
+			"%" if chave in ["x", "y"] else ("°" if chave in ["giro", "variacao_rotacao"] else ""))
+		var controle := _controles_pilhas[chave] as HSlider
+		var campo := controle.get_parent() as VBoxContainer
 		if chave == "espessura":
-			_legenda_espessura = legenda
+			_legenda_espessura = controle.get_meta("legenda") as Label
 		elif chave == "camadas":
 			_bloco_camadas = campo
 		elif chave == "maximo_visiveis":
@@ -935,6 +1245,7 @@ func _restaurar_pilha() -> void:
 func _restaurar_todas() -> void:
 	_restaurar_iluminacao()
 	_restaurar_vela()
+	_restaurar_ambiente()
 	_ajustes_mesa = PADRAO_MESA.duplicate()
 	_enquadramento = PADRAO_ENQUADRAMENTO.duplicate()
 	_ver_inteira.set_pressed_no_signal(false)
@@ -1595,7 +1906,7 @@ func _travar_edicao(ativo: bool) -> void:
 		if foco != null:
 			foco.release_focus()
 		for controle in _controles_ui.find_children("*", "Control", true, false):
-			if controle.has_meta("secao") or _secoes["Enquadramento"].is_ancestor_of(controle) or _secoes["Iluminação"].is_ancestor_of(controle) or _secoes["Vela"].is_ancestor_of(controle) or _comandos_trajeto.is_ancestor_of(controle) or _campos_fonte.is_ancestor_of(controle) or controle == _fonte_localizada or controle == _seletor:
+			if controle.has_meta("secao") or _secoes["Enquadramento"].is_ancestor_of(controle) or _secoes["Iluminação"].is_ancestor_of(controle) or _secoes["Vela"].is_ancestor_of(controle) or _secoes["Fundo distante"].is_ancestor_of(controle) or _secoes["Estantes"].is_ancestor_of(controle) or _comandos_trajeto.is_ancestor_of(controle) or _campos_fonte.is_ancestor_of(controle) or controle == _fonte_localizada or controle == _seletor or controle == _escolha_jogada:
 				continue
 			var propriedade := "disabled" if controle is BaseButton else "editable"
 			if controle is BaseButton or controle is Slider or controle is SpinBox:
@@ -1614,9 +1925,8 @@ func _atualizar_estado_trajeto() -> void:
 	var quantidades := PackedStringArray()
 	for mao in _maos_erguidas:
 		quantidades.append(str(mao.quantidade_cartas()))
-	_estado_trajeto.text = "Mãos: %s · descarte: %d\nEm trânsito: %d. %s" % [" / ".join(quantidades),
-		_jogada.get_child_count() if is_instance_valid(_jogada) else 0, _transitos.size(),
-		"Comprar/jogar continuam disponíveis." if not _transitos.is_empty() else "Hover e ajustes disponíveis."]
+	_estado_trajeto.text = "Mãos: %s · descarte: %d\nEm trânsito: %d" % [" / ".join(quantidades),
+		_jogada.get_child_count() if is_instance_valid(_jogada) else 0, _transitos.size()]
 
 
 func _esvaziar() -> void:
