@@ -141,6 +141,7 @@ var _categoria_ativa := ""
 
 var _area_controles: Control
 var _modo_referencia_cenario := false
+var _interacao_referencia := false
 var _luz_cenario_referencia: Dictionary = {}
 var _transformacao_cenario_referencia := Transform2D.IDENTITY
 
@@ -202,7 +203,10 @@ func _preparar_camada_controles() -> void:
 
 func configurar_referencia_cenario(perfil: Dictionary, mostrar_mesa: bool) -> void:
 	# Reutiliza a mesma mesa, mãos, pilhas e projeção em uma captura sem a interface.
+	if _modo_referencia_cenario:
+		restaurar_cartas_referencia()
 	_modo_referencia_cenario = true
+	_interacao_referencia = false
 	_manter_iluminacao.set_pressed_no_signal(false)
 	_aplicar_teste(perfil, "Referência do cenário")
 	_iluminacao["ativa"] = false
@@ -239,6 +243,89 @@ func configurar_luz_cenario_referencia(dados: Dictionary, mesa: Dictionary, tran
 	_iluminacao["ativa"] = bool(dados["ativa"]) and bool(mesa["ativa"])
 	_versao_iluminacao += 1
 	_atualizar_iluminacao()
+
+
+func definir_interacao_referencia(ativa: bool) -> void:
+	if not _modo_referencia_cenario or _interacao_referencia == ativa:
+		return
+	_interacao_referencia = ativa
+	_sair_da_mesa()
+	for indice in range(_maos_erguidas.size()):
+		_maos_erguidas[indice].definir_hover_habilitado(ativa and indice == 0)
+	for registro in _transitos.values():
+		# Trocar de aba não torna clicável uma carta cuja apresentação ainda está no trajeto.
+		if not bool(registro["pousada"]):
+			registro["carta"].definir_hover_habilitado(false)
+
+
+func atualizar_mouse_referencia(posicao: Vector2) -> void:
+	if not _interacao_referencia or not _mouse_na_janela or not get_window().has_focus():
+		_sair_da_mesa()
+		return
+	var local := _composicao.get_global_transform().affine_inverse() * posicao
+	_atualizar_mouse_maos(local)
+
+
+func sair_do_mouse_referencia() -> void:
+	_sair_da_mesa()
+
+
+func comprar_carta_referencia(mao: int) -> void:
+	if not _interacao_referencia:
+		return
+	_selecionada = clampi(mao, 0, 3)
+	_comprar()
+
+
+func jogar_carta_referencia(mao: int, escolha: int) -> void:
+	if not _interacao_referencia:
+		return
+	_selecionada = clampi(mao, 0, 3)
+	_escolha_jogada.select(clampi(escolha, 0, 2))
+	_jogar_carta()
+
+
+func clicar_carta_referencia(posicao: Vector2) -> bool:
+	if not _interacao_referencia:
+		return false
+	var local := _composicao.get_global_transform().affine_inverse() * posicao
+	var carta := _carta_no_ponto_da_mao(local, 0)
+	if carta == null:
+		return false
+	_selecionada = 0
+	_jogar_carta(carta)
+	return true
+
+
+func estado_cartas_referencia() -> String:
+	var quantidades := PackedStringArray()
+	for mao in _maos_erguidas:
+		quantidades.append(str(mao.quantidade_cartas()))
+	return "Mãos: %s · descarte: %d\nEm trânsito: %d" % [" / ".join(quantidades),
+		_jogada.get_child_count() if is_instance_valid(_jogada) else 0, _transitos.size()]
+
+
+func restaurar_cartas_referencia() -> void:
+	_esvaziar()
+	for indice in range(_maos_erguidas.size()):
+		for numero in range(7):
+			var carta := CENA_CARTA.instantiate() as Carta
+			var dados := _baralho_visual.comprar_carta().para_dados()
+			_dados_por_instancia[carta.get_instance_id()] = dados
+			_maos_erguidas[indice].receber_carta(carta, false)
+			carta.setup_dados(dados)
+	_aplicar_avancados()
+	_atualizar_captura()
+	_projetar_maos()
+	for indice in range(_maos_erguidas.size()):
+		_maos_erguidas[indice].definir_hover_habilitado(_interacao_referencia and indice == 0)
+	_atualizar_pilhas()
+	_atualizar_estado_trajeto()
+
+
+func limpar_cartas_referencia() -> void:
+	if _interacao_referencia:
+		_esvaziar()
 
 
 func obter_inversa_luz_referencia() -> Basis:
@@ -1809,11 +1896,13 @@ func _comprar() -> void:
 	_atualizar_estado_trajeto()
 
 
-func _jogar_carta() -> void:
+func _jogar_carta(carta_especifica: Carta = null) -> void:
 	if not is_instance_valid(_jogada) or _virando_maos[_selecionada]:
 		return
 	var cartas := _maos_erguidas[_selecionada].obter_cartas()
 	if cartas.is_empty():
+		return
+	if carta_especifica != null and not cartas.has(carta_especifica):
 		return
 	_sair_da_mesa()
 	var indice := 0
@@ -1821,7 +1910,7 @@ func _jogar_carta() -> void:
 		indice = floori(cartas.size() / 2.0)
 	elif _escolha_jogada.selected == 2:
 		indice = cartas.size() - 1
-	var carta := cartas[indice]
+	var carta := carta_especifica if carta_especifica != null else cartas[indice]
 	var id := carta.get_instance_id()
 	var inicio: Dictionary = _transitos[id]["atual"] if _transitos.has(id) else _plano_carta(carta, _selecionada)
 	_preparar_visual(carta, inicio, -1)
@@ -1942,7 +2031,7 @@ func _devolver_apresentacao_inferior() -> void:
 		_configurar_sombra_inferior(carta)
 		carta.definir_sombra_visivel(_maos_erguidas[0].sombras_visiveis)
 		carta.definir_apresentacao_externa(false)
-		carta.definir_hover_habilitado(not _maos_erguidas[0].mao_adversaria)
+		carta.definir_hover_habilitado(not _maos_erguidas[0].mao_adversaria and (not _modo_referencia_cenario or _interacao_referencia))
 		_desconectar_apresentacao(carta)
 		registro["visual"].hide()
 		registro["visual"].queue_free()
@@ -2030,7 +2119,7 @@ func _sombra_do_destino(pilha: int) -> Dictionary:
 
 
 func _process(delta: float) -> void:
-	if _modo_referencia_cenario:
+	if _modo_referencia_cenario and not _interacao_referencia and _transitos.is_empty():
 		_devolver_apresentacao_inferior()
 		_atualizar_pilhas()
 		return
@@ -2048,7 +2137,8 @@ func _process(delta: float) -> void:
 	if _transitos.is_empty():
 		_travar_edicao(false)
 	_atualizar_pilhas()
-	super._process(delta)
+	if not _modo_referencia_cenario:
+		super._process(delta)
 	_atualizar_estado_trajeto()
 
 

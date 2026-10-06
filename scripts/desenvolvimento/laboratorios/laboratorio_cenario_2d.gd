@@ -61,6 +61,9 @@ var _mostrar_fontes := true
 var _halos: HALOS
 var _lista_halos: OptionButton
 var _bloco_brilho: VBoxContainer
+var _mao_interacao := 0
+var _escolha_interacao := 0
+var _estado_interacao: Label
 
 
 func _ready() -> void:
@@ -120,7 +123,7 @@ func _montar_painel() -> void:
 	var navegacao := GridContainer.new()
 	navegacao.columns = 2
 	coluna.add_child(navegacao)
-	for titulo in ["Peças", "Encaixe", "Recorte", "Cartas", "Luz", "Conjuntos"]:
+	for titulo in ["Peças", "Encaixe", "Recorte", "Cartas", "Interação", "Luz", "Conjuntos"]:
 		var botao := Button.new()
 		botao.text = titulo
 		botao.toggle_mode = true
@@ -144,6 +147,7 @@ func _montar_painel() -> void:
 	_montar_encaixe(_categorias["Encaixe"])
 	_montar_recorte(_categorias["Recorte"])
 	_montar_cartas(_categorias["Cartas"])
+	_montar_interacao(_categorias["Interação"])
 	_montar_luz(_categorias["Luz"])
 	_montar_conjuntos(_categorias["Conjuntos"])
 	var acoes := HBoxContainer.new()
@@ -258,6 +262,58 @@ func _montar_cartas(grupo: VBoxContainer) -> void:
 		_atualizar_cena()
 		_sincronizar_cartas())
 	_texto(grupo, "Nesta aba, o arrasto move mesa e cartas juntas. O tamanho também muda o conjunto inteiro, conservando a projeção original. Nas outras abas você continua editando os assets.")
+
+
+func _montar_interacao(grupo: VBoxContainer) -> void:
+	_texto(grupo, "Experimentar as cartas na cena", 16)
+	_texto(grupo, "Nesta aba, passe o mouse na sua mão para o hover e clique numa carta para jogá-la. Tab esconde o painel e mantém a interação. Nas outras abas, o mouse volta a editar a composição.")
+	_texto(grupo, "Mão para comprar e jogar pelos botões")
+	var mao := OptionButton.new()
+	for nome in ["Sua mão (inferior)", "Mão superior", "Mão esquerda", "Mão direita"]:
+		mao.add_item(nome)
+	grupo.add_child(mao)
+	mao.item_selected.connect(func(indice: int): _mao_interacao = indice)
+	var acoes := HBoxContainer.new()
+	grupo.add_child(acoes)
+	_botao(acoes, "Comprar · D", _comprar_carta)
+	_botao(acoes, "Jogar · J", _jogar_carta)
+	_texto(grupo, "Carta usada pelo botão Jogar")
+	var escolha := OptionButton.new()
+	for nome in ["Primeira", "Do meio", "Última"]:
+		escolha.add_item(nome)
+	grupo.add_child(escolha)
+	escolha.item_selected.connect(func(indice: int): _escolha_interacao = indice)
+	_botao(grupo, "Limpar mãos e descarte · R", _limpar_cartas)
+	_botao(grupo, "Restaurar 7 cartas por mão", _restaurar_cartas)
+	_estado_interacao = _texto(grupo, "")
+	_texto(grupo, "Teste visual livre de movimentos: sem turnos ou restrições de cor/valor. Luzes com Afetar também mesa de referência e cartas acompanham a carta durante o trajeto. Os conjuntos salvam a composição; as cartas desta experiência reiniciam ao abrir o laboratório.")
+
+
+func _process(_delta: float) -> void:
+	if _categoria_ativa != "Interação":
+		return
+	_estado_interacao.text = _referencia_cartas.estado_interacao()
+	var mouse := get_global_mouse_position()
+	if not get_window().has_focus() or not _arrasto.is_empty() or (_painel.visible and _painel.get_global_rect().has_point(mouse)):
+		_referencia_cartas.sair_do_mouse()
+		return
+	_referencia_cartas.atualizar_mouse(_composicao.get_global_transform().affine_inverse() * mouse)
+
+
+func _comprar_carta() -> void:
+	_referencia_cartas.comprar(_mao_interacao)
+
+
+func _jogar_carta() -> void:
+	_referencia_cartas.jogar(_mao_interacao, _escolha_interacao)
+
+
+func _limpar_cartas() -> void:
+	_referencia_cartas.limpar_cartas()
+
+
+func _restaurar_cartas() -> void:
+	_referencia_cartas.restaurar_cartas()
 
 
 func _carregar_referencia_cartas() -> void:
@@ -705,6 +761,8 @@ func _opcao(pai: Node, chave: String, texto: String) -> void:
 
 
 func _categoria(titulo: String) -> void:
+	_arrasto = ""
+	_referencia_cartas.definir_interacao(titulo == "Interação")
 	_categoria_ativa = titulo
 	for nome in _categorias:
 		_categorias[nome].visible = nome == titulo
@@ -932,7 +990,7 @@ func _restaurar_vista() -> void:
 
 
 func _desenhar_guias() -> void:
-	if not _painel.visible:
+	if not _painel.visible or _categoria_ativa == "Interação":
 		return
 	var escala := maxf(_composicao.scale.x, 0.01)
 	if _mostrar_moldura:
@@ -993,6 +1051,16 @@ func _input(evento: InputEvent) -> void:
 		_alternar_painel()
 		get_viewport().set_input_as_handled()
 		return
+	if _categoria_ativa == "Interação" and evento is InputEventKey and evento.pressed and not evento.echo:
+		var foco := get_viewport().gui_get_focus_owner()
+		if not (foco is LineEdit or foco is TextEdit or foco is SpinBox) and not (evento.ctrl_pressed or evento.alt_pressed or evento.meta_pressed):
+			if evento.physical_keycode in [KEY_D, KEY_J, KEY_R]:
+				match evento.physical_keycode:
+					KEY_D: _comprar_carta()
+					KEY_J: _jogar_carta()
+					KEY_R: _limpar_cartas()
+				get_viewport().set_input_as_handled()
+				return
 	# Termina o arrasto mesmo quando o mouse cruza o painel ou sai da área da cena.
 	if _arrasto.is_empty():
 		return
@@ -1032,7 +1100,10 @@ func _unhandled_input(evento: InputEvent) -> void:
 		_pan += (_composicao.get_global_transform().affine_inverse() * evento.position - ponto)
 		_ajustar_enquadramento()
 	elif evento.button_index == MOUSE_BUTTON_LEFT:
-		_iniciar_arrasto(ponto)
+		if _categoria_ativa == "Interação":
+			_referencia_cartas.clicar(ponto)
+		else:
+			_iniciar_arrasto(ponto)
 	else:
 		return
 	get_viewport().set_input_as_handled()

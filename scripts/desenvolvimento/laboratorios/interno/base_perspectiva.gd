@@ -328,27 +328,39 @@ func _process(_delta: float) -> void:
 		_sair_da_mesa()
 		return
 	var mouse := _composicao.get_local_mouse_position()
+	_atualizar_mouse_maos(mouse)
+
+
+func _carta_no_ponto_da_mao(mouse: Vector2, indice: int) -> Carta:
+	if not _poligonos[indice].visible:
+		return null
+	var ponto: Vector3 = _inversas[indice] * Vector3(mouse.x, mouse.y, 1.0)
+	if absf(ponto.z) < 0.00001:
+		return null
+	var uv := Vector2(ponto.x, ponto.y) / ponto.z
+	if not Rect2(Vector2.ZERO, Vector2.ONE).has_point(uv):
+		return null
+	var posicao := _origens_atlas[indice] + uv * _tamanho_captura
+	var cartas := _maos_erguidas[indice].obter_cartas()
+	# A última carta é desenhada por cima no leque, como no encaminhamento GUI.
+	for numero in range(cartas.size() - 1, -1, -1):
+		var carta := cartas[numero]
+		if carta.mouse_filter == Control.MOUSE_FILTER_IGNORE:
+			continue
+		var local := carta.get_global_transform_with_canvas().affine_inverse() * posicao
+		if Rect2(Vector2.ZERO, carta.size).has_point(local):
+			return carta
+	return null
+
+
+func _atualizar_mouse_maos(mouse: Vector2) -> void:
 	for indice in [0, 3, 2, 1]:
-		if not _poligonos[indice].visible:
+		# Não deixar a margem transparente de um plano bloquear outra mão.
+		if _carta_no_ponto_da_mao(mouse, indice) == null:
 			continue
 		var ponto: Vector3 = _inversas[indice] * Vector3(mouse.x, mouse.y, 1.0)
-		if absf(ponto.z) < 0.00001:
-			continue
 		var uv := Vector2(ponto.x, ponto.y) / ponto.z
-		if not Rect2(Vector2.ZERO, Vector2.ONE).has_point(uv):
-			continue
 		var posicao := _origens_atlas[indice] + uv * _tamanho_captura
-		# Não deixar a margem transparente de um plano bloquear outra mão.
-		var sobre_carta := false
-		for carta in _maos_erguidas[indice].obter_cartas():
-			if carta.mouse_filter == Control.MOUSE_FILTER_IGNORE:
-				continue
-			var local := carta.get_global_transform_with_canvas().affine_inverse() * posicao
-			if Rect2(Vector2.ZERO, carta.size).has_point(local):
-				sobre_carta = true
-				break
-		if not sobre_carta:
-			continue
 		var viewport := _viewport_da_mao(indice)
 		if _viewport_mouse != viewport:
 			_sair_da_mesa()

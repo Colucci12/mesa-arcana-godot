@@ -19,6 +19,7 @@ var _assinatura_luz := ""
 var _luz_mesa: Dictionary = {}
 var _luz_ativa := false
 var _transformacao := Transform2D.IDENTITY
+var _interacao_ativa := false
 
 
 static func padrao() -> Dictionary:
@@ -139,6 +140,60 @@ func atualizar(dados: Dictionary, luz: Dictionary) -> void:
 	if assinatura_luz != _assinatura_luz:
 		_assinatura_luz = assinatura_luz
 		_laboratorio.configurar_luz_cenario_referencia(luz, _luz_mesa, _transformacao)
+	_laboratorio.definir_interacao_referencia(_interacao_ativa and visible)
+
+
+func definir_interacao(ativa: bool) -> void:
+	_interacao_ativa = ativa
+	if not _assinatura.is_empty():
+		_laboratorio.definir_interacao_referencia(ativa and visible)
+
+
+func _pode_interagir() -> bool:
+	return _interacao_ativa and visible and not _assinatura.is_empty()
+
+
+func atualizar_mouse(ponto: Vector2) -> void:
+	var local := _transformacao.affine_inverse() * ponto
+	if not _pode_interagir() or not Rect2(Vector2.ZERO, REFERENCIA).has_point(local):
+		sair_do_mouse()
+		return
+	_laboratorio.atualizar_mouse_referencia(local)
+
+
+func sair_do_mouse() -> void:
+	_laboratorio.sair_do_mouse_referencia()
+
+
+func clicar(ponto: Vector2) -> bool:
+	if not _pode_interagir():
+		return false
+	var local := _transformacao.affine_inverse() * ponto
+	return Rect2(Vector2.ZERO, REFERENCIA).has_point(local) and _laboratorio.clicar_carta_referencia(local)
+
+
+func comprar(mao: int) -> void:
+	if _pode_interagir():
+		_laboratorio.comprar_carta_referencia(mao)
+
+
+func jogar(mao: int, escolha: int) -> void:
+	if _pode_interagir():
+		_laboratorio.jogar_carta_referencia(mao, escolha)
+
+
+func limpar_cartas() -> void:
+	if _pode_interagir():
+		_laboratorio.limpar_cartas_referencia()
+
+
+func restaurar_cartas() -> void:
+	if _pode_interagir():
+		_laboratorio.restaurar_cartas_referencia()
+
+
+func estado_interacao() -> String:
+	return _laboratorio.estado_cartas_referencia()
 
 
 func configurar_luz_mesa(material: ShaderMaterial, receber: bool) -> void:
