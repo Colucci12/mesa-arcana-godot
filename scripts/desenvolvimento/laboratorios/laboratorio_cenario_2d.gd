@@ -178,7 +178,7 @@ func _montar_pecas(grupo: VBoxContainer) -> void:
 	_botao(grupo, "Duplicar peça", _duplicar)
 	_botao(grupo, "Remover peça", _remover)
 	_botao(grupo, "Mostrar / ocultar a mesa", _alternar_mesa)
-	_texto(grupo, "A mesa e seu ornamento podem ser ocultados juntos. Travar impede seleção pelo mouse e arrasto; os campos continuam disponíveis. Use a aba Cartas para comparar o cenário com mãos e pilhas.")
+	_texto(grupo, "Travar impede seleção pelo mouse e arrasto; os campos continuam disponíveis. Use a aba Cartas para ajustar o conjunto e Interação para experimentar os movimentos.")
 
 
 func _montar_encaixe(grupo: VBoxContainer) -> void:
@@ -424,7 +424,7 @@ func _montar_luz(grupo: VBoxContainer) -> void:
 			return
 		_registrar()
 		var p: Dictionary = _pecas[_selecionada]
-		p["aparencia"] = LUZ.validar_peca({}, p["arquivo"] in ["mesa.png", "deco_mesa.png"])
+		p["aparencia"] = LUZ.validar_peca({}, p["arquivo"] == "mesa.png")
 		_atualizar_cena()
 		_sincronizar_luz())
 	_texto(peca, "100% conserva a imagem original. Reduza a claridade do fundo/chão e experimente o contraste. Os pontos de luz podem recuperar claridade localmente.")
@@ -504,7 +504,7 @@ func _montar_luz(grupo: VBoxContainer) -> void:
 		_cartas["luz_mesa"] = CARTAS.luz_padrao()
 		_atualizar_cena()
 		_sincronizar_luz())
-	_texto(mesa, "O mesmo foco ilumina as cartas e as imagens marcadas para receber a luz da mesa. Mesa e ornamento recebem por padrão. Os pontos de luz continuam independentes; 0% de claridade mínima permite escurecer totalmente as cartas.")
+	_texto(mesa, "O mesmo foco ilumina as cartas e as imagens marcadas para receber a luz da mesa. A mesa recebe por padrão. Os pontos de luz continuam independentes; 0% de claridade mínima permite escurecer totalmente as cartas.")
 
 
 func _dados_luz(grupo: String) -> Dictionary:
@@ -931,7 +931,7 @@ func _alternar_mesa() -> void:
 			break
 	_registrar()
 	for peca in _pecas:
-		if peca["arquivo"] in ["mesa.png", "deco_mesa.png"]:
+		if peca["arquivo"] == "mesa.png":
 			peca["visivel"] = mostrar
 	_atualizar_cena()
 	_sincronizar_ui()
@@ -1252,6 +1252,11 @@ func _aplicar_estado(dados: Dictionary) -> void:
 		id = maxi(id, identificador + 1)
 		novas.append(peca)
 	_pecas = novas
+	# Peças retiradas do catálogo não podem deixar luzes apontando para IDs reutilizados.
+	for fonte in _luz["fontes"]:
+		for alvo in fonte["alvos"].duplicate():
+			if not usados.has(int(alvo)):
+				fonte["alvos"].erase(alvo)
 	_proximo_id = id
 	_selecionada = -1
 	var zoom: Variant = dados.get("zoom", 100)

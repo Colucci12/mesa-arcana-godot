@@ -5,11 +5,10 @@ const LUZ = preload("res://scripts/desenvolvimento/laboratorios/interno/luz_cena
 
 # Os recortes são regiões das texturas originais; nenhum PNG é modificado.
 const PECAS := [
-	{"nome": "Sala / fundo", "arquivo": "fundo.png", "recorte": [0, 0, 1672, 941]},
+	{"nome": "Background", "arquivo": "fundo.png", "recorte": [0, 0, 1672, 941]},
 	{"nome": "Estante esquerda", "arquivo": "esquerda.png", "recorte": [0, 0, 1086, 1448]},
 	{"nome": "Estante direita", "arquivo": "direita.png", "recorte": [0, 0, 1086, 1448]},
 	{"nome": "Mesa", "arquivo": "mesa.png", "recorte": [0, 200, 1448, 740]},
-	{"nome": "Ornamento da mesa", "arquivo": "deco_mesa.png", "recorte": [0, 0, 1448, 1086]},
 	{"nome": "Vela curta", "arquivo": "velas.png", "recorte": [145, 175, 185, 280]},
 	{"nome": "Vela com alça", "arquivo": "velas.png", "recorte": [390, 120, 290, 335]},
 	{"nome": "Vela alta simples", "arquivo": "velas.png", "recorte": [720, 25, 245, 435]},
@@ -42,7 +41,7 @@ const LIMITES := {
 static func criar(indice: int, id: int) -> Dictionary:
 	var modelo: Dictionary = PECAS[clampi(indice, 0, PECAS.size() - 1)]
 	var recorte: Array = modelo["recorte"].duplicate()
-	var aparencia := LUZ.validar_peca({}, modelo["arquivo"] in ["mesa.png", "deco_mesa.png"])
+	var aparencia := LUZ.validar_peca({}, modelo["arquivo"] == "mesa.png")
 	return {"id": id, "nome": modelo["nome"], "arquivo": modelo["arquivo"],
 		"recorte": recorte, "x": 640.0, "y": 360.0, "largura": 180.0,
 		"altura": 180.0 * float(recorte[3]) / float(recorte[2]), "giro": 0.0,
@@ -58,7 +57,6 @@ static func composicao_inicial() -> Array[Dictionary]:
 		[1, 135, 265, 510, 680, -20],
 		[2, 1145, 265, 510, 680, -20],
 		[3, 640, 490, 1180, 440, 0],
-		[4, 640, 450, 1100, 410, 1],
 	]
 	for valores in disposicao:
 		var peca := criar(int(valores[0]), resultado.size() + 1)
@@ -101,7 +99,7 @@ static func validar(dados: Variant) -> Dictionary:
 	if indice < 0:
 		return {}
 	var peca := criar(indice, 0)
-	peca["aparencia"] = LUZ.validar_peca(dados.get("aparencia"), peca["arquivo"] in ["mesa.png", "deco_mesa.png"])
+	peca["aparencia"] = LUZ.validar_peca(dados.get("aparencia"), peca["arquivo"] == "mesa.png")
 	if dados.get("id") is float or dados.get("id") is int:
 		peca["id"] = int(dados["id"])
 	if dados.get("nome") is String:
