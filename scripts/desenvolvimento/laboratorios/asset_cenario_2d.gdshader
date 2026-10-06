@@ -13,6 +13,9 @@ uniform vec3 peca_transform_x;
 uniform vec3 peca_transform_y;
 uniform float contraste = 1.0;
 uniform float saturacao = 1.0;
+// Mesmo limite de CHAMAS.MAXIMO em interno/chamas_cenario_2d.gd.
+uniform int quantidade_chamas_ocultas = 0;
+uniform vec4 chamas_ocultas[16];
 
 void vertex() {
 	ponto_local = VERTEX;
@@ -27,6 +30,15 @@ void fragment() {
 	vec2 amostra = clamp(recorte_uv.xy + uv * recorte_uv.zw,
 		recorte_uv.xy + margem, recorte_uv.xy + recorte_uv.zw - margem);
 	COLOR = texture(TEXTURE, amostra);
+	for (int i = 0; i < 16; i++) {
+		if (i >= quantidade_chamas_ocultas) { break; }
+		vec4 area = chamas_ocultas[i];
+		vec2 local = (uv - area.xy) / area.zw;
+		if (all(greaterThanEqual(local, vec2(0.0))) && all(lessThanEqual(local, vec2(1.0)))) {
+			float borda = min(min(local.x, 1.0 - local.x), min(local.y, 1.0 - local.y));
+			COLOR.a *= 1.0 - smoothstep(0.0, 0.02, borda);
+		}
+	}
 	if (cenario_ativo) {
 		float cinza = dot(COLOR.rgb, vec3(0.2126, 0.7152, 0.0722));
 		COLOR.rgb = max(mix(vec3(cinza), COLOR.rgb, saturacao), vec3(0.0));

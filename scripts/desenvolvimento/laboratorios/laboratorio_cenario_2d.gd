@@ -5,6 +5,7 @@ const ASSET = preload("res://scripts/desenvolvimento/laboratorios/asset_cenario_
 const CARTAS = preload("res://scripts/desenvolvimento/laboratorios/cartas_cenario_2d.gd")
 const LUZ = preload("res://scripts/desenvolvimento/laboratorios/interno/luz_cenario_2d.gd")
 const HALOS = preload("res://scripts/desenvolvimento/laboratorios/halos_cenario_2d.gd")
+const CHAMAS = preload("res://scripts/desenvolvimento/laboratorios/interno/chamas_cenario_2d.gd")
 const TEMA = preload("res://scenes/desenvolvimento/laboratorios/painel_laboratorio.tres")
 const ARQUIVO := "user://laboratorio_cenario_2d.json"
 const REFERENCIA := Vector2(1280, 720)
@@ -64,6 +65,9 @@ var _bloco_brilho: VBoxContainer
 var _mao_interacao := 0
 var _escolha_interacao := 0
 var _estado_interacao: Label
+var _lista_chamas: OptionButton
+var _chama_selecionada := -1
+var _editar_corte_chama := false
 
 
 func _ready() -> void:
@@ -123,7 +127,7 @@ func _montar_painel() -> void:
 	var navegacao := GridContainer.new()
 	navegacao.columns = 2
 	coluna.add_child(navegacao)
-	for titulo in ["Peças", "Encaixe", "Recorte", "Cartas", "Interação", "Luz", "Conjuntos"]:
+	for titulo in ["Peças", "Encaixe", "Recorte", "Cartas", "Interação", "Luz", "Chamas", "Conjuntos"]:
 		var botao := Button.new()
 		botao.text = titulo
 		botao.toggle_mode = true
@@ -148,6 +152,7 @@ func _montar_painel() -> void:
 	_montar_recorte(_categorias["Recorte"])
 	_montar_cartas(_categorias["Cartas"])
 	_montar_interacao(_categorias["Interação"])
+	_montar_chamas(_categorias["Chamas"])
 	_montar_luz(_categorias["Luz"])
 	_montar_conjuntos(_categorias["Conjuntos"])
 	var acoes := HBoxContainer.new()
@@ -262,6 +267,102 @@ func _montar_cartas(grupo: VBoxContainer) -> void:
 		_atualizar_cena()
 		_sincronizar_cartas())
 	_texto(grupo, "Nesta aba, o arrasto move mesa e cartas juntas. O tamanho também muda o conjunto inteiro, conservando a projeção original. Nas outras abas você continua editando os assets.")
+
+
+func _montar_chamas(grupo: VBoxContainer) -> void:
+	_texto(grupo, "Chamas da imagem selecionada", 16)
+	_texto(grupo, "Escolha a vela ou estante no topo e adicione uma chama. Nas velas da folha, o encaixe e a área a esconder começam estimados. Cada peça aceita várias chamas.")
+	_lista_chamas = OptionButton.new()
+	grupo.add_child(_lista_chamas)
+	_lista_chamas.item_selected.connect(func(indice: int):
+		_chama_selecionada = indice
+		_sincronizar_luz()
+		_guias.queue_redraw())
+	_botao(grupo, "Adicionar chama", _adicionar_chama)
+	_botao(grupo, "Duplicar chama", _duplicar_chama)
+	_botao(grupo, "Remover chama selecionada", _remover_chama)
+	_campo_luz(grupo, "chama", "nome", "Nome", "texto")
+	_campo_luz(grupo, "chama", "visivel", "Mostrar substituição da chama", "opcao")
+	_texto(grupo, "Animação", 16)
+	_campo_luz(grupo, "chama", "animada", "Animar os oito desenhos", "opcao")
+	_campo_luz(grupo, "chama", "suave", "Transição suave entre desenhos", "opcao")
+	for item in [["velocidade", "Desenhos por segundo"], ["fase", "Fase da animação (%)"],
+		["quadro", "Desenho fixo (animação desligada)"], ["brilho", "Claridade da chama (%)"]]:
+		_campo_luz(grupo, "chama", item[0], item[1], "numero", CHAMAS.LIMITES[item[0]])
+	_texto(grupo, "Encaixe da chama nova", 16)
+	for item in [["x", "Pavio horizontal (%)"], ["y", "Pavio vertical (%)"],
+		["largura", "Largura da chama (%)"], ["altura", "Altura da chama (%)"], ["giro", "Giro da chama"]]:
+		_campo_luz(grupo, "chama", item[0], item[1], "numero", CHAMAS.LIMITES[item[0]])
+	_texto(grupo, "Área da chama antiga", 16)
+	_campo_luz(grupo, "chama", "ocultar", "Ocultar chama antiga nesta área", "opcao")
+	for item in [["corte_x", "Centro horizontal da área (%)"], ["corte_y", "Centro vertical da área (%)"],
+		["corte_largura", "Largura da área (%)"], ["corte_altura", "Altura da área (%)"]]:
+		_campo_luz(grupo, "chama", item[0], item[1], "numero", CHAMAS.LIMITES[item[0]])
+	var arrastar_corte := CheckBox.new()
+	arrastar_corte.text = "Arrastar a área que esconde a chama antiga"
+	grupo.add_child(arrastar_corte)
+	arrastar_corte.toggled.connect(func(ativa: bool):
+		_editar_corte_chama = ativa
+		_guias.queue_redraw())
+	_texto(grupo, "Arraste o marcador do pavio para mover a chama nova; ative a opção acima para mover a área antiga. As medidas são relativas ao recorte da peça. Ocultar apaga essa região da apresentação: em uma estante, delimite só o fogo para não abrir um buraco no móvel. Desmarcar Mostrar restaura a imagem original.")
+
+
+func _chama_em_edicao() -> Dictionary:
+	if _selecionada < 0 or _chama_selecionada < 0:
+		return {}
+	var chamas: Array = _pecas[_selecionada]["chamas"]
+	return chamas[_chama_selecionada] if _chama_selecionada < chamas.size() else {}
+
+
+func _sincronizar_lista_chamas() -> void:
+	var chamas: Array = _pecas[_selecionada]["chamas"] if _selecionada >= 0 else []
+	_chama_selecionada = clampi(_chama_selecionada, 0, chamas.size() - 1) if not chamas.is_empty() else -1
+	_lista_chamas.clear()
+	for chama in chamas:
+		_lista_chamas.add_item(str(chama["nome"]))
+	_lista_chamas.disabled = chamas.is_empty()
+	_lista_chamas.select(_chama_selecionada)
+
+
+func _adicionar_chama() -> void:
+	if _selecionada < 0:
+		_mensagem.text = "Selecione a imagem da vela ou estante no topo."
+		return
+	var peca: Dictionary = _pecas[_selecionada]
+	if peca["chamas"].size() >= CHAMAS.MAXIMO:
+		_mensagem.text = "Limite de %d chamas por peça." % CHAMAS.MAXIMO
+		return
+	_registrar()
+	peca["chamas"].append(CHAMAS.validar([CHAMAS.nova(peca)])[0])
+	_chama_selecionada = peca["chamas"].size() - 1
+	_atualizar_cena()
+	_sincronizar_luz()
+
+
+func _duplicar_chama() -> void:
+	var original := _chama_em_edicao()
+	if original.is_empty():
+		return
+	var chamas: Array = _pecas[_selecionada]["chamas"]
+	if chamas.size() >= CHAMAS.MAXIMO:
+		_mensagem.text = "Limite de %d chamas por peça." % CHAMAS.MAXIMO
+		return
+	_registrar()
+	var copia := original.duplicate(true)
+	copia["nome"] = str(original["nome"]).left(92) + " · cópia"
+	chamas.append(copia)
+	_chama_selecionada = chamas.size() - 1
+	_atualizar_cena()
+	_sincronizar_luz()
+
+
+func _remover_chama() -> void:
+	if _chama_em_edicao().is_empty():
+		return
+	_registrar()
+	_pecas[_selecionada]["chamas"].remove_at(_chama_selecionada)
+	_atualizar_cena()
+	_sincronizar_luz()
 
 
 func _montar_interacao(grupo: VBoxContainer) -> void:
@@ -512,6 +613,7 @@ func _dados_luz(grupo: String) -> Dictionary:
 		"geral": return _luz
 		"mesa": return _cartas["luz_mesa"]
 		"peca": return _pecas[_selecionada]["aparencia"] if _selecionada >= 0 else {}
+		"chama": return _chama_em_edicao()
 		"fonte": return _luz["fontes"][_fonte_selecionada] if _fonte_selecionada >= 0 else {}
 		"halo":
 			var f := _dados_luz("fonte")
@@ -550,16 +652,17 @@ func _campo_luz(pai: Node, grupo: String, chave: String, legenda: String,
 			_texto(pai, legenda)
 			var linha := HBoxContainer.new()
 			pai.add_child(linha)
+			var passo := 0.1 if grupo == "chama" and chave != "quadro" else 1.0
 			var slider := HSlider.new()
 			slider.min_value = limites.x
 			slider.max_value = limites.y
-			slider.step = 1
+			slider.step = passo
 			slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			linha.add_child(slider)
 			var spin := SpinBox.new()
 			spin.min_value = limites.x
 			spin.max_value = limites.y
-			spin.step = 1
+			spin.step = passo
 			spin.custom_minimum_size.x = 100
 			linha.add_child(spin)
 			slider.share(spin)
@@ -591,6 +694,7 @@ func _alterar_luz(valor: Variant, grupo: String, chave: String) -> void:
 
 func _sincronizar_luz() -> void:
 	_atualizando_ui = true
+	_sincronizar_lista_chamas()
 	_contagem_fontes.text = "%d / %d fontes (luzes, sombras e brilhos)" % [_luz["fontes"].size(), LUZ.MAXIMO]
 	if _fonte_selecionada >= _luz["fontes"].size():
 		_fonte_selecionada = _luz["fontes"].size() - 1
@@ -995,6 +1099,30 @@ func _desenhar_guias() -> void:
 	var escala := maxf(_composicao.scale.x, 0.01)
 	if _mostrar_moldura:
 		_guias.draw_rect(Rect2(Vector2.ZERO, REFERENCIA), Color(0.65, 0.72, 0.7, 0.6), false, 1 / escala)
+	if _categoria_ativa == "Chamas":
+		var chama := _chama_em_edicao()
+		if chama.is_empty():
+			return
+		var asset: ASSET = _nos[int(_pecas[_selecionada]["id"])]
+		var pontos := asset.pontos_chama(chama)
+		if pontos.size() != 4:
+			return
+		for indice in range(pontos.size()):
+			pontos[indice] = asset.transform * pontos[indice]
+		pontos.append(pontos[0])
+		_guias.draw_polyline(pontos, Color(1, 0.8, 0.3), 1.5 / escala, true)
+		var pavio := asset.transform * asset.ponto_da_imagem(Vector2(chama["x"], chama["y"]) / 100.0)
+		_guias.draw_circle(pavio, 6 / escala, Color(1, 0.8, 0.3))
+		if bool(chama["ocultar"]):
+			var centro := Vector2(chama["corte_x"], chama["corte_y"]) / 100.0
+			var tamanho := Vector2(chama["corte_largura"], chama["corte_altura"]) / 100.0
+			var corte := PackedVector2Array()
+			for canto in [Vector2(-0.5, -0.5), Vector2(0.5, -0.5), Vector2(0.5, 0.5), Vector2(-0.5, 0.5)]:
+				corte.append(asset.transform * asset.ponto_da_imagem(centro + canto * tamanho))
+			corte.append(corte[0])
+			_guias.draw_polyline(corte, Color(1, 0.4, 0.5), 1.5 / escala, true)
+			_guias.draw_circle(asset.transform * asset.ponto_da_imagem(centro), 6 / escala, Color(1, 0.4, 0.5))
+		return
 	if _categoria_ativa == "Luz" and _pagina_luz == "Halo da luz":
 		var f := _dados_luz("halo")
 		if _mostrar_fontes and not f.is_empty() and bool(f["visivel"]) and bool(f["halo_ativo"]):
@@ -1110,6 +1238,20 @@ func _unhandled_input(evento: InputEvent) -> void:
 
 
 func _iniciar_arrasto(ponto: Vector2) -> void:
+	if _categoria_ativa == "Chamas":
+		var chama := _chama_em_edicao()
+		if chama.is_empty():
+			return
+		var asset: ASSET = _nos[int(_pecas[_selecionada]["id"])]
+		var posicao := Vector2(chama["corte_x"], chama["corte_y"]) if _editar_corte_chama else Vector2(chama["x"], chama["y"])
+		var centro := asset.transform * asset.ponto_da_imagem(posicao / 100.0)
+		if ponto.distance_to(centro) * _composicao.scale.x > 14:
+			return
+		_registrar()
+		_inicio_mouse = asset.ponto_na_imagem(ponto) * 100.0
+		_inicio_posicao = posicao
+		_arrasto = "chama_corte" if _editar_corte_chama else "chama"
+		return
 	if _categoria_ativa == "Luz" and _pagina_luz == "Halo da luz":
 		var f := _dados_luz("halo")
 		if _mostrar_fontes and not f.is_empty() and bool(f["visivel"]) and bool(f["halo_ativo"]):
@@ -1179,6 +1321,20 @@ func _iniciar_arrasto(ponto: Vector2) -> void:
 
 
 func _arrastar(mouse: Vector2) -> void:
+	if _arrasto in ["chama", "chama_corte"]:
+		var chama := _chama_em_edicao()
+		if chama.is_empty():
+			return
+		var asset: ASSET = _nos[int(_pecas[_selecionada]["id"])]
+		var ponto: Vector2 = _composicao.get_global_transform().affine_inverse() * mouse
+		var posicao := _inicio_posicao + asset.ponto_na_imagem(ponto) * 100.0 - _inicio_mouse
+		var chave_x := "corte_x" if _arrasto == "chama_corte" else "x"
+		var chave_y := "corte_y" if _arrasto == "chama_corte" else "y"
+		chama[chave_x] = clampf(posicao.x, -25, 125)
+		chama[chave_y] = clampf(posicao.y, -25, 125)
+		_atualizar_cena()
+		_sincronizar_luz()
+		return
 	if _arrasto == "vista":
 		_pan = _inicio_posicao + (mouse - _inicio_mouse) / _composicao.scale.x
 		_ajustar_enquadramento()

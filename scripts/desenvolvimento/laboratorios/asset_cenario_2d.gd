@@ -3,6 +3,7 @@ extends Node2D
 const SHADER = preload("res://scripts/desenvolvimento/laboratorios/asset_cenario_2d.gdshader")
 const CATALOGO = preload("res://scripts/desenvolvimento/laboratorios/interno/catalogo_cenario_2d.gd")
 const LUZ = preload("res://scripts/desenvolvimento/laboratorios/interno/luz_cenario_2d.gd")
+const CHAMAS = preload("res://scripts/desenvolvimento/laboratorios/interno/chamas_cenario_2d.gd")
 
 var perfil: Dictionary
 var _poligono: Polygon2D
@@ -12,6 +13,7 @@ var _imagem: Image
 var _projecao := Basis.IDENTITY
 var _inversa := Basis.IDENTITY
 var _recorte := Rect2()
+var _chamas: Array[Polygon2D] = []
 
 
 func _preparar_poligono() -> void:
@@ -58,6 +60,81 @@ func aplicar(dados: Dictionary) -> void:
 	_material.set_shader_parameter("peca_transform_y", Vector3(transform.x.y, transform.y.y, position.y))
 	_material.set_shader_parameter("contraste", float(perfil["aparencia"]["contraste"]) / 100.0)
 	_material.set_shader_parameter("saturacao", float(perfil["aparencia"]["saturacao"]) / 100.0)
+	_atualizar_chamas()
+
+
+func _atualizar_chamas() -> void:
+	var dados: Array = perfil["chamas"]
+	while _chamas.size() < dados.size():
+		var chama := Polygon2D.new()
+		chama.texture = CHAMAS.TEXTURA
+		chama.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		chama.material = ShaderMaterial.new()
+		(chama.material as ShaderMaterial).shader = CHAMAS.SHADER
+		chama.z_index = 1
+		add_child(chama)
+		_chamas.append(chama)
+	var ocultas := PackedVector4Array()
+	for indice in range(_chamas.size()):
+		var chama := _chamas[indice]
+		chama.visible = indice < dados.size() and bool(dados[indice]["visivel"])
+		if not chama.visible:
+			continue
+		var ajustes: Dictionary = dados[indice]
+		var pontos := pontos_chama(ajustes)
+		if pontos.size() != 4:
+			chama.hide()
+			continue
+		var projecao := _homografia(pontos)
+		if absf(projecao.determinant()) < 0.00001:
+			chama.hide()
+			continue
+		var matriz := projecao.inverse()
+		chama.polygon = pontos
+		var material := chama.material as ShaderMaterial
+		material.set_shader_parameter("inversa_x", Vector3(matriz.x.x, matriz.y.x, matriz.z.x))
+		material.set_shader_parameter("inversa_y", Vector3(matriz.x.y, matriz.y.y, matriz.z.y))
+		material.set_shader_parameter("inversa_z", Vector3(matriz.x.z, matriz.y.z, matriz.z.z))
+		CHAMAS.configurar(material, ajustes)
+		if bool(ajustes["ocultar"]):
+			var tamanho := Vector2(ajustes["corte_largura"], ajustes["corte_altura"]) / 100.0
+			var origem := Vector2(ajustes["corte_x"], ajustes["corte_y"]) / 100.0 - tamanho / 2.0
+			ocultas.append(Vector4(origem.x, origem.y, tamanho.x, tamanho.y))
+	_material.set_shader_parameter("quantidade_chamas_ocultas", ocultas.size())
+	ocultas.resize(CHAMAS.MAXIMO)
+	_material.set_shader_parameter("chamas_ocultas", ocultas)
+
+
+func pontos_chama(ajustes: Dictionary) -> PackedVector2Array:
+	var pontos := PackedVector2Array()
+	var base := Vector2(ajustes["x"], ajustes["y"]) / 100.0
+	var tamanho := Vector2(ajustes["largura"], ajustes["altura"]) / 100.0 * _recorte.size
+	var cantos := PackedVector2Array([Vector2(-0.5, -1), Vector2(0.5, -1), Vector2(0.5, 0), Vector2(-0.5, 0)])
+	for canto in cantos:
+		var uv: Vector2 = base + (canto * tamanho).rotated(deg_to_rad(float(ajustes["giro"]))) / _recorte.size
+		if bool(perfil["espelhar"]):
+			uv.x = 1.0 - uv.x
+		var ponto := _projecao * Vector3(uv.x, uv.y, 1)
+		if ponto.z <= 0.00001:
+			return PackedVector2Array()
+		pontos.append(Vector2(ponto.x, ponto.y) / ponto.z)
+	return pontos
+
+
+func ponto_da_imagem(uv: Vector2) -> Vector2:
+	if bool(perfil["espelhar"]):
+		uv.x = 1.0 - uv.x
+	var ponto := _projecao * Vector3(uv.x, uv.y, 1)
+	return Vector2(ponto.x, ponto.y) / ponto.z
+
+
+func ponto_na_imagem(ponto: Vector2) -> Vector2:
+	var local := transform.affine_inverse() * ponto
+	var projetado := _inversa * Vector3(local.x, local.y, 1)
+	var uv := Vector2(projetado.x, projetado.y) / projetado.z
+	if bool(perfil["espelhar"]):
+		uv.x = 1.0 - uv.x
+	return uv
 
 
 func aplicar_luz(dados: Dictionary, referencia: Node) -> void:

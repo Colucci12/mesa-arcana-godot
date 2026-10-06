@@ -2,6 +2,7 @@ extends RefCounted
 
 const PASTA := "res://images/teste_ambiente/"
 const LUZ = preload("res://scripts/desenvolvimento/laboratorios/interno/luz_cenario_2d.gd")
+const CHAMAS = preload("res://scripts/desenvolvimento/laboratorios/interno/chamas_cenario_2d.gd")
 
 # Os recortes são regiões das texturas originais; nenhum PNG é modificado.
 const PECAS := [
@@ -46,7 +47,7 @@ static func criar(indice: int, id: int) -> Dictionary:
 		"recorte": recorte, "x": 640.0, "y": 360.0, "largura": 180.0,
 		"altura": 180.0 * float(recorte[3]) / float(recorte[2]), "giro": 0.0,
 		"camada": 20.0, "visivel": true, "travada": false, "espelhar": false,
-		"proporcional": true, "aparencia": aparencia,
+		"proporcional": true, "aparencia": aparencia, "chamas": [],
 		"cantos": [[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]]}
 
 
@@ -99,6 +100,7 @@ static func validar(dados: Variant) -> Dictionary:
 	if indice < 0:
 		return {}
 	var peca := criar(indice, 0)
+	peca["chamas"] = CHAMAS.validar(dados.get("chamas"))
 	peca["aparencia"] = LUZ.validar_peca(dados.get("aparencia"), peca["arquivo"] == "mesa.png")
 	if dados.get("id") is float or dados.get("id") is int:
 		peca["id"] = int(dados["id"])
