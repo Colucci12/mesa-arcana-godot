@@ -331,6 +331,19 @@ func parar_tudo() -> void:
 	aplicar(dados)
 
 
+func suspender_reproducao() -> void:
+	# Sair da partida interrompe imediatamente, sem mudar a mixagem escolhida.
+	parar_previas()
+	for camada in _camadas.values():
+		var tween: Tween = camada["tween"]
+		if tween != null and tween.is_valid():
+			tween.kill()
+		camada["tween"] = null
+		camada["assinatura"] = ""
+		for player: AudioStreamPlayer in camada["players"]:
+			player.stop()
+
+
 func pico_saida() -> float:
 	var indice := AudioServer.get_bus_index(_buses.get("geral", ""))
 	if indice < 0:

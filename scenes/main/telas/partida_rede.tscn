@@ -1,11 +1,12 @@
 [gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/main/telas/partida_rede.gd" id="1"]
-[ext_resource type="PackedScene" path="res://scenes/main/componentes/mesa_partida.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://scenes/main/componentes/mesa_partida_perspectiva.tscn" id="2"]
 [ext_resource type="PackedScene" path="res://scenes/main/componentes/chat_partida.tscn" id="3"]
 [ext_resource type="PackedScene" path="res://scenes/main/componentes/fundo_mesa.tscn" id="4"]
 
 [node name="PartidaRede" type="Control"]
+mouse_filter = 2
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -23,6 +24,7 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="VoltarMenu" type="Button" parent="."]
+z_index = 250
 layout_mode = 1
 offset_left = 16.0
 offset_top = 16.0
@@ -40,6 +42,7 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="PainelConexao" type="PanelContainer" parent="."]
+z_index = 250
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -115,6 +118,7 @@ layout_mode = 2
 text = "Iniciar partida"
 
 [node name="Sair" type="Button" parent="."]
+z_index = 250
 visible = false
 layout_mode = 1
 anchor_left = 1.0
@@ -126,6 +130,7 @@ offset_bottom = 52.0
 text = "Sair da sala"
 
 [node name="VoltarSala" type="Button" parent="."]
+z_index = 250
 visible = false
 layout_mode = 1
 anchor_left = 0.5
@@ -137,4 +142,5 @@ offset_bottom = 110.0
 text = "Voltar à sala"
 
 [node name="ChatPartida" parent="." instance=ExtResource("3")]
+z_index = 250
 layout_mode = 1

@@ -22,6 +22,7 @@ var _luz_mesa: Dictionary = {}
 var _luz_ativa := false
 var _transformacao := Transform2D.IDENTITY
 var _interacao_ativa := false
+var cena_apresentacao: PackedScene = CENA
 
 
 static func padrao() -> Dictionary:
@@ -97,7 +98,7 @@ func _ready() -> void:
 	_captura.size_2d_override_stretch = true
 	_captura.render_target_update_mode = SubViewport.UPDATE_WHEN_VISIBLE
 	add_child(_captura)
-	_laboratorio = CENA.instantiate() as LABORATORIO
+	_laboratorio = cena_apresentacao.instantiate() as LABORATORIO
 	_laboratorio.evento_audio.connect(func(acao: String): evento_audio.emit(acao))
 	# A cena original usa FULL_RECT. Definir seu tamanho mantendo essas âncoras
 	# soma os offsets ao tamanho da captura e desloca o conjunto para fora dela.
@@ -150,6 +151,14 @@ func definir_interacao(ativa: bool) -> void:
 	_interacao_ativa = ativa
 	if not _assinatura.is_empty():
 		_laboratorio.definir_interacao_referencia(ativa and visible)
+
+
+func obter_apresentacao() -> LABORATORIO:
+	return _laboratorio
+
+
+func posicao_referencia(ponto: Vector2) -> Vector2:
+	return _transformacao.affine_inverse() * ponto
 
 
 func _pode_interagir() -> bool:

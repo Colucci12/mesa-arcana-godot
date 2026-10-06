@@ -259,7 +259,7 @@ func _aplicar_maos_trocadas(dados: Dictionary) -> void:
 	var mao_autor: MaoVisual = _maos[id_autor]
 	var mao_alvo: MaoVisual = _maos[id_alvo]
 	_mao_jogador.limpar_jogabilidade()
-	mao_autor.trocar_cartas_com(mao_alvo)
+	_trocar_maos_visuais(mao_autor, mao_alvo)
 	_atualizar_quantidade(id_autor, int(dados.get("quantidade_jogador", 0)))
 	_atualizar_quantidade(id_alvo, int(dados.get("quantidade_alvo", 0)))
 	_jogador_escolhendo_alvo_id = -1
@@ -424,7 +424,7 @@ func _atualizar_quantidade(id_jogador: int, quantidade: int) -> void:
 		rotulo.text = "%d cartas" % quantidade
 
 func _configurar_jogadores(jogadores: Array) -> void:
-	var maos := [_mao_jogador, $MaoEsquerda, _mao_oponente, $MaoDireita]
+	var maos := _obter_maos_visuais()
 	var nomes := [_nome_jogador, $NomeEsquerda, _nome_oponente, $NomeDireita]
 	var quantidades := [_quantidade_jogador, $QuantidadeEsquerda, _quantidade_oponente, $QuantidadeDireita]
 	_maos.clear()
@@ -452,6 +452,12 @@ func _configurar_jogadores(jogadores: Array) -> void:
 		nomes[posicao].show()
 		quantidades[posicao].show()
 		_atualizar_quantidade(id_jogador, int(jogador.get("quantidade_cartas", 0)))
+
+func _obter_maos_visuais() -> Array:
+	return [_mao_jogador, $MaoEsquerda, _mao_oponente, $MaoDireita]
+
+func _trocar_maos_visuais(mao_autor: MaoVisual, mao_alvo: MaoVisual) -> void:
+	mao_autor.trocar_cartas_com(mao_alvo)
 
 func _mostrar_escolha_alvo(id_autor: int) -> void:
 	_jogador_escolhendo_alvo_id = id_autor

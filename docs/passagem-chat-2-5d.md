@@ -1,5 +1,13 @@
 # Contexto para o próximo chat
 
+## Atualização — partida em perspectiva — 06/10/2026
+
+Usuário autorizou integrar a apresentação à partida multiplayer e especificou **Audio V2** e o último conjunto visual com cenário. A `ultima` da biblioteca local corresponde exatamente a **Ajuste velas v1** (oito peças, 40 fontes, cinco chamas), copiado sem alterar o original para `presets/ajuste_velas_v1.json`. Não usar **Teste SEM cenario v1** na partida.
+
+Cena inicial agora é `scenes/main/telas/partida_rede.tscn`. Ela instancia a mesa em perspectiva, derivada de `TelaMesa`, usando os mesmos comandos, regras, filtragem privada, sala e chat. `scripts/main/componentes/mesa_partida_perspectiva.gd` liga o controlador; `cenario_partida.gd` monta a composição/áudio; `apresentacao_partida.gd` reutiliza as animações do Perspectiva com dados reais, versos dos oponentes e troca de mãos. Cartas são movidas somente ao receber os eventos do servidor. Relógio acompanha a vez local; ao ocultar a partida, áudio é interrompido sem alterar a Audio V2.
+
+Implementação conferida por leitura, referências de arquivos e diff, **sem executar Godot, testes ou capturas**. Compilação e avaliação funcional/visual ainda com o usuário; `.uid` dos três scripts novos já foram gerados pelo editor e estão no workspace. Nenhum commit solicitado. Laboratórios e arquivos locais preservados. Ver a atualização no início de `contexto-projeto.md` para detalhes.
+
 ## Começar por aqui — assets 2D — 05/10/2026
 
 **Validação — 06/10/2026:** usuário executou e aprovou a chama animada, pedindo commit. Correções incluem tipos explícitos nos dados de pavio/recorte e parâmetros de textura/tamanho do pixel na função auxiliar do shader. Variação sincronizada de brilho, sombras, halo e iluminação em torno da vela fica para depois, por pedido explícito; não iniciar essa etapa automaticamente. Nenhum jogo/teste executado pelo agente.
