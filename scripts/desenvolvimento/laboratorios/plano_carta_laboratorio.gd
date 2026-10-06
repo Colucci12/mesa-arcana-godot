@@ -89,6 +89,7 @@ func sincronizar_carta() -> void:
 	var aparencia := _carta.obter_apresentacao()
 	_textura.texture = aparencia["textura"]
 	_textura.material = aparencia["material"]
+	_textura.modulate = aparencia["modulacao"]
 	_virada.transform = aparencia["virada"]
 
 

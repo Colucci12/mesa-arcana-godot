@@ -23,12 +23,6 @@ func _projetar_maos() -> void:
 			_sombras_tampo[indice].hide()
 
 
-func _apresentar_trajeto(registro: Dictionary, plano: Dictionary) -> void:
-	super._apresentar_trajeto(registro, plano)
-	# A apresentação externa acompanha também a indicação de cartas jogáveis.
-	registro["visual"].face.modulate = registro["carta"].modulate
-
-
 func obter_maos() -> Array[MaoVisual]:
 	return _maos_erguidas
 
@@ -63,6 +57,8 @@ func receber_carta(mao: MaoVisual, dados: Dictionary) -> Carta:
 		_conectar_hover_audio(carta)
 	mao.duracao_reorganizacao = duracao_trajeto
 	mao.receber_carta_do_monte(carta)
+	var registro: Dictionary = _transitos[carta.get_instance_id()]
+	_apresentar_trajeto(registro, registro["atual"])
 	carta.definir_hover_habilitado(false)
 	_atualizar_captura()
 	_projetar_maos()

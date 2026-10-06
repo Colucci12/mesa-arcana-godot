@@ -133,7 +133,7 @@ func configurar_sombra(deslocamento: Vector2, intensidade: float, usar_iluminaca
 
 func obter_apresentacao() -> Dictionary:
 	var virada := _hover_visual.get_transform() * _virada_visual.get_transform()
-	return {"textura": _textura_carta.texture, "material": _textura_carta.material,
+	return {"textura": _textura_carta.texture, "material": _textura_carta.material, "modulacao": modulate,
 		"virada": virada, "sombra": {
 			"deslocamento": virada.basis_xform(_sombra.position - _textura_carta.position),
 			"intensidade": _sombra.self_modulate.a}}

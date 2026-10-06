@@ -1,5 +1,13 @@
 # Contexto para o próximo chat
 
+## Ajustes após validação da V0 — 06/10/2026
+
+Usuário confirmou que a integração funcionou e pediu primeiro o checkpoint **a5c98e6 — Registra V0 da mesa final com multiplayer integrado**, feito na `codex/audio`. Depois, autorizou corrigir cartas recebidas que só escureciam após o trajeto, fundo verde e adicionar ajuste de enquadramento na partida.
+
+A captura temporária agora copia a modulação fornecida pela própria `Carta`, em vez de tentar modular a face externa com um shader que ignora essa propriedade. A lista privada de cartas jogáveis é aplicada antes de iniciar a compra. Usuário rejeitou o fundo preto na conexão/menu: o verde original está restaurado em `partida_rede.tscn`. A primeira tentativa de preto na partida estava em Z −200 e ficava abaixo da conexão. Agora o preto pertence a `mesa_partida_perspectiva.tscn`, nó `FundoPartida` opaco FULL_RECT em Z 0: primeiro filho, cenário depois, interface acima. Cobre a tela quando a mesa está visível e some com ela ao voltar à sala. O fundo preto anterior criado no script foi removido; nenhuma cor de menu é alterada. Menu já sai da árvore ao trocar a cena; nenhum singleton ou roteador novo foi acrescentado. Conferência por leitura, sem executar Godot.
+
+**Ajustar enquadramento**, no canto superior esquerdo: arrasto esquerdo/meio, roda para zoom mantendo o ponto sob o mouse, campos de zoom/horizontal/vertical, restaurar referência do laboratório e copiar JSON dos valores. Concluir devolve interação às cartas. Estado vale só nesta sessão e não grava bibliotecas/presets; mantém o frame entre rodadas. Após a correção do fundo independente, usuário pediu commit dos ajustes. O agente não executou Godot/testes/capturas. Ver detalhes no início de `contexto-projeto.md`.
+
 ## Atualização — partida em perspectiva — 06/10/2026
 
 Usuário autorizou integrar a apresentação à partida multiplayer e especificou **Audio V2** e o último conjunto visual com cenário. A `ultima` da biblioteca local corresponde exatamente a **Ajuste velas v1** (oito peças, 40 fontes, cinco chamas), copiado sem alterar o original para `presets/ajuste_velas_v1.json`. Não usar **Teste SEM cenario v1** na partida.
