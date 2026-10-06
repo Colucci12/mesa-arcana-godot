@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://clsi6ne60facx"
-path="res://.godot/imported/ornamentos.png-69e41e4b5640950ab24373b623350a02.ctex"
+path="res://.godot/imported/ornamentos.png-e632dcf194e7c5386abe2b9ce7a4e97e.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://images/teste_ambiente/ornamentos.png"
-dest_files=["res://.godot/imported/ornamentos.png-69e41e4b5640950ab24373b623350a02.ctex"]
+source_file="res://images/ambiente/ornamentos.png"
+dest_files=["res://.godot/imported/ornamentos.png-e632dcf194e7c5386abe2b9ce7a4e97e.ctex"]
 
 [params]
 

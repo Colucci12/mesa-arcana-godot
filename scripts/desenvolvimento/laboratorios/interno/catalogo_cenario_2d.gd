@@ -1,6 +1,6 @@
 extends RefCounted
 
-const PASTA := "res://images/teste_ambiente/"
+const PASTA := "res://images/ambiente/"
 const LUZ = preload("res://scripts/desenvolvimento/laboratorios/interno/luz_cenario_2d.gd")
 const CHAMAS = preload("res://scripts/desenvolvimento/laboratorios/interno/chamas_cenario_2d.gd")
 

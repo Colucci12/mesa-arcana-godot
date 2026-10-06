@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://nhfjoenxgnrg"
-path="res://.godot/imported/velas.png-5c77f0a11e7e2516572b66ab424a6939.ctex"
+uid="uid://cfqvqadl5nwue"
+path="res://.godot/imported/pack_icones.png-c23a1ebf24bfb8a7b30544c8426ba68e.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://images/teste_ambiente/velas.png"
-dest_files=["res://.godot/imported/velas.png-5c77f0a11e7e2516572b66ab424a6939.ctex"]
+source_file="res://images/UI/pack_icones.png"
+dest_files=["res://.godot/imported/pack_icones.png-c23a1ebf24bfb8a7b30544c8426ba68e.ctex"]
 
 [params]
 

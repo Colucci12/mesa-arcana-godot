@@ -1,6 +1,7 @@
 extends "res://scripts/main/componentes/mesa_partida.gd"
 
 const CENARIO = preload("res://scripts/main/componentes/cenario_partida.gd")
+const VISUAL_UI = preload("res://scripts/main/componentes/tema_partida.gd")
 
 @onready var _botao_comprar: Button = $ComprarCarta
 @onready var _botao_enquadramento: Button = $EditarEnquadramento
@@ -32,6 +33,7 @@ func _ready() -> void:
 				filho.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	super._ready()
+	VISUAL_UI.aplicar_mesa(self)
 	_montar_enquadramento()
 	_posicionar_interface()
 	resized.connect(_posicionar_interface)
@@ -114,6 +116,7 @@ func _atualizar_controles() -> void:
 	_cenario.definir_vez_local(_partida_ativa and _interacoes_liberadas and _jogador_da_vez_id == id_jogador_local)
 	_botao_comprar.disabled = not _pode_agir() or (_compra_acumulada == 0 and (not _pode_comprar or _carta_comprada_jogavel_id > 0))
 	_botao_comprar.text = "Comprar pilha (+%d)" % _compra_acumulada if _compra_acumulada > 0 else "Comprar carta"
+	_indicador_turno.add_theme_color_override("font_color", VISUAL_UI.MENU.OURO if _partida_ativa and _jogador_da_vez_id == id_jogador_local else VISUAL_UI.MENU.CREME)
 
 
 func _pode_agir() -> bool:
@@ -126,18 +129,15 @@ func _montar_enquadramento() -> void:
 	_painel_enquadramento.custom_minimum_size.x = 280
 	_painel_enquadramento.z_index = 240
 	_painel_enquadramento.hide()
-	var estilo := StyleBoxFlat.new()
-	estilo.bg_color = Color(0.035, 0.035, 0.04, 0.96)
-	for lado in [SIDE_LEFT, SIDE_TOP, SIDE_RIGHT, SIDE_BOTTOM]:
-		estilo.set_content_margin(lado, 12)
-	_painel_enquadramento.add_theme_stylebox_override("panel", estilo)
+	_painel_enquadramento.theme = VISUAL_UI.tema()
+	_painel_enquadramento.add_theme_stylebox_override("panel", VISUAL_UI.painel())
 	add_child(_painel_enquadramento)
 	var conteudo := VBoxContainer.new()
 	conteudo.add_theme_constant_override("separation", 8)
 	_painel_enquadramento.add_child(conteudo)
 	var ajuda := Label.new()
 	ajuda.text = "Arraste a cena com o mouse.\nUse a roda para aproximar ou afastar."
-	ajuda.add_theme_font_size_override("font_size", 13)
+	ajuda.add_theme_font_size_override("font_size", 17)
 	conteudo.add_child(ajuda)
 	for definicao in [["zoom", "Zoom (%)", 20, 400, 0.1], ["x", "Horizontal", -5000, 5000, 0.1], ["y", "Vertical", -5000, 5000, 0.1]]:
 		var linha := HBoxContainer.new()
@@ -155,16 +155,18 @@ func _montar_enquadramento() -> void:
 		_campos_enquadramento[str(definicao[0])] = numero
 		numero.value_changed.connect(_alterar_enquadramento.bind(str(definicao[0])))
 	var restaurar := Button.new()
-	restaurar.text = "Restaurar referência do laboratório"
+	restaurar.text = "Restaurar referência"
+	restaurar.theme_type_variation = &"AbaMenu"
 	restaurar.pressed.connect(_cenario.restaurar_enquadramento)
 	conteudo.add_child(restaurar)
 	var copiar := Button.new()
 	copiar.text = "Copiar enquadramento"
+	copiar.theme_type_variation = &"AbaMenu"
 	copiar.pressed.connect(_copiar_enquadramento)
 	conteudo.add_child(copiar)
 	_mensagem_enquadramento = Label.new()
 	_mensagem_enquadramento.text = "Ajustes valem para esta sessão."
-	_mensagem_enquadramento.add_theme_font_size_override("font_size", 12)
+	_mensagem_enquadramento.add_theme_font_size_override("font_size", 15)
 	conteudo.add_child(_mensagem_enquadramento)
 	_cenario.enquadramento_alterado.connect(_sincronizar_enquadramento)
 	var atual := _cenario.obter_enquadramento()
@@ -212,8 +214,24 @@ func _ao_alterar_visibilidade() -> void:
 
 
 func _posicionar_escolha_cor() -> void:
-	_escolha_cor.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	_escolha_cor.position = size * 0.5 - Vector2(50, 72)
+	_centralizar_escolha(_escolha_cor)
+
+
+func _mostrar_escolha_alvo(id_autor: int) -> void:
+	super._mostrar_escolha_alvo(id_autor)
+	for filho in _escolha_alvo.get_children():
+		if filho is Button:
+			filho.theme_type_variation = &"AcaoPartida"
+			filho.custom_minimum_size = Vector2(220, 44)
+			filho.clip_text = true
+			filho.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+			filho.tooltip_text = filho.text
+	_centralizar_escolha(_escolha_alvo)
+
+
+func _centralizar_escolha(escolha: VBoxContainer) -> void:
+	var dimensoes := escolha.get_combined_minimum_size()
+	_posicionar_rotulo(escolha, Vector2(0.5, 0.5), -dimensoes * 0.5, dimensoes)
 
 
 func _posicionar_interface() -> void:
@@ -222,12 +240,14 @@ func _posicionar_interface() -> void:
 	_mensagem.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_posicionar_rotulo(_nome_jogador, Vector2(0, 1), Vector2(16, -94), Vector2(200, 32))
 	_posicionar_rotulo(_quantidade_jogador, Vector2(0, 1), Vector2(16, -62), Vector2(200, 26))
-	_posicionar_rotulo(_nome_oponente, Vector2(0.5, 0), Vector2(-130, 105), Vector2(260, 32))
-	_posicionar_rotulo(_quantidade_oponente, Vector2(0.5, 0), Vector2(-130, 137), Vector2(260, 26))
+	_posicionar_rotulo(_nome_oponente, Vector2(0.5, 0), Vector2(-130, 120), Vector2(260, 32))
+	_posicionar_rotulo(_quantidade_oponente, Vector2(0.5, 0), Vector2(-130, 152), Vector2(260, 26))
 	_nome_oponente.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_quantidade_oponente.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_posicionar_rotulo(_botao_comprar, Vector2(1, 1), Vector2(-190, -152), Vector2(174, 40))
-	_posicionar_rotulo(_botao_passar, Vector2(1, 1), Vector2(-190, -104), Vector2(174, 40))
+	_posicionar_rotulo(_botao_comprar, Vector2(1, 1), Vector2(-256, -168), Vector2(240, 48))
+	_posicionar_rotulo(_botao_passar, Vector2(1, 1), Vector2(-256, -112), Vector2(240, 48))
+	_centralizar_escolha(_escolha_cor)
+	_centralizar_escolha(_escolha_alvo)
 
 
 func _posicionar_rotulo(controle: Control, ancora: Vector2, deslocamento: Vector2, dimensoes: Vector2) -> void:

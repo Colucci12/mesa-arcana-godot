@@ -1,11 +1,21 @@
 extends Node
 
+signal volume_musica_menu_alterado(volume: float)
+
+var _volume_musica_menu: float = 0.25
+
 @onready var event_bus: BarramentoEventos = $EventBus
 @onready var network_manager: GerenciadorRede = $NetworkManager
 @onready var match_endpoint: EndpointPartida = $MatchEndpoint
 @onready var chat_endpoint: EndpointChat = $ChatEndpoint
+@onready var _musica_menu: AudioStreamPlayer = $MusicaMenu
 
 func _ready() -> void:
+	# Cópia para repetir só no menu, preservando o recurso usado nos laboratórios.
+	var musica := _musica_menu.stream.duplicate() as AudioStreamOggVorbis
+	musica.loop = true
+	_musica_menu.stream = musica
+	_musica_menu.volume_linear = _volume_musica_menu
 	match_endpoint.configurar(network_manager, event_bus)
 	chat_endpoint.configurar(network_manager, event_bus)
 	network_manager.partida_interrompida.connect(match_endpoint.interromper)
@@ -15,6 +25,21 @@ func _ready() -> void:
 	network_manager.status_alterado.connect(_ao_alterar_status)
 	event_bus.comando_solicitado.connect(match_endpoint.enviar_comando)
 	event_bus.mensagem_chat_solicitada.connect(chat_endpoint.enviar_mensagem)
+
+func definir_musica_menu(ativa: bool) -> void:
+	if ativa:
+		if not _musica_menu.playing:
+			_musica_menu.play()
+	else:
+		_musica_menu.stop()
+
+func obter_volume_musica_menu() -> float:
+	return _volume_musica_menu
+
+func definir_volume_musica_menu(volume: float) -> void:
+	_volume_musica_menu = clampf(volume, 0.0, 1.0)
+	_musica_menu.volume_linear = _volume_musica_menu
+	volume_musica_menu_alterado.emit(_volume_musica_menu)
 
 func _ao_confirmar_identidade(id_jogador: int) -> void:
 	event_bus.identidade_definida.emit(id_jogador)

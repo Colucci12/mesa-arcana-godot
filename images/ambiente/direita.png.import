@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bxcu8f326dqun"
-path="res://.godot/imported/chamas.png-80fced4890d23549dd9d3990f792e772.ctex"
+uid="uid://bgdtpsodk7mn7"
+path="res://.godot/imported/direita.png-ad51f931a75a1e96138d7b2e655e907f.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://images/teste_ambiente/chamas.png"
-dest_files=["res://.godot/imported/chamas.png-80fced4890d23549dd9d3990f792e772.ctex"]
+source_file="res://images/ambiente/direita.png"
+dest_files=["res://.godot/imported/direita.png-ad51f931a75a1e96138d7b2e655e907f.ctex"]
 
 [params]
 

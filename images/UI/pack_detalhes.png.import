@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c1e6jwb5fa1ja"
-path="res://.godot/imported/esquerda.png-8ea387cb354821c181e5454b97185cdc.ctex"
+uid="uid://dq2nyfwlbsmj0"
+path="res://.godot/imported/pack_detalhes.png-80457f409a37e891b27feb13730b7eb1.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://images/teste_ambiente/esquerda.png"
-dest_files=["res://.godot/imported/esquerda.png-8ea387cb354821c181e5454b97185cdc.ctex"]
+source_file="res://images/UI/pack_detalhes.png"
+dest_files=["res://.godot/imported/pack_detalhes.png-80457f409a37e891b27feb13730b7eb1.ctex"]
 
 [params]
 

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cls611r8l11ou"
-path="res://.godot/imported/fundo.png-3c334c17281c0c62d0ff713df4c3bcee.ctex"
+uid="uid://bylsqmr8pd6vt"
+path="res://.godot/imported/tigela.png-34122d7859d468957a733920b9bc6673.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://images/teste_ambiente/fundo.png"
-dest_files=["res://.godot/imported/fundo.png-3c334c17281c0c62d0ff713df4c3bcee.ctex"]
+source_file="res://images/ambiente/tigela.png"
+dest_files=["res://.godot/imported/tigela.png-34122d7859d468957a733920b9bc6673.ctex"]
 
 [params]
 

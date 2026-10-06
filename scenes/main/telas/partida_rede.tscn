@@ -1,9 +1,18 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://scripts/main/telas/partida_rede.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/main/componentes/mesa_partida_perspectiva.tscn" id="2"]
 [ext_resource type="PackedScene" path="res://scenes/main/componentes/chat_partida.tscn" id="3"]
-[ext_resource type="PackedScene" path="res://scenes/main/componentes/fundo_mesa.tscn" id="4"]
+[ext_resource type="PackedScene" path="res://scenes/main/componentes/fundo_menu.tscn" id="4"]
+[ext_resource type="Script" path="res://scripts/main/componentes/layout_menu.gd" id="5"]
+[ext_resource type="Texture2D" path="res://images/UI/pack_menu.png" id="6"]
+[ext_resource type="Texture2D" path="res://images/UI/pack_detalhes.png" id="7"]
+[ext_resource type="PackedScene" path="res://scenes/main/componentes/volume_musica_menu.tscn" id="8"]
+
+[sub_resource type="AtlasTexture" id="Divisor"]
+atlas = ExtResource("7")
+region = Rect2(403, 212, 553, 91)
+filter_clip = true
 
 [node name="PartidaRede" type="Control"]
 mouse_filter = 2
@@ -17,20 +26,6 @@ script = ExtResource("1")
 
 [node name="PlanoFundo" parent="." instance=ExtResource("4")]
 layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="VoltarMenu" type="Button" parent="."]
-z_index = 250
-layout_mode = 1
-offset_left = 16.0
-offset_top = 16.0
-offset_right = 176.0
-offset_bottom = 52.0
-text = "Voltar ao menu"
 
 [node name="MesaPartida" parent="." instance=ExtResource("2")]
 visible = false
@@ -41,106 +36,322 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="PainelConexao" type="PanelContainer" parent="."]
-z_index = 250
+[node name="ApresentacaoSala" type="Control" parent="."]
+texture_filter = 2
 layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -260.0
-offset_top = -210.0
-offset_right = 260.0
-offset_bottom = 210.0
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("5")
 
-[node name="Conteudo" type="VBoxContainer" parent="PainelConexao"]
+[node name="Conteudo" type="Control" parent="ApresentacaoSala"]
+layout_mode = 0
+offset_right = 1280.0
+offset_bottom = 720.0
+mouse_filter = 2
+
+[node name="Logo" type="TextureRect" parent="ApresentacaoSala/Conteudo"]
+texture_filter = 2
+layout_mode = 0
+offset_left = 458.0
+offset_top = 15.0
+offset_right = 822.0
+offset_bottom = 111.0
+mouse_filter = 2
+texture = ExtResource("6")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Chamada" type="Label" parent="ApresentacaoSala/Conteudo"]
+layout_mode = 0
+offset_left = 300.0
+offset_top = 114.0
+offset_right = 980.0
+offset_bottom = 140.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.78, 0.81, 0.72, 1)
+theme_override_font_sizes/font_size = 19
+text = "UMA MESA PARA CADA ENCONTRO"
+horizontal_alignment = 1
+
+[node name="PainelConexao" type="PanelContainer" parent="ApresentacaoSala/Conteudo"]
+layout_mode = 0
+offset_left = 112.0
+offset_top = 142.0
+offset_right = 568.0
+offset_bottom = 704.0
+
+[node name="Conteudo" type="VBoxContainer" parent="ApresentacaoSala/Conteudo/PainelConexao"]
 layout_mode = 2
-theme_override_constants/separation = 12
+theme_override_constants/separation = 6
 
-[node name="Titulo" type="Label" parent="PainelConexao/Conteudo"]
+[node name="Titulo" type="Label" parent="ApresentacaoSala/Conteudo/PainelConexao/Conteudo"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 30
-text = "JUNO em rede"
-horizontal_alignment = 1
+text = "Crie uma sala"
 
-[node name="Instrucao" type="Label" parent="PainelConexao/Conteudo"]
+[node name="Instrucao" type="Label" parent="ApresentacaoSala/Conteudo/PainelConexao/Conteudo"]
+custom_minimum_size = Vector2(0, 26)
 layout_mode = 2
-text = "Sala para 2 a 4 jogadores."
-horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.65, 0.72, 0.68, 1)
+theme_override_font_sizes/font_size = 20
+text = "Convide até três amigos para jogar."
+autowrap_mode = 3
 
-[node name="Nome" type="LineEdit" parent="PainelConexao/Conteudo"]
+[node name="Divisor" type="TextureRect" parent="ApresentacaoSala/Conteudo/PainelConexao/Conteudo"]
+custom_minimum_size = Vector2(0, 18)
+texture_filter = 2
 layout_mode = 2
-placeholder_text = "Seu nome"
+mouse_filter = 2
+texture = SubResource("Divisor")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Formulario" type="VBoxContainer" parent="ApresentacaoSala/Conteudo/PainelConexao/Conteudo"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Modo" type="HBoxContainer" parent="ApresentacaoSala/Conteudo/PainelConexao/Conteudo/Formulario"]
+layout_mode = 2
+
+[node name="Criar" type="Button" parent="ApresentacaoSala/Conteudo/PainelConexao/Conteudo/Formulario/Modo"]
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = "AbaMenu"
+toggle_mode = true
+button_pressed = true
+text = "Criar sala"
+theme_override_font_sizes/font_size = 18
+
+[node name="Entrar" type="Button" parent="ApresentacaoSala/Conteudo/PainelConexao/Conteudo/Formulario/Modo"]
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = "AbaMenu"
+toggle_mode = true
+text = "Entrar em uma sala"
+theme_override_font_sizes/font_size = 18
+
+[node name="NomeLegenda" type="Label" parent="ApresentacaoSala/Conteudo/PainelConexao/Conteudo/Formulario"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "SEU NOME"
+
+[node name="Nome" type="LineEdit" parent="ApresentacaoSala/Conteudo/PainelConexao/Conteudo/Formulario"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+placeholder_text = "Como seus amigos te chamam?"
 max_length = 24
 
-[node name="IP" type="LineEdit" parent="PainelConexao/Conteudo"]
+[node name="Endereco" type="HBoxContainer" parent="ApresentacaoSala/Conteudo/PainelConexao/Conteudo/Formulario"]
+layout_mode = 2
+
+[node name="IPGrupo" type="VBoxContainer" parent="ApresentacaoSala/Conteudo/PainelConexao/Conteudo/Formulario/Endereco"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+
+[node name="Legenda" type="Label" parent="ApresentacaoSala/Conteudo/PainelConexao/Conteudo/Formulario/Endereco/IPGrupo"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "IP DO ANFITRIÃO"
+
+[node name="IP" type="LineEdit" parent="ApresentacaoSala/Conteudo/PainelConexao/Conteudo/Formulario/Endereco/IPGrupo"]
+custom_minimum_size = Vector2(0, 46)
 layout_mode = 2
 text = "127.0.0.1"
-placeholder_text = "IP do anfitrião"
+placeholder_text = "Endereço do anfitrião"
 
-[node name="Porta" type="LineEdit" parent="PainelConexao/Conteudo"]
+[node name="PortaGrupo" type="VBoxContainer" parent="ApresentacaoSala/Conteudo/PainelConexao/Conteudo/Formulario/Endereco"]
+custom_minimum_size = Vector2(104, 0)
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Legenda" type="Label" parent="ApresentacaoSala/Conteudo/PainelConexao/Conteudo/Formulario/Endereco/PortaGrupo"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "PORTA"
+
+[node name="Porta" type="LineEdit" parent="ApresentacaoSala/Conteudo/PainelConexao/Conteudo/Formulario/Endereco/PortaGrupo"]
+custom_minimum_size = Vector2(0, 46)
 layout_mode = 2
 text = "9999"
 placeholder_text = "Porta"
+max_length = 5
 
-[node name="Acoes" type="HBoxContainer" parent="PainelConexao/Conteudo"]
+[node name="Acoes" type="HBoxContainer" parent="ApresentacaoSala/Conteudo/PainelConexao/Conteudo/Formulario"]
 layout_mode = 2
-theme_override_constants/separation = 12
 
-[node name="Hospedar" type="Button" parent="PainelConexao/Conteudo/Acoes"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Hospedar"
-
-[node name="Entrar" type="Button" parent="PainelConexao/Conteudo/Acoes"]
+[node name="Hospedar" type="Button" parent="ApresentacaoSala/Conteudo/PainelConexao/Conteudo/Formulario/Acoes"]
+custom_minimum_size = Vector2(0, 64)
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Entrar"
+theme_override_font_sizes/font_size = 26
+text = "ABRIR MINHA SALA"
 
-[node name="Status" type="Label" parent="PainelConexao/Conteudo"]
-custom_minimum_size = Vector2(0, 42)
+[node name="Entrar" type="Button" parent="ApresentacaoSala/Conteudo/PainelConexao/Conteudo/Formulario/Acoes"]
+visible = false
+custom_minimum_size = Vector2(0, 64)
 layout_mode = 2
-horizontal_alignment = 1
-vertical_alignment = 1
-autowrap_mode = 3
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 26
+text = "ENTRAR NA SALA"
 
-[node name="Jogadores" type="Label" parent="PainelConexao/Conteudo"]
-layout_mode = 2
-horizontal_alignment = 1
-text = ""
-
-[node name="Iniciar" type="Button" parent="PainelConexao/Conteudo"]
+[node name="Resumo" type="VBoxContainer" parent="ApresentacaoSala/Conteudo/PainelConexao/Conteudo"]
 visible = false
 layout_mode = 2
-text = "Iniciar partida"
+theme_override_constants/separation = 14
+
+[node name="Nome" type="Label" parent="ApresentacaoSala/Conteudo/PainelConexao/Conteudo/Resumo"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = ""
+
+[node name="EnderecoLegenda" type="Label" parent="ApresentacaoSala/Conteudo/PainelConexao/Conteudo/Resumo"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "ENDEREÇO PARA COMPARTILHAR"
+
+[node name="Enderecos" type="OptionButton" parent="ApresentacaoSala/Conteudo/PainelConexao/Conteudo/Resumo"]
+custom_minimum_size = Vector2(0, 46)
+layout_mode = 2
+theme_type_variation = "AbaMenu"
+
+[node name="Informacao" type="Label" parent="ApresentacaoSala/Conteudo/PainelConexao/Conteudo/Resumo"]
+custom_minimum_size = Vector2(0, 80)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.65, 0.72, 0.68, 1)
+text = ""
+autowrap_mode = 3
+
+[node name="Copiar" type="Button" parent="ApresentacaoSala/Conteudo/PainelConexao/Conteudo/Resumo"]
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
+text = "COPIAR ENDEREÇO"
+
+[node name="Espaco" type="Control" parent="ApresentacaoSala/Conteudo/PainelConexao/Conteudo"]
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+
+[node name="Status" type="Label" parent="ApresentacaoSala/Conteudo/PainelConexao/Conteudo"]
+custom_minimum_size = Vector2(0, 32)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.84, 0.69, 0.41, 1)
+theme_override_font_sizes/font_size = 19
+text = "Você pode reunir de 2 a 4 jogadores."
+autowrap_mode = 3
+
+[node name="PainelSala" type="PanelContainer" parent="ApresentacaoSala/Conteudo"]
+layout_mode = 0
+offset_left = 612.0
+offset_top = 142.0
+offset_right = 1168.0
+offset_bottom = 704.0
+
+[node name="Conteudo" type="VBoxContainer" parent="ApresentacaoSala/Conteudo/PainelSala"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Titulo" type="Label" parent="ApresentacaoSala/Conteudo/PainelSala/Conteudo"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "Os lugares à mesa"
+
+[node name="Jogadores" type="Label" parent="ApresentacaoSala/Conteudo/PainelSala/Conteudo"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.65, 0.72, 0.68, 1)
+theme_override_font_sizes/font_size = 19
+text = "Quatro lugares. Uma boa companhia."
+
+[node name="Vagas" type="VBoxContainer" parent="ApresentacaoSala/Conteudo/PainelSala/Conteudo"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Espaco" type="Control" parent="ApresentacaoSala/Conteudo/PainelSala/Conteudo"]
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+
+[node name="Espera" type="Label" parent="ApresentacaoSala/Conteudo/PainelSala/Conteudo"]
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.84, 0.69, 0.41, 1)
+theme_override_font_sizes/font_size = 19
+text = "Uma partida começa com pelo menos 2 jogadores."
+autowrap_mode = 3
+
+[node name="Iniciar" type="Button" parent="ApresentacaoSala/Conteudo/PainelSala/Conteudo"]
+visible = false
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+theme_override_font_sizes/font_size = 27
+text = "COMEÇAR A PARTIDA"
+
+[node name="Rodape" type="Label" parent="ApresentacaoSala/Conteudo"]
+layout_mode = 0
+offset_left = 300.0
+offset_top = 704.0
+offset_right = 980.0
+offset_bottom = 720.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.56, 0.65, 0.62, 1)
+theme_override_font_sizes/font_size = 14
+text = "REÚNA OS AMIGOS. AS CARTAS FAZEM O RESTO."
+horizontal_alignment = 1
+
+[node name="VoltarMenu" type="Button" parent="."]
+texture_filter = 2
+z_index = 250
+layout_mode = 1
+offset_left = 24.0
+offset_top = 24.0
+offset_right = 204.0
+offset_bottom = 68.0
+theme_type_variation = "AbaMenu"
+theme_override_font_sizes/font_size = 18
+text = "Voltar ao menu"
 
 [node name="Sair" type="Button" parent="."]
+texture_filter = 2
 z_index = 250
 visible = false
 layout_mode = 1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -160.0
-offset_right = -16.0
-offset_top = 16.0
-offset_bottom = 52.0
+offset_left = -204.0
+offset_right = -24.0
+offset_top = 24.0
+offset_bottom = 68.0
+theme_type_variation = "AbaMenu"
+theme_override_font_sizes/font_size = 18
 text = "Sair da sala"
 
 [node name="VoltarSala" type="Button" parent="."]
+texture_filter = 2
 z_index = 250
 visible = false
 layout_mode = 1
 anchor_left = 0.5
 anchor_right = 0.5
-offset_left = -100.0
-offset_right = 100.0
-offset_top = 72.0
-offset_bottom = 110.0
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = -140.0
+offset_right = 140.0
+offset_top = -64.0
+offset_bottom = -16.0
+theme_type_variation = "AbaMenu"
+theme_override_font_sizes/font_size = 18
 text = "Voltar à sala"
 
 [node name="ChatPartida" parent="." instance=ExtResource("3")]
 z_index = 250
 layout_mode = 1
+
+[node name="VolumeMusica" parent="." instance=ExtResource("8")]

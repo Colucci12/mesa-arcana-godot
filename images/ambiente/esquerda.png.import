@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bylsqmr8pd6vt"
-path="res://.godot/imported/tigela.png-632d1f589a116067c383a60b060fd561.ctex"
+uid="uid://c1e6jwb5fa1ja"
+path="res://.godot/imported/esquerda.png-1e53fec7100d70db53e99e2a2bbcb768.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://images/teste_ambiente/tigela.png"
-dest_files=["res://.godot/imported/tigela.png-632d1f589a116067c383a60b060fd561.ctex"]
+source_file="res://images/ambiente/esquerda.png"
+dest_files=["res://.godot/imported/esquerda.png-1e53fec7100d70db53e99e2a2bbcb768.ctex"]
 
 [params]
 

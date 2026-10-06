@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bk36gvf1kdp4s"
-path="res://.godot/imported/janela.png-85c12351c72d10cf1c7424e3eea36466.ctex"
+uid="uid://nhfjoenxgnrg"
+path="res://.godot/imported/velas.png-95511ee3712345db11feaf7f38bc681a.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://images/teste_ambiente/janela.png"
-dest_files=["res://.godot/imported/janela.png-85c12351c72d10cf1c7424e3eea36466.ctex"]
+source_file="res://images/ambiente/velas.png"
+dest_files=["res://.godot/imported/velas.png-95511ee3712345db11feaf7f38bc681a.ctex"]
 
 [params]
 

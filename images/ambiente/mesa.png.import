@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://x4d7fd4h6m6"
-path="res://.godot/imported/heras.png-8f88d8fa4700565f754b854ef8440279.ctex"
+uid="uid://ctdf32ua361pf"
+path="res://.godot/imported/mesa.png-b457c138fe0812950e6e949d68d10700.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://images/teste_ambiente/heras.png"
-dest_files=["res://.godot/imported/heras.png-8f88d8fa4700565f754b854ef8440279.ctex"]
+source_file="res://images/ambiente/mesa.png"
+dest_files=["res://.godot/imported/mesa.png-b457c138fe0812950e6e949d68d10700.ctex"]
 
 [params]
 

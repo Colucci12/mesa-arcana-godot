@@ -2,7 +2,7 @@ extends RefCounted
 
 # Mesmo limite das áreas ocultas em asset_cenario_2d.gdshader.
 const MAXIMO := 16
-const TEXTURA = preload("res://images/teste_ambiente/chamas.png")
+const TEXTURA = preload("res://images/ambiente/chamas.png")
 const SHADER = preload("res://scripts/desenvolvimento/laboratorios/chama_cenario_2d.gdshader")
 const TAMANHO_QUADRO := Vector2(240, 400)
 # A folha não tem espaçamento regular. Recortes e bases alinham os oito desenhos pelo pavio.

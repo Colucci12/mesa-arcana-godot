@@ -1,73 +1,210 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scripts/main/telas/menu_principal.gd" id="1"]
-[ext_resource type="PackedScene" path="res://scenes/main/componentes/fundo_mesa.tscn" id="2"]
-[ext_resource type="FontFile" path="res://images/BarlowCondensed-Bold.ttf" id="3"]
+[ext_resource type="PackedScene" path="res://scenes/main/componentes/fundo_menu.tscn" id="2"]
+[ext_resource type="Texture2D" path="res://images/UI/pack_menu.png" id="3"]
+[ext_resource type="Script" path="res://scripts/main/componentes/layout_menu.gd" id="4"]
+[ext_resource type="Texture2D" path="res://images/UI/pack_detalhes.png" id="5"]
+[ext_resource type="PackedScene" path="res://scenes/main/componentes/volume_musica_menu.tscn" id="6"]
+
+[sub_resource type="AtlasTexture" id="Divisor"]
+atlas = ExtResource("5")
+region = Rect2(403, 212, 553, 91)
+filter_clip = true
 
 [node name="MenuPrincipal" type="Control"]
+texture_filter = 2
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
 script = ExtResource("1")
 
 [node name="PlanoFundo" parent="." instance=ExtResource("2")]
 layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
 
-[node name="Centro" type="CenterContainer" parent="."]
+[node name="Interface" type="Control" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("4")
 
-[node name="Opcoes" type="VBoxContainer" parent="Centro"]
+[node name="Conteudo" type="Control" parent="Interface"]
+layout_mode = 0
+offset_right = 1280.0
+offset_bottom = 720.0
+mouse_filter = 2
+
+[node name="Logo" type="TextureRect" parent="Interface/Conteudo"]
+texture_filter = 2
+layout_mode = 0
+offset_left = 70.0
+offset_top = 70.0
+offset_right = 740.0
+offset_bottom = 294.0
+mouse_filter = 2
+texture = ExtResource("3")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Chamada" type="Label" parent="Interface/Conteudo"]
+layout_mode = 0
+offset_left = 150.0
+offset_top = 296.0
+offset_right = 660.0
+offset_bottom = 328.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.78, 0.81, 0.72, 1)
+theme_override_font_sizes/font_size = 22
+text = "Um encontro. Uma mesa. Muitas histórias."
+horizontal_alignment = 1
+
+[node name="Divisor" type="TextureRect" parent="Interface/Conteudo"]
+texture_filter = 2
+layout_mode = 0
+offset_left = 250.0
+offset_top = 324.0
+offset_right = 560.0
+offset_bottom = 366.0
+mouse_filter = 2
+texture = SubResource("Divisor")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Jogar" type="Button" parent="Interface/Conteudo"]
+layout_mode = 0
+offset_left = 195.0
+offset_top = 366.0
+offset_right = 615.0
+offset_bottom = 446.0
+focus_neighbor_bottom = NodePath("../Regras")
+theme_override_font_sizes/font_size = 29
+text = "JOGAR COM AMIGOS"
+
+[node name="Regras" type="Button" parent="Interface/Conteudo"]
+layout_mode = 0
+offset_left = 235.0
+offset_top = 461.0
+offset_right = 575.0
+offset_bottom = 527.0
+focus_neighbor_top = NodePath("../Jogar")
+focus_neighbor_bottom = NodePath("../Sair")
+theme_override_font_sizes/font_size = 24
+text = "COMO JOGAR"
+
+[node name="Sair" type="Button" parent="Interface/Conteudo"]
+layout_mode = 0
+offset_left = 275.0
+offset_top = 545.0
+offset_right = 535.0
+offset_bottom = 601.0
+focus_neighbor_top = NodePath("../Regras")
+theme_override_font_sizes/font_size = 21
+text = "SAIR"
+
+[node name="Rodape" type="Label" parent="Interface/Conteudo"]
+layout_mode = 0
+offset_left = 130.0
+offset_top = 664.0
+offset_right = 680.0
+offset_bottom = 690.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.58, 0.68, 0.65, 1)
+theme_override_font_sizes/font_size = 15
+text = "2 A 4 JOGADORES  ·  JOGUE COM AMIGOS"
+horizontal_alignment = 1
+
+[node name="ComoJogar" type="Control" parent="Interface/Conteudo"]
+visible = false
+layout_mode = 0
+offset_right = 1280.0
+offset_bottom = 720.0
+mouse_filter = 0
+
+[node name="Sombra" type="ColorRect" parent="Interface/Conteudo/ComoJogar"]
+layout_mode = 0
+offset_right = 1280.0
+offset_bottom = 720.0
+mouse_filter = 2
+color = Color(0.005, 0.015, 0.025, 0.82)
+
+[node name="Painel" type="PanelContainer" parent="Interface/Conteudo/ComoJogar"]
+layout_mode = 0
+offset_left = 325.0
+offset_top = 70.0
+offset_right = 955.0
+offset_bottom = 650.0
+
+[node name="Conteudo" type="VBoxContainer" parent="Interface/Conteudo/ComoJogar/Painel"]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="Titulo" type="Label" parent="Centro/Opcoes"]
+[node name="Cabecalho" type="HBoxContainer" parent="Interface/Conteudo/ComoJogar/Painel/Conteudo"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.956863, 0.945098, 0.909804, 1)
-theme_override_fonts/font = ExtResource("3")
-theme_override_font_sizes/font_size = 96
-text = "JUNO"
-horizontal_alignment = 1
 
-[node name="Espaco" type="Control" parent="Centro/Opcoes"]
-custom_minimum_size = Vector2(0, 36)
+[node name="Icone" type="TextureRect" parent="Interface/Conteudo/ComoJogar/Painel/Conteudo/Cabecalho"]
+custom_minimum_size = Vector2(58, 58)
+texture_filter = 2
 layout_mode = 2
 mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
 
-[node name="Jogar" type="Button" parent="Centro/Opcoes"]
-custom_minimum_size = Vector2(280, 52)
+[node name="Titulo" type="Label" parent="Interface/Conteudo/ComoJogar/Painel/Conteudo/Cabecalho"]
 layout_mode = 2
-focus_neighbor_bottom = NodePath("../Sair")
-theme_override_colors/font_color = Color(0.956863, 0.945098, 0.909804, 1)
-theme_override_colors/font_hover_color = Color(0.94902, 0.788235, 0.298039, 1)
-theme_override_colors/font_focus_color = Color(0.94902, 0.788235, 0.298039, 1)
-theme_override_colors/font_pressed_color = Color(0.94902, 0.788235, 0.298039, 1)
-theme_override_fonts/font = ExtResource("3")
-theme_override_font_sizes/font_size = 36
-text = "JOGAR"
-flat = true
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 40
+text = "Como jogar"
 
-[node name="Sair" type="Button" parent="Centro/Opcoes"]
-custom_minimum_size = Vector2(280, 52)
+[node name="Rolagem" type="ScrollContainer" parent="Interface/Conteudo/ComoJogar/Painel/Conteudo"]
+custom_minimum_size = Vector2(0, 350)
 layout_mode = 2
-focus_neighbor_top = NodePath("../Jogar")
-theme_override_colors/font_color = Color(0.956863, 0.945098, 0.909804, 1)
-theme_override_colors/font_hover_color = Color(0.94902, 0.788235, 0.298039, 1)
-theme_override_colors/font_focus_color = Color(0.94902, 0.788235, 0.298039, 1)
-theme_override_colors/font_pressed_color = Color(0.94902, 0.788235, 0.298039, 1)
-theme_override_fonts/font = ExtResource("3")
-theme_override_font_sizes/font_size = 36
-text = "SAIR"
-flat = true
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="Texto" type="RichTextLabel" parent="Interface/Conteudo/ComoJogar/Painel/Conteudo/Rolagem"]
+layout_mode = 2
+size_flags_horizontal = 3
+bbcode_enabled = true
+fit_content = true
+scroll_active = false
+text = "Uma partida para 2 a 4 pessoas.
+
+[b]Na sua vez[/b]
+Jogue uma carta da mesma cor ou do mesmo símbolo do descarte.
+
+[b]Precisou comprar?[/b]
+Compre até vir uma carta jogável. Você pode jogar essa carta ou passar a vez.
+
+[b]Cartas especiais[/b]
+Pular, inverter, acumular compras, escolher uma cor ou trocar as mãos.
+
+[b]A última carta[/b]
+Ganha quem ficar sem cartas depois de resolver os efeitos pendentes."
+
+[node name="Fechar" type="Button" parent="Interface/Conteudo/ComoJogar/Painel/Conteudo"]
+custom_minimum_size = Vector2(300, 60)
+layout_mode = 2
+size_flags_horizontal = 4
+text = "ENTENDI"
+
+[node name="VolumeMusica" parent="." instance=ExtResource("6")]
+visible = false
+
+[node name="Abertura" type="ColorRect" parent="."]
+z_index = 300
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0, 0, 0, 1)
