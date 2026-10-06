@@ -2,6 +2,7 @@ extends Control
 class_name Carta
 
 signal selecionada(id_carta: int)
+signal hover_iniciado
 signal reorganizacao_iniciada(estado_destino: Dictionary)
 signal reorganizacao_atualizada(progresso: float)
 signal reorganizacao_concluida
@@ -305,6 +306,7 @@ func _on_mouse_entered() -> void:
 	if not _hover_permitido() or state: return
 	
 	state = true
+	hover_iniciado.emit()
 	set_process(true)
 	_animar_hover(Vector2.ONE + Vector2.ONE * 0.2 / SCALE.abs().max(Vector2.ONE * 0.01), 0.35)
 

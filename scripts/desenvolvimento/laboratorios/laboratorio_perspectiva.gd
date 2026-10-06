@@ -1,5 +1,7 @@
 extends "res://scripts/desenvolvimento/laboratorios/interno/base_perspectiva.gd"
 
+signal evento_audio(acao: String)
+
 const CENA_COMPRA = preload("res://scenes/main/componentes/monte.tscn")
 const CENA_JOGADA = preload("res://scenes/main/componentes/descarte.tscn")
 const CENA_VELA = preload("res://scenes/desenvolvimento/laboratorios/vela_laboratorio.tscn")
@@ -142,6 +144,7 @@ var _categoria_ativa := ""
 var _area_controles: Control
 var _modo_referencia_cenario := false
 var _interacao_referencia := false
+var _silenciar_proximo_hover_audio := false
 var _luz_cenario_referencia: Dictionary = {}
 var _transformacao_cenario_referencia := Transform2D.IDENTITY
 
@@ -249,6 +252,8 @@ func definir_interacao_referencia(ativa: bool) -> void:
 	if not _modo_referencia_cenario or _interacao_referencia == ativa:
 		return
 	_interacao_referencia = ativa
+	if not ativa:
+		_silenciar_proximo_hover_audio = false
 	_sair_da_mesa()
 	for indice in range(_maos_erguidas.size()):
 		_maos_erguidas[indice].definir_hover_habilitado(ativa and indice == 0)
@@ -314,6 +319,8 @@ func restaurar_cartas_referencia() -> void:
 			_dados_por_instancia[carta.get_instance_id()] = dados
 			_maos_erguidas[indice].receber_carta(carta, false)
 			carta.setup_dados(dados)
+			if indice == 0:
+				_conectar_hover_audio(carta)
 	_aplicar_avancados()
 	_atualizar_captura()
 	_projetar_maos()
@@ -490,7 +497,23 @@ func _montar_mao(indice: int) -> void:
 		var dados := _baralho_visual.comprar_carta().para_dados()
 		_dados_por_instancia[carta.get_instance_id()] = dados
 		carta.setup_dados(dados)
+		if indice == 0:
+			_conectar_hover_audio(carta)
 	_maos_erguidas[indice].duracao_reorganizacao = duracao_trajeto
+
+
+func _conectar_hover_audio(carta: Carta) -> void:
+	if not carta.hover_iniciado.is_connected(_ao_hover_audio):
+		carta.hover_iniciado.connect(_ao_hover_audio)
+
+
+func _ao_hover_audio() -> void:
+	if _modo_referencia_cenario and not _interacao_referencia:
+		return
+	if _silenciar_proximo_hover_audio:
+		_silenciar_proximo_hover_audio = false
+		return
+	evento_audio.emit("selecionar")
 
 
 func _dados_da_carta(carta: Carta, _indice: int, _numero: int) -> Dictionary:
@@ -1885,6 +1908,8 @@ func _comprar() -> void:
 	var inicio := _plano_carta(carta, -1, false, 0)
 	_preparar_visual(carta, inicio, _selecionada)
 	var mao := _maos_erguidas[_selecionada]
+	if _selecionada == 0:
+		_conectar_hover_audio(carta)
 	mao.duracao_reorganizacao = duracao_trajeto
 	mao.receber_carta_do_monte(carta)
 	# Respeitar frente/verso escolhidos no perfil atual, mantendo os dados externos.
@@ -1894,6 +1919,7 @@ func _comprar() -> void:
 	_atualizar_captura()
 	_projetar_maos()
 	_atualizar_estado_trajeto()
+	evento_audio.emit("compra")
 
 
 func _jogar_carta(carta_especifica: Carta = null) -> void:
@@ -1904,6 +1930,12 @@ func _jogar_carta(carta_especifica: Carta = null) -> void:
 		return
 	if carta_especifica != null and not cartas.has(carta_especifica):
 		return
+	if _selecionada == 0:
+		var havia_hover := carta_especifica != null
+		for carta_da_mao in cartas:
+			havia_hover = havia_hover or carta_da_mao.state
+		# Armar antes de remover/reorganizar: a carta sob o mouse pode entrar já nesta operação.
+		_silenciar_proximo_hover_audio = havia_hover and cartas.size() > 1
 	_sair_da_mesa()
 	var indice := 0
 	if _escolha_jogada.selected == 1:
@@ -1921,6 +1953,7 @@ func _jogar_carta(carta_especifica: Carta = null) -> void:
 	_atualizar_captura()
 	_projetar_maos()
 	_atualizar_estado_trajeto()
+	evento_audio.emit("jogar")
 
 
 func _preparar_visual(carta: Carta, inicio: Dictionary, destino: int) -> void:
@@ -2011,6 +2044,7 @@ func _ao_concluir_reorganizacao(carta: Carta) -> void:
 	if destino < 0:
 		visual.sombra_contato.hide()
 		_manter_visual_descarte(carta, visual, float(plano_atual["ponto"].z))
+		evento_audio.emit("pousar")
 	else:
 		carta.definir_sombra_visivel(_maos_erguidas[destino].sombras_visiveis)
 		visual.hide()
@@ -2175,6 +2209,7 @@ func _atualizar_estado_trajeto() -> void:
 
 
 func _esvaziar() -> void:
+	_silenciar_proximo_hover_audio = false
 	_sair_da_mesa()
 	for registro in _transitos.values():
 		if is_instance_valid(registro["carta"]):

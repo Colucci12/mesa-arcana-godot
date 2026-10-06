@@ -1,5 +1,7 @@
 extends Node2D
 
+signal evento_audio(acao: String)
+
 const CENA = preload("res://scenes/desenvolvimento/laboratorios/laboratorio_perspectiva.tscn")
 const LABORATORIO = preload("res://scripts/desenvolvimento/laboratorios/laboratorio_perspectiva.gd")
 const LUZ = preload("res://scripts/desenvolvimento/laboratorios/interno/luz_cenario_2d.gd")
@@ -96,6 +98,7 @@ func _ready() -> void:
 	_captura.render_target_update_mode = SubViewport.UPDATE_WHEN_VISIBLE
 	add_child(_captura)
 	_laboratorio = CENA.instantiate() as LABORATORIO
+	_laboratorio.evento_audio.connect(func(acao: String): evento_audio.emit(acao))
 	# A cena original usa FULL_RECT. Definir seu tamanho mantendo essas âncoras
 	# soma os offsets ao tamanho da captura e desloca o conjunto para fora dela.
 	# Aqui o retângulo lógico é fixo; a resolução maior serve apenas à nitidez.

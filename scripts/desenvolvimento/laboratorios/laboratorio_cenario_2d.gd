@@ -6,6 +6,8 @@ const CARTAS = preload("res://scripts/desenvolvimento/laboratorios/cartas_cenari
 const LUZ = preload("res://scripts/desenvolvimento/laboratorios/interno/luz_cenario_2d.gd")
 const HALOS = preload("res://scripts/desenvolvimento/laboratorios/halos_cenario_2d.gd")
 const CHAMAS = preload("res://scripts/desenvolvimento/laboratorios/interno/chamas_cenario_2d.gd")
+const AUDIO = preload("res://scripts/main/componentes/audio_cenario.gd")
+const PAINEL_AUDIO = preload("res://scripts/desenvolvimento/laboratorios/interno/painel_audio_cenario.gd")
 const TEMA = preload("res://scenes/desenvolvimento/laboratorios/painel_laboratorio.tres")
 const ARQUIVO := "user://laboratorio_cenario_2d.json"
 const REFERENCIA := Vector2(1280, 720)
@@ -68,6 +70,7 @@ var _estado_interacao: Label
 var _lista_chamas: OptionButton
 var _chama_selecionada := -1
 var _editar_corte_chama := false
+var _audio: AUDIO
 
 
 func _ready() -> void:
@@ -79,6 +82,9 @@ func _ready() -> void:
 	if _biblioteca.get("ultima") is Dictionary:
 		_aplicar_estado(_biblioteca["ultima"])
 	_referencia_cartas = CARTAS.new()
+	_audio = AUDIO.new()
+	add_child(_audio)
+	_referencia_cartas.evento_audio.connect(_audio.tocar)
 	_composicao.add_child(_referencia_cartas)
 	_halos = HALOS.new()
 	_composicao.add_child(_halos)
@@ -127,7 +133,7 @@ func _montar_painel() -> void:
 	var navegacao := GridContainer.new()
 	navegacao.columns = 2
 	coluna.add_child(navegacao)
-	for titulo in ["Peças", "Encaixe", "Recorte", "Cartas", "Interação", "Luz", "Chamas", "Conjuntos"]:
+	for titulo in ["Peças", "Encaixe", "Recorte", "Cartas", "Interação", "Áudio", "Luz", "Chamas", "Conjuntos"]:
 		var botao := Button.new()
 		botao.text = titulo
 		botao.toggle_mode = true
@@ -152,6 +158,9 @@ func _montar_painel() -> void:
 	_montar_recorte(_categorias["Recorte"])
 	_montar_cartas(_categorias["Cartas"])
 	_montar_interacao(_categorias["Interação"])
+	var painel_audio := PAINEL_AUDIO.new()
+	_categorias["Áudio"].add_child(painel_audio)
+	painel_audio.montar(_audio, _comprar_carta, _jogar_carta, _restaurar_cartas)
 	_montar_chamas(_categorias["Chamas"])
 	_montar_luz(_categorias["Luz"])
 	_montar_conjuntos(_categorias["Conjuntos"])
@@ -391,7 +400,7 @@ func _montar_interacao(grupo: VBoxContainer) -> void:
 
 
 func _process(_delta: float) -> void:
-	if _categoria_ativa != "Interação":
+	if not _interacao_habilitada():
 		return
 	_estado_interacao.text = _referencia_cartas.estado_interacao()
 	var mouse := get_global_mouse_position()
@@ -866,14 +875,18 @@ func _opcao(pai: Node, chave: String, texto: String) -> void:
 
 func _categoria(titulo: String) -> void:
 	_arrasto = ""
-	_referencia_cartas.definir_interacao(titulo == "Interação")
 	_categoria_ativa = titulo
+	_referencia_cartas.definir_interacao(_interacao_habilitada())
 	for nome in _categorias:
 		_categorias[nome].visible = nome == titulo
 		_botoes[nome].set_pressed_no_signal(nome == titulo)
 	_rolagem.scroll_vertical = 0
 	if is_instance_valid(_guias):
 		_guias.queue_redraw()
+
+
+func _interacao_habilitada() -> bool:
+	return _categoria_ativa in ["Interação", "Áudio"]
 
 
 func _sincronizar_ui() -> void:
@@ -1094,7 +1107,7 @@ func _restaurar_vista() -> void:
 
 
 func _desenhar_guias() -> void:
-	if not _painel.visible or _categoria_ativa == "Interação":
+	if not _painel.visible or _interacao_habilitada():
 		return
 	var escala := maxf(_composicao.scale.x, 0.01)
 	if _mostrar_moldura:
@@ -1179,7 +1192,7 @@ func _input(evento: InputEvent) -> void:
 		_alternar_painel()
 		get_viewport().set_input_as_handled()
 		return
-	if _categoria_ativa == "Interação" and evento is InputEventKey and evento.pressed and not evento.echo:
+	if _interacao_habilitada() and evento is InputEventKey and evento.pressed and not evento.echo:
 		var foco := get_viewport().gui_get_focus_owner()
 		if not (foco is LineEdit or foco is TextEdit or foco is SpinBox) and not (evento.ctrl_pressed or evento.alt_pressed or evento.meta_pressed):
 			if evento.physical_keycode in [KEY_D, KEY_J, KEY_R]:
@@ -1228,7 +1241,7 @@ func _unhandled_input(evento: InputEvent) -> void:
 		_pan += (_composicao.get_global_transform().affine_inverse() * evento.position - ponto)
 		_ajustar_enquadramento()
 	elif evento.button_index == MOUSE_BUTTON_LEFT:
-		if _categoria_ativa == "Interação":
+		if _interacao_habilitada():
 			_referencia_cartas.clicar(ponto)
 		else:
 			_iniciar_arrasto(ponto)
