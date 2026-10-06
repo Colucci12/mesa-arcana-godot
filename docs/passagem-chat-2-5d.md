@@ -2,6 +2,8 @@
 
 ## Começar por aqui — assets 2D — 05/10/2026
 
+**Checkpoint antes da chama — 06/10/2026:** usuário pediu commit com o teste novo, identificado como **Teste SEM cenario v1** (oito peças, 40 fontes). Snapshot versionado em `presets/teste_sem_cenario_v1.json`, contendo nome e composição, sem gravar na biblioteca local do Godot. Novo asset `images/teste_ambiente/chamas.png` tem oito chamas em folha transparente (1774×887), junto do `.import`. Próxima etapa autorizada: ocultar região da chama estática e sobrepor chama animada com os desenhos novos; neste checkpoint isso ainda não foi implementado.
+
 **Arquivos recebidos durante a limpeza:** `fundo.png` e `janela.png` apareceram modificados depois da leitura inicial; preservar essas alterações do usuário. O anúncio de assets ainda não enviados abaixo era a situação no começo do pedido. Nenhuma adequação de recorte/enquadramento feita nesta etapa; aguardar pedido de integração.
 
 **Direção atual — 06/10/2026:** usuário usa Janela, estantes esquerda/direita, Chão e Mesa. Não usa mais o ornamento da mesa nem a sala/fundo anterior; ao final pediu manter **Background** para trocar a imagem depois. Catálogo mantém `fundo.png` como Background. Ornamento `deco_mesa.png` removido do catálogo, composição inicial, controles relacionados e arquivos do projeto. Ao carregar, peça antiga ignorada e alvos de luz sem peça existente limpos; preservar IDs restantes. Novos assets ainda não enviados: próxima janela terá fundo transparente e o cenário externo será imagem independente atrás dela. Estantes permanecem. Não antecipar a troca, animação da chama ou extração do componente de cartas nesta limpeza; nenhum jogo/teste executado e nenhum arquivo local de conjuntos gravado.
