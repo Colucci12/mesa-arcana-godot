@@ -56,5 +56,3 @@ offset_right = 1000.0
 offset_bottom = 700.0
 color = Color(1, 1, 1, 1)
 mouse_filter = 2
-
-[node name="Referencias" type="Node2D" parent="PlanoViewport/Conteudo"]

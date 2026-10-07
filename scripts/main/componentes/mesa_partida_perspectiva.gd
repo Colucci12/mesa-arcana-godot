@@ -23,10 +23,9 @@ func _ready() -> void:
 	_mao_jogador = _cenario.apresentacao.obter_maos()[0]
 	_mao_oponente = _cenario.apresentacao.obter_maos()[1]
 	_descarte = _cenario.apresentacao.obter_descarte()
+	_monte = _cenario.apresentacao._compra
 	_cenario.jogada_solicitada.connect(_solicitar_jogada)
 	_cenario.compra_solicitada.connect(_solicitar_compra)
-	for nome in ["PlanoFundo", "Titulo", "MaoJogador", "MaoOponente", "MaoEsquerda", "MaoDireita", "Monte", "Descarte", "LegendaMonte", "LegendaDescarte"]:
-		get_node(nome).hide()
 	for filho in get_children():
 		if filho is Control and filho != _cenario and filho != $FundoPartida:
 			filho.z_index = 200

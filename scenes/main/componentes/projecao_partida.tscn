@@ -1,0 +1,25 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/main/cenario/projecao_partida.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/main/componentes/mesa_visual.tscn" id="2"]
+
+[node name="ProjecaoPartida" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+clip_contents = true
+script = ExtResource("1")
+
+[node name="Composicao" type="Node2D" parent="."]
+
+[node name="Mesa" parent="Composicao" instance=ExtResource("2")]
+formato = 1
+position = Vector2(640, 396)
+largura_proxima = 1600.0
+profundidade_aparente = 400.0
+largura_distante = 0.5
+largura_moldura = 30.0
+espessura = 100.0

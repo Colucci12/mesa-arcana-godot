@@ -1,0 +1,63 @@
+{
+  "cartas": {
+    "compra": {
+      "ativo": true,
+      "grupo": "retirar",
+      "indice": 0,
+      "tom": 2.0,
+      "variacao_volume": 0.7,
+      "variar": true,
+      "volume": -10.0
+    },
+    "jogar": {
+      "ativo": true,
+      "grupo": "empurrar",
+      "indice": 0,
+      "tom": 2.0,
+      "variacao_volume": 0.7,
+      "variar": true,
+      "volume": 0.0
+    },
+    "pousar": {
+      "ativo": false,
+      "grupo": "empurrar",
+      "indice": 0,
+      "tom": 2.0,
+      "variacao_volume": 0.7,
+      "variar": true,
+      "volume": -14.0
+    },
+    "selecionar": {
+      "ativo": true,
+      "grupo": "deslizar",
+      "indice": 3,
+      "tom": 1.0,
+      "variacao_volume": 0.7,
+      "variar": true,
+      "volume": -5.0
+    }
+  },
+  "continuos": {
+    "fogo": {
+      "ativo": true,
+      "indice": 0,
+      "repetir": true,
+      "volume": 0.0
+    },
+    "musica": {
+      "ativo": true,
+      "indice": 0,
+      "repetir": true,
+      "volume": 0.0
+    },
+    "relogio": {
+      "ativo": true,
+      "indice": 0,
+      "repetir": true,
+      "volume": 0.0
+    }
+  },
+  "silencio": false,
+  "volume": -6.0,
+  "volume_cartas": 0.0
+}

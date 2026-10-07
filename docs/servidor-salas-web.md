@@ -1,6 +1,6 @@
 # Mesa Arcana: servidor de salas e jogo web em Docker
 
-Branch: `codex/servidor-salas-web`, a partir do checkpoint `0cba34d`.
+Branch de deploy: `home-server`.
 
 Nome público atual: **Mesa Arcana**, um projeto independente de estudo. Nomes técnicos `juno-*`/`JUNO_*` foram preservados para manter as configurações de infraestrutura existentes. O README da raiz apresenta o projeto para o futuro repositório `mesa-arcana-godot`.
 
@@ -46,7 +46,7 @@ Depois de colocar este projeto no GitHub:
 
 1. No ambiente **Docker Standalone** do home server, abra **Stacks > Add stack** e dê o nome `juno`.
 2. Escolha **Git repository** e informe a URL do repositório. Ele pode ser público ou privado; para privado, configure a credencial do repositório no Portainer. Isso não adiciona login ao jogo.
-3. Escolha a branch que contém estes arquivos (atualmente `codex/servidor-salas-web`; use `main` se levar as alterações para ela).
+3. Escolha a branch `home-server` (no campo de referência Git, `refs/heads/home-server`).
 4. Em **Compose path**, informe `infra/compose.traefik.yml`.
 5. Em **Environment variables**, adicione `JUNO_DOMAIN` com o domínio real escolhido, sem `https://` nem barra final. Por exemplo, `juno.zvcore.com`, se esse for o subdomínio que você configurar. O DNS precisa apontar para o home server e o Traefik existente precisa receber esse domínio.
 6. Clique **Deploy the stack**. O build constrói servidor e web e exporta o jogo automaticamente; o primeiro download dos templates é grande. Depois abra `https://SEU-DOMINIO`.
@@ -83,7 +83,7 @@ O executável desktop e o modo direto LAN permanecem no código para desenvolvim
 
 Teste em várias abas: criar/entrar por código, iniciar com 2–4 participantes, jogar/comprar/inverter/escolher cor/trocar mãos. Abra duas salas simultâneas e confira que chat, cartas e desconexões não se misturam. Avalie a aparência do Turno visual v3 e a abertura/áudio no browser.
 
-O usuário autorizou executar Godot, exportação e containers nesta rodada, substituindo a restrição anterior para esta tarefa. O resultado da execução local é registrado nos documentos de contexto.
+Os laboratórios e as prévias estão fora desta branch. A configuração visual e de áudio aprovada acompanha o cliente em `config/cenario.json` e `config/audio.json`; não depende dos arquivos locais do autor. Os builds e caches são gerados novamente quando necessário.
 
 Fontes: [exportação web Godot](https://docs.godotengine.org/en/stable/tutorials/export/exporting_for_web.html), [WebSocketMultiplayerPeer](https://docs.godotengine.org/en/stable/classes/class_websocketmultiplayerpeer.html), [servidores dedicados](https://docs.godotengine.org/en/stable/tutorials/export/exporting_for_dedicated_servers.html).
 

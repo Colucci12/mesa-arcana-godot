@@ -4,17 +4,17 @@ signal jogada_solicitada(id_carta: int)
 signal compra_solicitada
 signal enquadramento_alterado(zoom: float, pan: Vector2)
 
-const CATALOGO = preload("res://scripts/desenvolvimento/laboratorios/interno/catalogo_cenario_2d.gd")
-const ASSET = preload("res://scripts/desenvolvimento/laboratorios/asset_cenario_2d.gd")
-const CARTAS = preload("res://scripts/desenvolvimento/laboratorios/cartas_cenario_2d.gd")
-const LUZ = preload("res://scripts/desenvolvimento/laboratorios/interno/luz_cenario_2d.gd")
-const HALOS = preload("res://scripts/desenvolvimento/laboratorios/halos_cenario_2d.gd")
+const CATALOGO = preload("res://scripts/main/cenario/catalogo_cenario.gd")
+const ASSET = preload("res://scripts/main/cenario/asset_cenario.gd")
+const CARTAS = preload("res://scripts/main/cenario/captura_cartas.gd")
+const LUZ = preload("res://scripts/main/cenario/luz_cenario.gd")
+const HALOS = preload("res://scripts/main/cenario/halos_cenario.gd")
 const AUDIO = preload("res://scripts/main/componentes/audio_cenario.gd")
 const APRESENTACAO = preload("res://scripts/main/componentes/apresentacao_partida.gd")
 const CENA_APRESENTACAO = preload("res://scenes/main/componentes/apresentacao_partida.tscn")
 const INDICADORES = preload("res://scripts/main/componentes/indicadores_turno.gd")
-const COMPOSICAO := "res://scripts/desenvolvimento/laboratorios/presets/turno_visual_v3.json"
-const AUDIO_V2 := "res://scripts/desenvolvimento/laboratorios/presets/audio_v2.json"
+const COMPOSICAO := "res://config/cenario.json"
+const CONFIG_AUDIO := "res://config/audio.json"
 const REFERENCIA := Vector2(1280, 720)
 
 var apresentacao: APRESENTACAO
@@ -54,7 +54,6 @@ func _ready() -> void:
 	apresentacao._composicao.add_child(_indicadores)
 	_indicadores.preparar(apresentacao)
 	var turno := INDICADORES.validar(dados.get("turno_visual"))
-	turno["simular_passagem"] = false
 	turno["mao"] = -1
 	_indicadores.configurar(turno)
 	_indicadores.aplicar_luz(luz)
@@ -75,7 +74,7 @@ func _ready() -> void:
 	_pan = Vector2(float(pan[0]), float(pan[1]))
 	_zoom_inicial = _zoom
 	_pan_inicial = _pan
-	_audio.aplicar(JSON.parse_string(FileAccess.get_file_as_string(AUDIO_V2)))
+	_audio.aplicar(JSON.parse_string(FileAccess.get_file_as_string(CONFIG_AUDIO)))
 	resized.connect(_ajustar_enquadramento)
 	visibility_changed.connect(_ao_alterar_visibilidade)
 	get_window().focus_exited.connect(_encerrar_arrasto)

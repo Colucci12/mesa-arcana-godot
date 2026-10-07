@@ -50,3 +50,4 @@ RUN mkdir -p /juno/build/web \
 FROM nginx:stable-alpine AS web
 COPY infra/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=exportador_web /juno/build/web /usr/share/nginx/html
+COPY docs/OFL-BarlowCondensed.txt /usr/share/nginx/html/third-party/BarlowCondensed-OFL.txt

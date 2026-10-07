@@ -8,18 +8,17 @@ signal comando_solicitado(comando: StringName, dados: Dictionary)
 @export var intervalo_distribuicao_inicial: float = 0.09
 @export var intervalo_troca_maos: float = 1.0
 
-@onready var _mao_oponente: MaoVisual = $MaoOponente
-@onready var _mao_jogador: MaoVisual = $MaoJogador
-@onready var _monte: MonteVisual = $Monte
+var _mao_oponente: MaoVisual
+var _mao_jogador: MaoVisual
+var _monte: MonteVisual
 @onready var _escolha_cor: VBoxContainer = $EscolhaCor
-@onready var _descarte: DescarteVisual = $Descarte
+var _descarte: DescarteVisual
 @onready var _nome_oponente: Label = $NomeOponente
 @onready var _quantidade_oponente: Label = $QuantidadeOponente
 @onready var _nome_jogador: Label = $NomeJogador
 @onready var _quantidade_jogador: Label = $QuantidadeJogador
 @onready var _indicador_turno: Label = $IndicadorTurno
 @onready var _mensagem: Label = $Mensagem
-@onready var _legenda_monte: Label = $LegendaMonte
 @onready var _botao_passar: Button = $PassarVez
 
 var _maos: Dictionary = {}
@@ -43,8 +42,6 @@ var _processando_eventos: bool = false
 var _interacoes_liberadas: bool = false
 
 func _ready() -> void:
-	_monte.definir_iluminacao($LuzMesa)
-	_monte.gui_input.connect(_ao_clicar_monte)
 	_botao_passar.pressed.connect(_solicitar_passagem)
 	resized.connect(_posicionar_escolha_cor)
 	_posicionar_escolha_cor()
@@ -372,22 +369,10 @@ func _solicitar_cor(nome_cor: String) -> void:
 	_mensagem.text = "Confirmando cor..."
 	comando_solicitado.emit(&"escolher_cor", {"cor": nome_cor})
 
-func _ao_clicar_monte(evento: InputEvent) -> void:
-	if evento is InputEventMouseButton and evento.button_index == MOUSE_BUTTON_LEFT and evento.pressed:
-		_solicitar_compra()
-		_monte.accept_event()
-
 func _atualizar_controles() -> void:
 	_escolha_alvo.visible = _partida_ativa and not _processando_eventos and not _alvo_enviado and _jogador_escolhendo_alvo_id == id_jogador_local
 	var pode_agir := _pode_agir()
 	_escolha_cor.visible = _partida_ativa and _interacoes_liberadas and not _processando_eventos and not _escolha_cor_enviada and _jogador_escolhendo_cor_id == id_jogador_local
-	var compra_liberada := pode_agir and (_compra_acumulada > 0 or (_pode_comprar and _carta_comprada_jogavel_id <= 0))
-	_monte.modulate = Color.WHITE if compra_liberada else Color(0.55, 0.55, 0.55)
-	_monte.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND if compra_liberada else Control.CURSOR_ARROW
-	if pode_agir and _compra_acumulada > 0:
-		_legenda_monte.text = "Comprar pilha (+%d)" % _compra_acumulada
-	else:
-		_legenda_monte.text = "Clique para comprar" if compra_liberada else "Monte"
 	_botao_passar.visible = pode_agir and _compra_acumulada == 0 and (_carta_comprada_jogavel_id > 0 or not _pode_comprar)
 
 func _pode_agir() -> bool:
@@ -454,7 +439,7 @@ func _configurar_jogadores(jogadores: Array) -> void:
 		_atualizar_quantidade(id_jogador, int(jogador.get("quantidade_cartas", 0)))
 
 func _obter_maos_visuais() -> Array:
-	return [_mao_jogador, $MaoEsquerda, _mao_oponente, $MaoDireita]
+	return []
 
 func _trocar_maos_visuais(mao_autor: MaoVisual, mao_alvo: MaoVisual) -> void:
 	mao_autor.trocar_cartas_com(mao_alvo)

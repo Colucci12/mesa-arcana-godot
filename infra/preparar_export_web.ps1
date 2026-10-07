@@ -1,20 +1,20 @@
-$ErrorActionPreference = 'Stop'
+﻿$ErrorActionPreference = 'Stop'
 $projetoJuno = Split-Path -Parent $PSScriptRoot
 $configJuno = Join-Path $projetoJuno 'export_presets.cfg'
 $modeloWeb = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'export_presets_web.cfg') -Raw
 $configAtual = if (Test-Path -LiteralPath $configJuno) { Get-Content -LiteralPath $configJuno -Raw } else { '' }
-# Configuração de rede e snapshots também precisam acompanhar os clientes nativos.
+# Configuração de rede e configurações da partida também precisam acompanhar os clientes nativos.
 $configComDados = [regex]::Replace($configAtual, '(?m)^include_filter="([^"\r\n]*)"\r?$', {
     param($linhaFiltro)
     $filtrosJuno = @($linhaFiltro.Groups[1].Value.Split(',') | ForEach-Object { $_.Trim() } | Where-Object { $_ })
     if ($filtrosJuno -notcontains '*.cfg' -and $filtrosJuno -notcontains 'config/rede.cfg') { $filtrosJuno += 'config/rede.cfg' }
-    if ($filtrosJuno -notcontains '*.json' -and $filtrosJuno -notcontains 'scripts/desenvolvimento/laboratorios/presets/*.json') { $filtrosJuno += 'scripts/desenvolvimento/laboratorios/presets/*.json' }
+    if ($filtrosJuno -notcontains '*.json' -and $filtrosJuno -notcontains 'config/*.json') { $filtrosJuno += 'config/*.json' }
     'include_filter="' + ($filtrosJuno -join ',') + '"'
 })
 if ($configComDados -cne $configAtual) {
     Set-Content -LiteralPath $configJuno -Value $configComDados -Encoding utf8 -NoNewline
     $configAtual = $configComDados
-    Write-Output 'Configuração de rede e snapshots incluídos nos presets; demais opções preservadas.'
+    Write-Output 'Configuração de rede e configurações da partida incluídos nos presets; demais opções preservadas.'
 }
 if ($configAtual -notmatch '(?m)^name="Web"\r?$') {
     $indices = [regex]::Matches($configAtual, '\[preset\.(\d+)\]') | ForEach-Object { [int]$_.Groups[1].Value }

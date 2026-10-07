@@ -1,56 +1,38 @@
 extends Node
 
-signal som_tocado(acao: String, arquivo: String)
 
 const GRUPOS := {
-	"deslizar": [preload("res://audio/cartas/card-slide-1.wav"), preload("res://audio/cartas/card-slide-2.wav"),
-		preload("res://audio/cartas/card-slide-3.wav"), preload("res://audio/cartas/card-slide-4.wav"),
-		preload("res://audio/cartas/card-slide-5.wav"), preload("res://audio/cartas/card-slide-6.wav"),
-		preload("res://audio/cartas/card-slide-7.wav"), preload("res://audio/cartas/card-slide-8.wav")],
-	"apoiar": [preload("res://audio/cartas/card-place-1.wav"), preload("res://audio/cartas/card-place-2.wav"),
-		preload("res://audio/cartas/card-place-3.wav"), preload("res://audio/cartas/card-place-4.wav")],
-	"empurrar": [preload("res://audio/cartas/card-shove-1.wav"), preload("res://audio/cartas/card-shove-2.wav"),
-		preload("res://audio/cartas/card-shove-3.wav"), preload("res://audio/cartas/card-shove-4.wav")],
-	"leque": [preload("res://audio/cartas/card-fan-1.wav"), preload("res://audio/cartas/card-fan-2.wav")],
-	"embaralhar": [preload("res://audio/cartas/card-shuffle.wav")],
-	"abrir": [preload("res://audio/cartas/cards-pack-open-1.wav"), preload("res://audio/cartas/cards-pack-open-2.wav")],
+	"deslizar": [preload("res://audio/cartas/card-slide-1.wav"), preload("res://audio/cartas/card-slide-2.wav"), preload("res://audio/cartas/card-slide-3.wav"), preload("res://audio/cartas/card-slide-4.wav")],
+	"empurrar": [preload("res://audio/cartas/card-shove-1.wav"), preload("res://audio/cartas/card-shove-2.wav"), preload("res://audio/cartas/card-shove-3.wav"), preload("res://audio/cartas/card-shove-4.wav")],
 	"retirar": [preload("res://audio/cartas/cards-pack-take-out-1.wav"), preload("res://audio/cartas/cards-pack-take-out-2.wav")]
 }
-const NOMES_GRUPOS := {"deslizar": "Deslizar", "apoiar": "Apoiar na mesa", "empurrar": "Empurrar",
-	"leque": "Abrir leque", "embaralhar": "Embaralhar", "abrir": "Abrir pacote", "retirar": "Retirar do pacote"}
 const CONTINUOS := {
-	"vento": [preload("res://audio/ambiente/vento1.ogg"), preload("res://audio/ambiente/vento2.ogg"), preload("res://audio/ambiente/vento3.ogg")],
 	"relogio": [preload("res://audio/ambiente/relogio.ogg")],
 	"fogo": [preload("res://audio/fogo/fogo.ogg")],
-	"musica": [preload("res://audio/musica/musica_fundo_1.ogg"), preload("res://audio/musica/musica_fundo_2.ogg"),
-		preload("res://audio/musica/musica_fundo_3.ogg"), preload("res://audio/musica/musica_fundo_4.ogg")]
+	"musica": [preload("res://audio/musica/musica_fundo_2.ogg")]
 }
 const ACOES := {"compra": "Comprar carta", "jogar": "Retirar da mão", "pousar": "Chegar à mesa", "selecionar": "Selecionar na mão"}
 
 var configuracao: Dictionary = padrao()
-var ultimo_som := "Nenhum efeito tocado."
 var _buses: Dictionary = {}
 var _vozes: Array[AudioStreamPlayer] = []
 var _acoes_vozes: Dictionary = {}
-var _previa: AudioStreamPlayer
 var _camadas: Dictionary = {}
 var _ultimos: Dictionary = {}
 var _aleatorio := RandomNumberGenerator.new()
 var _ultima_selecao := -1000
-var _solo := ""
 var _vez_local := false
 
 
 static func padrao() -> Dictionary:
 	var cartas := {}
-	var grupos := {"compra": "deslizar", "jogar": "empurrar", "pousar": "apoiar", "selecionar": "leque"}
+	var grupos := {"compra": "deslizar", "jogar": "empurrar", "pousar": "empurrar", "selecionar": "deslizar"}
 	for acao in ACOES:
-		cartas[acao] = {"ativo": true, "grupo": grupos[acao], "indice": 0, "variar": true,
+		cartas[acao] = {"ativo": acao != "pousar", "grupo": grupos[acao], "indice": 0, "variar": true,
 			"volume": -22.0 if acao == "selecionar" else (-20.0 if acao == "jogar" else -14.0),
 			"tom": 2.0, "variacao_volume": 0.7}
 	return {"volume": -6.0, "volume_cartas": 0.0, "silencio": false, "cartas": cartas,
-		"continuos": {"vento": {"ativo": false, "indice": 0, "volume": -12.0, "repetir": true},
-			"relogio": {"ativo": false, "indice": 0, "volume": -24.0, "repetir": true},
+		"continuos": {"relogio": {"ativo": false, "indice": 0, "volume": -24.0, "repetir": true},
 			"fogo": {"ativo": false, "indice": 0, "volume": -12.0, "repetir": true},
 			"musica": {"ativo": false, "indice": 0, "volume": -22.0, "repetir": false}}}
 
@@ -111,11 +93,10 @@ func _ready() -> void:
 	var limitador := AudioEffectHardLimiter.new()
 	limitador.ceiling_db = -1.0
 	AudioServer.add_bus_effect(AudioServer.get_bus_index(_buses["geral"]), limitador)
-	for chave in ["cartas", "vento", "relogio", "fogo", "musica"]:
+	for chave in ["cartas", "relogio", "fogo", "musica"]:
 		_criar_bus(chave, _buses["geral"])
 	for indice in range(8):
 		_vozes.append(_criar_player("cartas"))
-	_previa = _criar_player("cartas")
 	for chave in CONTINUOS:
 		var a := _criar_player(chave)
 		var b := _criar_player(chave)
@@ -151,7 +132,6 @@ func aplicar(dados: Dictionary) -> void:
 	for chave in CONTINUOS:
 		AudioServer.set_bus_volume_db(AudioServer.get_bus_index(_buses[chave]), configuracao["continuos"][chave]["volume"])
 		_atualizar_camada(chave)
-	_aplicar_solo()
 	# Desligar uma ação interrompe também suas vozes que já estavam tocando.
 	for player in _vozes:
 		var acao: String = _acoes_vozes.get(player.get_instance_id(), "")
@@ -159,13 +139,13 @@ func aplicar(dados: Dictionary) -> void:
 			player.stop()
 
 
-func tocar(acao: String, previa: bool = false) -> void:
+func tocar(acao: String) -> void:
 	if not ACOES.has(acao):
 		return
 	var ajustes: Dictionary = configuracao["cartas"][acao]
-	if not previa and not bool(ajustes["ativo"]):
+	if not bool(ajustes["ativo"]):
 		return
-	if acao == "selecionar" and not previa:
+	if acao == "selecionar":
 		var agora := Time.get_ticks_msec()
 		if agora - _ultima_selecao < 70:
 			return
@@ -182,14 +162,13 @@ func tocar(acao: String, previa: bool = false) -> void:
 		if anterior >= 0 and indice >= anterior:
 			indice += 1
 		_ultimos[grupo] = indice
-	var player: AudioStreamPlayer = _previa if previa else _voz_livre(acao)
+	var player: AudioStreamPlayer = _voz_livre(acao)
 	player.stop()
 	player.bus = _buses["cartas"]
 	player.stream = recursos[indice]
 	player.pitch_scale = 1.0 + _aleatorio.randf_range(-float(ajustes["tom"]), float(ajustes["tom"])) / 100.0
 	player.volume_db = float(ajustes["volume"]) + _aleatorio.randf_range(-float(ajustes["variacao_volume"]), float(ajustes["variacao_volume"]))
 	player.play()
-	_avisar_som(acao, player.stream)
 
 
 func _voz_livre(acao: String) -> AudioStreamPlayer:
@@ -208,37 +187,6 @@ func _voz_livre(acao: String) -> AudioStreamPlayer:
 	return player
 
 
-func ouvir_variante(grupo: String, indice: int, acao: String) -> void:
-	if not GRUPOS.has(grupo) or not ACOES.has(acao):
-		return
-	_previa.stop()
-	_previa.bus = _buses["cartas"]
-	var recursos := variantes(acao, grupo)
-	_previa.stream = recursos[clampi(indice, 0, recursos.size() - 1)]
-	_previa.pitch_scale = 1.0
-	_previa.volume_db = configuracao["cartas"][acao]["volume"]
-	_previa.play()
-	_avisar_som(acao, _previa.stream)
-
-
-func ouvir_continuo(chave: String) -> void:
-	if not CONTINUOS.has(chave):
-		return
-	_previa.stop()
-	_previa.bus = _buses[chave]
-	_previa.stream = _stream_continuo(chave, false)
-	_previa.pitch_scale = 1.0
-	_previa.volume_db = 0.0
-	_previa.play()
-	_avisar_som(chave, _previa.stream)
-
-
-func _avisar_som(acao: String, stream: AudioStream) -> void:
-	var arquivo: String = stream.get_meta("arquivo", stream.resource_path.get_file())
-	ultimo_som = "%s · %s" % [ACOES.get(acao, acao.capitalize()), arquivo]
-	som_tocado.emit(acao, arquivo)
-
-
 func _stream_continuo(chave: String, repetir: bool) -> AudioStreamOggVorbis:
 	var ajustes: Dictionary = configuracao["continuos"][chave]
 	var original: AudioStreamOggVorbis = CONTINUOS[chave][int(ajustes["indice"])]
@@ -246,15 +194,6 @@ func _stream_continuo(chave: String, repetir: bool) -> AudioStreamOggVorbis:
 	stream.set_meta("arquivo", original.resource_path.get_file())
 	stream.loop = repetir
 	return stream
-
-
-func recomecar(chave: String) -> void:
-	if not CONTINUOS.has(chave):
-		return
-	_camadas[chave]["assinatura"] = ""
-	var dados := configuracao.duplicate(true)
-	dados["continuos"][chave]["ativo"] = true
-	aplicar(dados)
 
 
 func _atualizar_camada(chave: String) -> void:
@@ -301,41 +240,16 @@ func definir_vez_local(ativa: bool) -> void:
 	_vez_local = ativa
 	if _camadas.has("relogio"):
 		_atualizar_camada("relogio")
-		if not ativa and _previa.bus == _buses["relogio"]:
-			_previa.stop()
 
 
-func isolar(chave: String) -> void:
-	_solo = chave if chave == "cartas" or CONTINUOS.has(chave) else ""
-	_aplicar_solo()
-
-
-func categoria_isolada() -> String:
-	return _solo
-
-
-func _aplicar_solo() -> void:
-	for chave in ["cartas", "vento", "relogio", "fogo", "musica"]:
-		AudioServer.set_bus_mute(AudioServer.get_bus_index(_buses[chave]), not _solo.is_empty() and chave != _solo)
-
-
-func parar_previas() -> void:
-	_previa.stop()
+func _parar_efeitos() -> void:
 	for player in _vozes:
 		player.stop()
 
 
-func parar_tudo() -> void:
-	parar_previas()
-	var dados := configuracao.duplicate(true)
-	for ajustes in dados["continuos"].values():
-		ajustes["ativo"] = false
-	aplicar(dados)
-
-
 func suspender_reproducao() -> void:
 	# Sair da partida interrompe imediatamente, sem mudar a mixagem escolhida.
-	parar_previas()
+	_parar_efeitos()
 	for camada in _camadas.values():
 		var tween: Tween = camada["tween"]
 		if tween != null and tween.is_valid():
@@ -346,15 +260,8 @@ func suspender_reproducao() -> void:
 			player.stop()
 
 
-func pico_saida() -> float:
-	var indice := AudioServer.get_bus_index(_buses.get("geral", ""))
-	if indice < 0:
-		return -80.0
-	return maxf(AudioServer.get_bus_peak_volume_left_db(indice, 0), AudioServer.get_bus_peak_volume_right_db(indice, 0))
-
-
 func _exit_tree() -> void:
-	# Buses pertencem a esta instância; sair do laboratório libera seus canais.
+	# Buses pertencem a esta instância; sair da partida libera seus canais.
 	var chaves: Array = _buses.keys()
 	chaves.reverse()
 	for chave in chaves:

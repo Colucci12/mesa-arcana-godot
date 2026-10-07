@@ -1,4 +1,4 @@
-extends "res://scripts/desenvolvimento/laboratorios/laboratorio_perspectiva.gd"
+extends "res://scripts/main/cenario/projecao_partida.gd"
 
 signal jogada_solicitada(id_carta: int)
 
@@ -156,11 +156,3 @@ func monte_no_ponto(posicao: Vector2) -> bool:
 		return false
 	var uv := Vector2(ponto.x, ponto.y) / ponto.z
 	return Rect2((CAPTURA_PILHA - _compra.size) / 2.0, _compra.size).has_point(uv * CAPTURA_PILHA)
-
-
-func _comprar() -> void:
-	pass
-
-
-func _jogar_carta(_carta_especifica: Carta = null) -> void:
-	pass

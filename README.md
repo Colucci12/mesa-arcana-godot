@@ -2,7 +2,7 @@
 
 Um jogo de descarte de cartas para 2 a 4 amigos, com ambientação fantástica, feito para aprender Godot. Nome sugerido para o repositório: **`mesa-arcana-godot`**.
 
-O projeto explora animações de cartas em perspectiva, luzes, áudio, interface e multiplayer com salas em um servidor central. Há laboratórios para experimentar a composição visual e sonora. É um experimento pessoal em evolução, com ajustes e limitações, sem suporte ou estabilidade prometidos.
+Esta branch, **`home-server`**, contém a versão de deploy: menu, partida, ambientação e multiplayer com salas em um servidor central. Laboratórios, prévias e recursos experimentais ficam na branch `codex/servidor-salas-web`. É um projeto pessoal em evolução.
 
 As mecânicas têm inspiração em jogos de descarte, incluindo UNO, da Mattel. Mesa Arcana é um projeto independente de estudo, sem vínculo, patrocínio ou aprovação da Mattel, e não é uma versão oficial de UNO.
 
@@ -28,16 +28,18 @@ As imagens Docker atuais usam Linux x86_64. O cliente web usa WebGL 2/Compatibil
 
 ## Abrir no Godot
 
-Importe `project.godot` no Godot **4.6.2**. A cena inicial é o menu; os laboratórios ficam em `scenes/desenvolvimento`.
+Importe `project.godot` no Godot **4.6.2**. A cena inicial é o menu.
 
-O nome público é Mesa Arcana. Identificadores técnicos antigos `JUNO` nas variáveis de ambiente e nos serviços Docker foram conservados por compatibilidade. O diretório de dados dos laboratórios também permanece no caminho anterior para preservar os conjuntos locais.
+O cenário aprovado (Turno visual v3) está em `config/cenario.json`, e a mixagem de Áudio V2 em `config/audio.json`. Projeção, sombras, chamas e animações pertencem ao código da partida, sem dependência dos laboratórios ou de conjuntos salvos no computador do autor.
+
+Identificadores técnicos `JUNO` nas variáveis de ambiente e nos serviços Docker foram conservados por compatibilidade. A exportação web é feita no build; caches e arquivos gerados não entram no repositório.
 
 ## Origem dos assets
 
 - Artes de ambientação e interface geradas com IA, conforme informado pelo autor. O logo foi adaptado para a identidade Mesa Arcana.
 - Verso das cartas e desenho do monte substituídos por arte vetorial própria, sem a identidade visual anterior.
 - Músicas obtidas de uma fonte CC0, conforme verificação informada pelo autor. O nome/URL do site ainda não foi recuperado; não há uma comprovação independente anexada aqui.
-- O registro de preparação dos áudios está em [`audio/origem_arquivos.json`](audio/origem_arquivos.json). Esse registro contém caminhos de origem locais, não certificados de licença. A origem/licença dos efeitos sonoros não é identificada por ele.
+- A origem/licença dos efeitos sonoros ainda precisa ser identificada pelo autor.
 - A fonte Barlow Condensed mantém sua [licença OFL](docs/OFL-BarlowCondensed.txt).
 
 ## Licença

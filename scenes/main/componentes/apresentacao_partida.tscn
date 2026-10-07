@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3]
 
-[ext_resource type="PackedScene" path="res://scenes/desenvolvimento/laboratorios/laboratorio_perspectiva.tscn" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/main/componentes/projecao_partida.tscn" id="1"]
 [ext_resource type="Script" path="res://scripts/main/componentes/apresentacao_partida.gd" id="2"]
 
 [node name="ApresentacaoPartida" instance=ExtResource("1")]

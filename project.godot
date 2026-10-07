@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="Mesa Arcana"
-; Mantém os conjuntos locais dos laboratórios no diretório usado antes da renomeação.
+; Preserva o diretório de preferências usado pelas versões anteriores.
 config/use_custom_user_dir=true
 config/custom_user_dir_name="Godot/app_userdata/JUNO"
 run/main_scene="res://scenes/main/telas/menu_principal.tscn"
