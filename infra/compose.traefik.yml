@@ -1,0 +1,44 @@
+# Portainer: criar stack por Git repository, caminho infra/compose.traefik.yml.
+# Preencher JUNO_DOMAIN nas variáveis da stack. Padrões seguem o Traefik existente.
+name: juno
+services:
+  juno-servidor:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile
+      target: servidor
+    restart: unless-stopped
+    init: true
+    environment:
+      JUNO_BIND: "0.0.0.0"
+      JUNO_PORTA: "9080"
+      JUNO_MAX_CLIENTES: "128"
+      JUNO_MAX_SALAS: "32"
+    networks: [juno-interna]
+    labels:
+      - "traefik.enable=false"
+
+  juno-web:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile
+      target: web
+    restart: unless-stopped
+    depends_on: [juno-servidor]
+    networks: [traefik, juno-interna]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=${TRAEFIK_NETWORK:-traefik}"
+      - "traefik.http.routers.juno-web.rule=Host(`${JUNO_DOMAIN:?Preencha JUNO_DOMAIN}`)"
+      - "traefik.http.routers.juno-web.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}"
+      - "traefik.http.routers.juno-web.tls=true"
+      - "traefik.http.routers.juno-web.tls.certresolver=${TRAEFIK_CERTRESOLVER:-leresolver}"
+      - "traefik.http.routers.juno-web.service=juno-web"
+      - "traefik.http.services.juno-web.loadbalancer.server.port=80"
+
+networks:
+  juno-interna:
+    internal: true
+  traefik:
+    external: true
+    name: ${TRAEFIK_NETWORK:-traefik}

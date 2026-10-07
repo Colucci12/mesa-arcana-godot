@@ -16,6 +16,9 @@ func interromper(_motivo: String) -> void:
 	_mesa_api = Mesa_Api.new()
 
 func iniciar_partida() -> void:
+	if _gerenciador_rede.usando_central():
+		_gerenciador_rede.obter_central().iniciar_partida()
+		return
 	if not _gerenciador_rede.pode_iniciar() or _partida_iniciada:
 		return
 	_mesa_api = Mesa_Api.new()
@@ -31,6 +34,9 @@ func iniciar_partida() -> void:
 	_distribuir_eventos(resultado["eventos"])
 
 func enviar_comando(comando: StringName, dados: Dictionary) -> void:
+	if _gerenciador_rede.usando_central():
+		_gerenciador_rede.obter_central().enviar_comando(comando, dados)
+		return
 	if multiplayer.is_server():
 		_executar_comando(1, comando, dados)
 	else:

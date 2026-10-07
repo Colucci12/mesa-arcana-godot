@@ -1,5 +1,37 @@
 # Contexto para o próximo chat
 
+## Nome público Mesa Arcana — 07/10/2026
+
+Usuário pediu nome próprio para o repo de estudo, sem licença de código. Artes informadas como IA; músicas conferidas por ele CC0, site não lembrado. Nome público **Mesa Arcana**, repo sugerido `mesa-arcana-godot`; não existe remote configurado e não houve repo remoto/commit/push/mudança de pasta. README novo explica estudo independente e inspiração sem vínculo com Mattel, orienta Docker/Portainer e registra origem informada dos assets. Licença OFL preservada.
+
+Nome do projeto/entrada web/título da mesa/nome e log do servidor alterados. Logo novo `images/UI/logo_mesa_arcana.png` editado com image_gen, troca U N O por M E S A e conserva ARCANA/estilo. Versos e monte antigos removidos do estado atual e substituídos por SVGs próprios; histórico não reescrito. Cópia nova `images/ambiente/pack_menu.png` surgiu externamente e foi preservada, sem referências. Caminho customizado `Godot/app_userdata/JUNO` conserva os conjuntos salvos. Variáveis `JUNO_*` e serviços Docker mantidos compatíveis. Importação e carga das quatro cenas/alpha/dimensões/preset local conferidas; nenhum teste de salas. Containers permanecem na imagem anterior até rebuild. Detalhes/prompt em `docs/identidade-visual.md` e no topo do contexto principal.
+
+## Compose para o Portainer — 07/10/2026
+
+Usuário forneceu stack de exemplo do Traefik: rede `traefik`, entrada `websecure`, resolver `leresolver`. Pediu acesso direto ao jogo sem auth/middlewares/banco/secrets. Ajustados defaults e vínculo explícito router/service em `infra/compose.traefik.yml`, exemplo `.env` e guia `docs/servidor-salas-web.md`. Portainer: Docker Standalone > stack por Git repository > Compose path `infra/compose.traefik.yml` > variável obrigatória `JUNO_DOMAIN`. Repositório será criado pelo usuário depois; nenhuma URL/domínio final informado. Configuração validada, inclusive backend privado e domínio obrigatório. Sem rebuild/restart dos serviços locais ou deploy remoto/commit.
+
+Questão de publicação pública sem licença/nome UNO respondida com fontes GitHub e legislação brasileira; licença de código é separada de marcas e assets. Fonte Barlow tem OFL no repo, mas não foram encontradas permissões dos packs/músicas. Não publicar, mudar logo/nome ou adicionar LICENSE por conta própria. Usuário pediu deixar a ele os testes de entrada em salas no navegador; respeitar.
+
+## Web e servidor interno executados juntos — 07/10/2026
+
+Usuário autorizou execução nesta rodada e pediu Compose que sobe os dois serviços juntos, expondo só web e mantendo servidor numa rede interna. Está implementado: `infra/compose.local.yml`, projeto `juno-local`, web em **http://localhost:8080**, backend sem porta publicada, rede `juno-interna` interna. Traefik vê somente o web; backend só na rede interna, `traefik.enable=false`. Build Docker exporta web automaticamente; não precisa exportação manual ou pasta montada. Targets `servidor`/`web` no Dockerfile com Godot 4.6.2; templates oficiais `web*.zip` incluem o modo sem threads. Primeiro download grande fica em cache.
+
+Esclarecido ao usuário: conexão pública do browser passa pelo nginx até o servidor, mas executável compatível também pode usar o proxy; isolamento não prova tipo de cliente. Não prometer bloqueio de executáveis sem autenticação. Nenhuma configuração do Docker alterada/dados apagados. Ele abriu Docker Desktop depois da falha inicial de dockerInference.
+
+Importação nativa, build servidor, importação Linux/export web passaram; preset corrigido para comentário `;` em CFG. Containers iniciados, HTTP 200 e backend/rede isolados conferidos. Teste `scenes/desenvolvimento/tests/teste_servidor_central.tscn` rodou com sucesso pelo proxy: quatro clientes/duas salas, chat, autorização, privacidade das cartas, compra e desconexão/transferência do organizador. Web real abriu menu/lista conectada, sem erros de console nesse trecho. Guia atualizado em `docs/servidor-salas-web.md`. Ainda sem publicação home server ou commit solicitado. Permissão desta rodada vale para testar o Docker/web; não interpretar proibição histórica abaixo como bloqueio da execução agora autorizada.
+
+## Servidor central e cliente web — 07/10/2026
+
+Checkpoint anterior **0cba34d** (Turno visual v3 aprovado/commitado). Branch atual **codex/servidor-salas-web**, criada a pedido do usuário. Ele tem home server Docker/Traefik/domínio; quer salas sem IP/Radmin e jogar por browser. Decisão explicada: servidor Godot autoritativo com as mesmas regras, dentro deste repo; preparar para teste localhost pelo usuário e depois levar ao home server. Sem publicação automática ou execução do engine.
+
+Implementação inicial: `CentralSalas` em `GameManager/Online`, API WebSocket isolada do ENet, protocolo 1, código/lista de salas, estado por `SalaCentral`/`Mesa_Api`, 2–4 jogadores, filtragem de eventos privados por destinatário, ID de partida e associação de jogador pelo remetente real. Chat/erros/partidas só para a sala. Organizador inicia e pode ser transferido se sair; desconectar durante jogo interrompe só aquela sala. Gerenciador/endpoints existentes encaminham o modo online; LAN antigo fica em Opções de conexão, desabilitado no browser. Menu tenta conectar desde abertura.
+
+`config/rede.cfg`: desktop padrão localhost 9080 ou URL/env configurada; browser padrão domínio da página em `/multiplayer`, wss quando HTTPS. Não há domínio público real definido. Entrada de servidor via cena `scenes/servidor/servidor_salas.tscn` ou argumento `--servidor`. Docker usa cópia mínima das regras/rede/autoload de servidor, sem imagens/áudio/UI. `infra/compose.local.yml` e `compose.traefik.yml`, Dockerfile 4.6.2 x86_64, `.env.example`, nginx e modelo/helper de exportação estão prontos para execução manual.
+
+Preset Web acrescentado ao export local ignorado; helper preserva presets existentes e inclui cfg/JSON nos clientes nativos. Override renderer Compatibility apenas web, sem alterar aparência desktop. Primeiro clique libera áudio antes do fade; players web usam Stream para preservar buses/limiter. WebGL/desempenho/áudio e rede real ainda precisam de teste.
+
+**Próximo passo: usuário executar o teste local**, conforme `docs/servidor-salas-web.md`; depois exportar/testar web misturado com desktop e configurar domínio/rede/entrypoint/resolver reais do Traefik. Conferência estática: parser dos scripts, referências e `docker compose config` (local/Traefik); nenhum Godot/jogo/teste/export/build/container iniciado. Preservar preferência de não executar Godot ou capturas por iniciativa própria. Ainda sem commit solicitado desta etapa.
+
 ## Turno visual v3 na partida — 07/10/2026
 
 Usuário aprovou o teste e autorizou integrar na principal; corrigiu o conjunto para **Turno visual v3**, confirmado como último salvo. Snapshot integral versionado em `scripts/desenvolvimento/laboratorios/presets/turno_visual_v3.json`, biblioteca local intacta. Partida agora lê essa composição (oito peças/40 fontes), com ornamento antigo 2000×800, compensação 68%, opacidade 100%, giro 5°/s/sem seta, contorno verde 2 px/80%/0,4 s e seleções de luz/brilho do V3. Audio V2 conservado.

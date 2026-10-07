@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scripts/main/globais/game_manager.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/main/globais/barramento_eventos.gd" id="2"]
@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://scripts/rede/endpoint_partida.gd" id="4"]
 [ext_resource type="Script" path="res://scripts/rede/endpoint_chat.gd" id="5"]
 [ext_resource type="AudioStream" path="res://audio/musica/musica_fundo_3.ogg" id="6"]
+[ext_resource type="Script" path="res://scripts/rede/central_salas.gd" id="7"]
 
 [node name="GameManager" type="Node"]
 script = ExtResource("1")
@@ -24,3 +25,8 @@ script = ExtResource("5")
 
 [node name="MusicaMenu" type="AudioStreamPlayer" parent="."]
 stream = ExtResource("6")
+
+[node name="Online" type="Node" parent="."]
+
+[node name="CentralSalas" type="Node" parent="Online"]
+script = ExtResource("7")

@@ -5,7 +5,7 @@
 [ext_resource type="PackedScene" path="res://scenes/main/componentes/chat_partida.tscn" id="3"]
 [ext_resource type="PackedScene" path="res://scenes/main/componentes/fundo_menu.tscn" id="4"]
 [ext_resource type="Script" path="res://scripts/main/componentes/layout_menu.gd" id="5"]
-[ext_resource type="Texture2D" path="res://images/UI/pack_menu.png" id="6"]
+[ext_resource type="Texture2D" path="res://images/UI/logo_mesa_arcana.png" id="6"]
 [ext_resource type="Texture2D" path="res://images/UI/pack_detalhes.png" id="7"]
 [ext_resource type="PackedScene" path="res://scenes/main/componentes/volume_musica_menu.tscn" id="8"]
 

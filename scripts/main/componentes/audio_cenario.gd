@@ -134,6 +134,8 @@ func _criar_bus(chave: String, envio: String) -> void:
 
 func _criar_player(chave: String) -> AudioStreamPlayer:
 	var player := AudioStreamPlayer.new()
+	if OS.has_feature("web"):
+		player.playback_type = AudioServer.PLAYBACK_TYPE_STREAM
 	player.bus = _buses[chave]
 	add_child(player)
 	return player

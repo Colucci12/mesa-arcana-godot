@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://f5uamkh8spqj"
-path="res://.godot/imported/card_back_71x95.png-f596321b4e627f7a70b07d5465718ecf.ctex"
+uid="uid://b65c46dtf8lvm"
+path="res://.godot/imported/logo_mesa_arcana.png-93441d9f404c9342e5ada787c424ae11.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://images/card_back_71x95.png"
-dest_files=["res://.godot/imported/card_back_71x95.png-f596321b4e627f7a70b07d5465718ecf.ctex"]
+source_file="res://images/UI/logo_mesa_arcana.png"
+dest_files=["res://.godot/imported/logo_mesa_arcana.png-93441d9f404c9342e5ada787c424ae11.ctex"]
 
 [params]
 

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b1gsgkhaduegt"
-path="res://.godot/imported/deck_cards.png-c89fe868cebce24a5c6fbbf41e3978f5.ctex"
+uid="uid://c1h0q7vwylyll"
+path="res://.godot/imported/deck_arcana.svg-7e1ca4c7c64cf73fb23c05c6abfef2c6.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://images/deck_cards.png"
-dest_files=["res://.godot/imported/deck_cards.png-c89fe868cebce24a5c6fbbf41e3978f5.ctex"]
+source_file="res://images/deck_arcana.svg"
+dest_files=["res://.godot/imported/deck_arcana.svg-7e1ca4c7c64cf73fb23c05c6abfef2c6.ctex"]
 
 [params]
 
@@ -38,3 +38,6 @@ process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
 detect_3d/compress_to=1
+svg/scale=1.0
+editor/scale_with_editor_scale=false
+editor/convert_colors_with_editor_theme=false

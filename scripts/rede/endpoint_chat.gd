@@ -11,6 +11,9 @@ func configurar(gerenciador_rede: GerenciadorRede, barramento: BarramentoEventos
 	_barramento = barramento
 
 func enviar_mensagem(texto: String) -> void:
+	if _gerenciador_rede.usando_central():
+		_gerenciador_rede.obter_central().enviar_chat(texto)
+		return
 	if not _gerenciador_rede.esta_conectado():
 		_barramento.erro_chat.emit("Entre em uma sala para conversar.")
 		return

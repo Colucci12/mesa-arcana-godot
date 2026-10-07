@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://bypqjeoqphjfc"]
 
 [ext_resource type="Script" uid="uid://cce0wdxip6yes" path="res://scripts/main/componentes/monte.gd" id="1_jyyp0"]
-[ext_resource type="Texture2D" uid="uid://b1gsgkhaduegt" path="res://images/deck_cards.png" id="2_uhx4n"]
+[ext_resource type="Texture2D" path="res://images/deck_arcana.svg" id="2_uhx4n"]
 [ext_resource type="Shader" path="res://scripts/main/componentes/objeto_iluminado.gdshader" id="3"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_iluminacao"]

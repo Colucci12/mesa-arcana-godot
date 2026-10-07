@@ -9,14 +9,43 @@ const TEMA = preload("res://scripts/main/componentes/tema_menu.gd")
 @onready var _abertura: ColorRect = $Abertura
 
 func _ready() -> void:
-	GameManager.definir_musica_menu(true)
+	if GameManager.modo_servidor():
+		return
+	GameManager.online.conectar()
 	$Interface.theme = TEMA.tema()
 	_jogar.pressed.connect(_abrir_conexao)
 	$Interface/Conteudo/Sair.pressed.connect(get_tree().quit)
 	_botao_regras.pressed.connect(_mostrar_regras)
 	_fechar_regras.pressed.connect(_ocultar_regras)
 	$Interface/Conteudo/ComoJogar/Painel/Conteudo/Cabecalho/Icone.texture = TEMA.livro()
+	if OS.has_feature("web"):
+		_mostrar_entrada_web()
+	else:
+		_comecar_abertura()
+
+
+func _comecar_abertura() -> void:
+	GameManager.definir_musica_menu(true)
 	_iniciar_abertura()
+
+
+func _mostrar_entrada_web() -> void:
+	# O gesto libera o áudio antes da abertura, como exigido pelos navegadores.
+	for elemento in _elementos_menu():
+		elemento.modulate.a = 0.0
+	var centro := CenterContainer.new()
+	_abertura.add_child(centro)
+	centro.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var entrar := Button.new()
+	entrar.theme = TEMA.tema()
+	entrar.text = "ENTRAR EM MESA ARCANA"
+	entrar.custom_minimum_size = Vector2(360, 72)
+	centro.add_child(entrar)
+	entrar.pressed.connect(func():
+		centro.hide()
+		_comecar_abertura()
+		centro.queue_free())
+	entrar.grab_focus.call_deferred()
 
 
 func _iniciar_abertura() -> void:

@@ -1,0 +1,30 @@
+name: juno-local
+services:
+  juno-servidor:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile
+      target: servidor
+    networks: [juno-interna]
+    environment:
+      JUNO_BIND: "0.0.0.0"
+      JUNO_PORTA: "9080"
+    restart: unless-stopped
+    init: true
+
+  juno-web:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile
+      target: web
+    ports:
+      - "127.0.0.1:8080:80"
+    networks: [juno-publica, juno-interna]
+    restart: unless-stopped
+    depends_on:
+      - juno-servidor
+
+networks:
+  juno-interna:
+    internal: true
+  juno-publica:

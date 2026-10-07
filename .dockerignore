@@ -1,0 +1,8 @@
+.git
+.godot
+.agents
+.codex
+build
+export_presets.cfg
+infra/.env
+*.tmp

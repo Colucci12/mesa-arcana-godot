@@ -1,0 +1,13 @@
+config_version=5
+
+[application]
+config/name="Mesa Arcana Servidor"
+run/main_scene="res://scenes/servidor/servidor_salas.tscn"
+run/max_fps=30
+config/features=PackedStringArray("4.6", "GL Compatibility")
+
+[autoload]
+GameManager="*res://scenes/servidor/game_manager_servidor.tscn"
+
+[rendering]
+renderer/rendering_method="gl_compatibility"

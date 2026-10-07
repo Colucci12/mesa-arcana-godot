@@ -1,4 +1,6 @@
-# Áudio do JUNO
+# Áudio de Mesa Arcana
+
+As músicas foram selecionadas de uma fonte CC0, conforme verificação informada pelo autor. O nome/URL do site ainda não foi recuperado. O registro de origem abaixo descreve a preparação e os caminhos locais; não constitui comprovação independente de licença. A origem/licença dos efeitos sonoros não está identificada nesse registro.
 
 - `cartas`: efeitos curtos, separados por família e variante, em WAV PCM 16 bits.
 - `ambiente`: três opções de vento e um relógio, em Ogg Vorbis.

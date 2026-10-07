@@ -4,3 +4,5 @@
 *.tmp
 # Configuração local de exportação, preservada fora dos commits.
 /export_presets.cfg
+/build/
+/infra/.env

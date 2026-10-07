@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://scripts/main/telas/menu_principal.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/main/componentes/fundo_menu.tscn" id="2"]
-[ext_resource type="Texture2D" path="res://images/UI/pack_menu.png" id="3"]
+[ext_resource type="Texture2D" path="res://images/UI/logo_mesa_arcana.png" id="3"]
 [ext_resource type="Script" path="res://scripts/main/componentes/layout_menu.gd" id="4"]
 [ext_resource type="Texture2D" path="res://images/UI/pack_detalhes.png" id="5"]
 [ext_resource type="PackedScene" path="res://scenes/main/componentes/volume_musica_menu.tscn" id="6"]

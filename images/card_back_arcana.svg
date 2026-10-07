@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="71" height="95" viewBox="0 0 284 380">
+  <defs>
+    <linearGradient id="felt" x2="1" y2="1">
+      <stop stop-color="#184a41"/>
+      <stop offset="1" stop-color="#071c24"/>
+    </linearGradient>
+    <linearGradient id="gold" x2="1" y2="1">
+      <stop stop-color="#f6e2ab"/>
+      <stop offset="0.5" stop-color="#d4ac60"/>
+      <stop offset="1" stop-color="#987038"/>
+    </linearGradient>
+  </defs>
+  <rect x="3" y="3" width="278" height="374" rx="23" fill="#081a1e" stroke="#e1cb98" stroke-width="5"/>
+  <rect x="15" y="15" width="254" height="350" rx="15" fill="url(#felt)" stroke="url(#gold)" stroke-width="3"/>
+  <rect x="26" y="26" width="232" height="328" rx="10" fill="none" stroke="#b99251" stroke-width="1.5"/>
+  <g fill="none" stroke="#618978" stroke-width="1.4" opacity="0.5">
+    <path d="M142 44L243 190L142 336L41 190Z"/>
+    <path d="M142 64L229 190L142 316L55 190Z"/>
+    <circle cx="142" cy="190" r="78"/>
+    <circle cx="142" cy="190" r="64"/>
+  </g>
+  <g fill="url(#gold)" stroke="#f4ddaa" stroke-width="1">
+    <path d="M142 103L153 175L204 190L153 205L142 277L131 205L80 190L131 175Z"/>
+    <path d="M102 140L139 181L182 140L151 191L182 240L141 201L102 240L132 190Z" opacity="0.8"/>
+    <path d="M142 177L155 190L142 203L129 190Z" fill="#0b302e"/>
+    <path d="M49 41L54 54L67 59L54 64L49 77L44 64L31 59L44 54Z"/>
+    <path d="M235 303L240 316L253 321L240 326L235 339L230 326L217 321L230 316Z"/>
+  </g>
+  <g fill="none" stroke="url(#gold)" stroke-width="3" stroke-linecap="round">
+    <path d="M207 42H241V76M43 304V338H77"/>
+    <path d="M114 45Q142 61 170 45M114 335Q142 319 170 335"/>
+  </g>
+</svg>

@@ -13,6 +13,35 @@ var _participantes: Dictionary = {}
 var _proximo_id: int = 2
 var _em_partida: bool = false
 var _conectado: bool = false
+var _central: CentralSalas
+var _modo_central := true
+
+func configurar_central(central: CentralSalas) -> void:
+	_central = central
+	central.identidade_confirmada.connect(func(id: int):
+		if usando_central(): identidade_confirmada.emit(id))
+	central.sala_atualizada.connect(func(jogadores: Array, inicio: bool):
+		if usando_central(): sala_atualizada.emit(jogadores, inicio))
+	central.status_alterado.connect(func(texto: String, permitir: bool):
+		if usando_central(): status_alterado.emit(texto, permitir))
+	central.partida_interrompida.connect(func(texto: String):
+		if usando_central(): partida_interrompida.emit(texto))
+
+func usando_central() -> bool:
+	return _modo_central and _central != null
+
+func definir_modo_central(ativo: bool) -> void:
+	if ativo == _modo_central:
+		return
+	if not usando_central():
+		_encerrar_conexao()
+	_modo_central = ativo
+
+func eh_anfitriao() -> bool:
+	return _central.eh_anfitriao() if usando_central() else multiplayer.is_server()
+
+func obter_central() -> CentralSalas:
+	return _central
 
 func _ready() -> void:
 	multiplayer.connected_to_server.connect(_ao_conectar_no_servidor)
@@ -21,11 +50,15 @@ func _ready() -> void:
 	multiplayer.peer_disconnected.connect(_ao_peer_desconectar)
 
 func hospedar(nome: String, porta: int) -> Dictionary:
+	if OS.has_feature("web"):
+		return _falha("No navegador, crie sua sala no servidor online.")
+	# Chamadas antigas continuam sendo o fluxo direto, inclusive nos testes existentes.
+	_modo_central = false
 	var nome_limpo := nome.strip_edges()
 	if nome_limpo.is_empty() or nome_limpo.length() > 24:
 		return _falha("Escolha um nome com até 24 caracteres.")
-	var peer := ENetMultiplayerPeer.new()
-	var erro := peer.create_server(porta, LIMITE_JOGADORES - 1)
+	var peer = ClassDB.instantiate("ENetMultiplayerPeer")
+	var erro = peer.create_server(porta, LIMITE_JOGADORES - 1)
 	if erro != OK:
 		return _falha("Não foi possível abrir a porta %d (erro %d)." % [porta, erro])
 	_encerrar_conexao()
@@ -38,13 +71,16 @@ func hospedar(nome: String, porta: int) -> Dictionary:
 	return {"sucesso": true, "mensagem": ""}
 
 func entrar(nome: String, endereco: String, porta: int) -> Dictionary:
+	if OS.has_feature("web"):
+		return _falha("No navegador, entre na sala pelo código.")
+	_modo_central = false
 	var nome_limpo := nome.strip_edges()
 	if nome_limpo.is_empty() or nome_limpo.length() > 24:
 		return _falha("Escolha um nome com até 24 caracteres.")
 	if endereco.strip_edges().is_empty():
 		return _falha("Informe o IP do anfitrião.")
-	var peer := ENetMultiplayerPeer.new()
-	var erro := peer.create_client(endereco.strip_edges(), porta)
+	var peer = ClassDB.instantiate("ENetMultiplayerPeer")
+	var erro = peer.create_client(endereco.strip_edges(), porta)
 	if erro != OK:
 		return _falha("Não foi possível iniciar a conexão (erro %d)." % erro)
 	_encerrar_conexao()
@@ -54,11 +90,16 @@ func entrar(nome: String, endereco: String, porta: int) -> Dictionary:
 	return {"sucesso": true, "mensagem": ""}
 
 func sair() -> void:
+	if usando_central():
+		_central.sair_sala()
+		return
 	_encerrar_conexao()
 	partida_interrompida.emit("Você saiu da sala.")
 	status_alterado.emit("Você saiu da sala.", true)
 
 func esta_conectado() -> bool:
+	if usando_central():
+		return _central.em_sala()
 	return _conectado
 
 func obter_jogador_por_peer(peer_id: int) -> int:
@@ -85,6 +126,8 @@ func obter_jogadores() -> Array[Dictionary]:
 	return jogadores
 
 func pode_iniciar() -> bool:
+	if usando_central():
+		return _central.pode_iniciar()
 	return _conectado and multiplayer.is_server() and not _em_partida and obter_jogadores().size() >= 2 and obter_jogadores().size() == _participantes.size()
 
 func bloquear_entradas() -> void:
