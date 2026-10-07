@@ -2,6 +2,8 @@ extends RefCounted
 
 # Manter igual a MAXIMO_FONTES_CENARIO em luz_cenario_2d.gdshaderinc.
 const MAXIMO := 48
+# Alvo separado: não ocupa nem reutiliza os IDs das peças da composição.
+const ALVO_ORNAMENTO := -2
 const PADRAO_PECA := {"claridade": 100.0, "contraste": 100.0, "saturacao": 100.0, "mesa": false}
 const LIMITES_PECA := {"claridade": Vector2(0, 150), "contraste": Vector2(0, 200), "saturacao": Vector2(0, 200)}
 const LIMITES := {"x": Vector2(-2560, 3840), "y": Vector2(-1440, 2160),
@@ -23,7 +25,7 @@ static func fonte(sombra: bool = false) -> Dictionary:
 		"visivel": true, "x": 640.0, "y": 360.0, "largura": 400.0,
 		"altura": 80.0 if sombra else 400.0, "giro": 0.0,
 		"intensidade": 40.0, "suavidade": 100.0, "cor": [1.0, 0.67, 0.32],
-		"todas": true, "alvos": [], "cartas": not sombra,
+		"todas": true, "alvos": [], "cartas": not sombra, "ornamento": false,
 		"concentracao": 70.0, "material": 70.0,
 		"halo_ativo": false, "halo_x": 0.0, "halo_y": 0.0, "halo_largura": 120.0,
 		"halo_altura": 120.0, "halo_giro": 0.0, "halo_intensidade": 30.0,
@@ -71,7 +73,7 @@ static func validar(dados: Variant) -> Dictionary:
 			var f := numeros(entrada, fonte(), LIMITES)
 			f = numeros(entrada, f, LIMITES_HALO)
 			f = numeros(entrada, f, LIMITES_BRILHO)
-			for chave in ["sombra", "brilho", "visivel", "todas", "cartas", "halo_ativo"]:
+			for chave in ["sombra", "brilho", "visivel", "todas", "cartas", "ornamento", "halo_ativo"]:
 				if entrada.get(chave) is bool:
 					f[chave] = entrada[chave]
 			if entrada.get("nome") is String:
@@ -107,6 +109,9 @@ static func enviar(material: ShaderMaterial, dados: Dictionary, alvo: int,
 			continue
 		if alvo == -1:
 			if not bool(f["cartas"]):
+				continue
+		elif alvo == ALVO_ORNAMENTO:
+			if not bool(f["todas"]) and not bool(f.get("ornamento", false)):
 				continue
 		elif not bool(f["todas"]) and not f["alvos"].has(alvo):
 			continue

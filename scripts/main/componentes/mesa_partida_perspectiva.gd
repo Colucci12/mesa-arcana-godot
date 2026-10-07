@@ -11,6 +11,7 @@ var _painel_enquadramento: PanelContainer
 var _campos_enquadramento: Dictionary = {}
 var _atualizando_enquadramento := false
 var _mensagem_enquadramento: Label
+var _sentido_turno := 1
 
 
 func _ready() -> void:
@@ -48,10 +49,19 @@ func _obter_maos_visuais() -> Array:
 
 
 func _iniciar_exibicao(dados: Dictionary) -> void:
+	# As mãos são posicionadas na ordem recebida para cada nova partida.
+	_sentido_turno = 1
+	_cenario.reiniciar_turno()
 	_cenario.apresentacao.limpar_partida()
 	super._iniciar_exibicao(dados)
 	_cenario.apresentacao.atualizar_jogadores()
 	intervalo_troca_maos = _cenario.apresentacao.duracao_trajeto
+
+
+func _aplicar_evento(evento: Dictionary) -> void:
+	if evento.get("tipo", "") == "SentidoInvertido":
+		_sentido_turno *= -1
+	super._aplicar_evento(evento)
 
 
 func interromper_partida(mensagem: String) -> void:
@@ -114,6 +124,10 @@ func _atualizar_controles() -> void:
 		return
 	_cenario.definir_hover(_partida_ativa and _interacoes_liberadas)
 	_cenario.definir_vez_local(_partida_ativa and _interacoes_liberadas and _jogador_da_vez_id == id_jogador_local)
+	var mao_da_vez := -1
+	if _maos.has(_jogador_da_vez_id):
+		mao_da_vez = _cenario.apresentacao.obter_maos().find(_maos[_jogador_da_vez_id])
+	_cenario.definir_turno(mao_da_vez, _sentido_turno, _partida_ativa and _interacoes_liberadas)
 	_botao_comprar.disabled = not _pode_agir() or (_compra_acumulada == 0 and (not _pode_comprar or _carta_comprada_jogavel_id > 0))
 	_botao_comprar.text = "Comprar pilha (+%d)" % _compra_acumulada if _compra_acumulada > 0 else "Comprar carta"
 	_indicador_turno.add_theme_color_override("font_color", VISUAL_UI.MENU.OURO if _partida_ativa and _jogador_da_vez_id == id_jogador_local else VISUAL_UI.MENU.CREME)

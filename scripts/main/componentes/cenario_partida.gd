@@ -12,7 +12,8 @@ const HALOS = preload("res://scripts/desenvolvimento/laboratorios/halos_cenario_
 const AUDIO = preload("res://scripts/main/componentes/audio_cenario.gd")
 const APRESENTACAO = preload("res://scripts/main/componentes/apresentacao_partida.gd")
 const CENA_APRESENTACAO = preload("res://scenes/main/componentes/apresentacao_partida.tscn")
-const COMPOSICAO := "res://scripts/desenvolvimento/laboratorios/presets/ajuste_velas_v1.json"
+const INDICADORES = preload("res://scripts/main/componentes/indicadores_turno.gd")
+const COMPOSICAO := "res://scripts/desenvolvimento/laboratorios/presets/turno_visual_v3.json"
 const AUDIO_V2 := "res://scripts/desenvolvimento/laboratorios/presets/audio_v2.json"
 const REFERENCIA := Vector2(1280, 720)
 
@@ -29,6 +30,10 @@ var _editar_enquadramento := false
 var _botao_arrasto := 0
 var _inicio_mouse := Vector2.ZERO
 var _inicio_pan := Vector2.ZERO
+var _indicadores: INDICADORES
+var _mao_da_vez := -1
+var _sentido := 1
+var _turno_ativo := false
 
 
 func _ready() -> void:
@@ -45,6 +50,14 @@ func _ready() -> void:
 	var cartas := CARTAS.validar(dados.get("cartas"))
 	_referencia.atualizar(cartas, luz)
 	apresentacao = _referencia.obter_apresentacao() as APRESENTACAO
+	_indicadores = INDICADORES.new()
+	apresentacao._composicao.add_child(_indicadores)
+	_indicadores.preparar(apresentacao)
+	var turno := INDICADORES.validar(dados.get("turno_visual"))
+	turno["simular_passagem"] = false
+	turno["mao"] = -1
+	_indicadores.configurar(turno)
+	_indicadores.aplicar_luz(luz)
 	apresentacao.jogada_solicitada.connect(func(id: int): jogada_solicitada.emit(id))
 	for entrada in dados["pecas"]:
 		var peca := CATALOGO.validar(entrada)
@@ -131,6 +144,30 @@ func definir_vez_local(ativa: bool) -> void:
 	_audio.definir_vez_local(ativa and is_visible_in_tree())
 
 
+func definir_turno(mao: int, sentido: int, ativo: bool) -> void:
+	_mao_da_vez = mao
+	_sentido = sentido
+	_turno_ativo = ativo
+	_atualizar_turno_visual()
+
+
+func reiniciar_turno() -> void:
+	_mao_da_vez = -1
+	_sentido = 1
+	_turno_ativo = false
+	_indicadores.reiniciar()
+	_atualizar_turno_visual()
+
+
+func _atualizar_turno_visual() -> void:
+	if _indicadores == null:
+		return
+	var visivel := is_visible_in_tree()
+	_indicadores.definir_turno(_mao_da_vez, _sentido, _turno_ativo and visivel)
+	if not visivel:
+		_indicadores.set_process(false)
+
+
 func _tocar_evento(acao: String) -> void:
 	if is_visible_in_tree():
 		_audio.tocar(acao)
@@ -139,6 +176,7 @@ func _tocar_evento(acao: String) -> void:
 func _ao_alterar_visibilidade() -> void:
 	var visivel := is_visible_in_tree()
 	_atualizar_interacao()
+	_atualizar_turno_visual()
 	if not visivel:
 		_encerrar_arrasto()
 		_audio.definir_vez_local(false)

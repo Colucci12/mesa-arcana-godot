@@ -1,5 +1,27 @@
 # Contexto para o próximo chat
 
+## Turno visual v3 na partida — 07/10/2026
+
+Usuário aprovou o teste e autorizou integrar na principal; corrigiu o conjunto para **Turno visual v3**, confirmado como último salvo. Snapshot integral versionado em `scripts/desenvolvimento/laboratorios/presets/turno_visual_v3.json`, biblioteca local intacta. Partida agora lê essa composição (oito peças/40 fontes), com ornamento antigo 2000×800, compensação 68%, opacidade 100%, giro 5°/s/sem seta, contorno verde 2 px/80%/0,4 s e seleções de luz/brilho do V3. Audio V2 conservado.
+
+Helper ligado à apresentação real das cartas pelo `cenario_partida.gd`. Simulação do laboratório desativada somente na cópia em memória. Controlador em perspectiva encontra a mão pelo ID da vez, seguindo a distribuição real para 2–4 jogadores. Início de cada partida normaliza o giro relativo à nova ordem de jogadores recebida; evento `SentidoInvertido` inverte o giro sem reiniciar fase. Contorno inicia após distribuição, continua nas decisões/compras, desaparece no fim/interrupção; nova partida limpa fase e bordas, ocultar mesa suspende animação. Labels ainda presentes nesta rodada de integração.
+
+**Cena inicial agora é o menu**, para o usuário testar a integração pelo fluxo normal de sala/partida. Não executar Godot/testes/capturas automaticamente. Conferidos arquivos/referências/diff; avaliação visual e execução ficam com o usuário. Checkpoint desta integração solicitado pelo usuário na sequência. As referências abaixo a helper somente no laboratório e preservar laboratório como inicial descrevem o estado anterior.
+
+## Teste de sentido/contorno da mão — 07/10/2026
+
+**Última rodada:** usuário gostou do conjunto local **Turno visual v2**, cuja cópia `ultima` foi lida sem escrita: ornamento antigo 2000×800, compensação 68%, opacidade 100%, giro 5°/s, sem seta; contorno verde 2 px/80%/transição 0,4 s. Pedido: ornamentação receber fontes externas de luz/brilho. Novo alvo **Ornamento da mesa** na lista Luz > Pontos e sombras. Booleano `ornamento` por fonte e alvo reservado −2; todas as imagens inclui automaticamente, seleções específicas usam checkbox. Shader usa luz/sombra/brilho existentes e o transform da apresentação capturada, mantendo luz fixa na cena durante o giro. Persistência/undo/duplicação passam pela validação existente. Sem tocar arquivo local nem contorno.
+
+Entrada dedicada do laboratório agora retoma a última composição salva de turno (V2), com nome selecionado; V1 apenas fallback sem última composição de turno. Usuário mudou a cena inicial para `laboratorio_turno.tscn`; conservar. Sem execução de Godot/testes/capturas pelo agente nesta correção.
+
+Usuário confirmou partidas com amigos funcionando após **bc13602**. Quer diminuir UI/labels gradualmente, indicando sentido por ornamento e vez por **contorno externo único da mão** (desenho enviado), sem halo nem brilho por carta. Autorizou um teste/conjunto antes de levar à principal.
+
+Abrir **`scenes/desenvolvimento/laboratorios/laboratorio_turno.tscn` com F6**. Herda o Cenário 2D, abre a nova aba **Turno** e a referência **Turno visual v1**, baseada integralmente em Ajuste velas v1. A composição original/versionada e biblioteca local preservadas. Aba controla arte antiga recuperada ou medalhão do pack, encaixe/profundidade/largura, compensação de oval, giro/inversão/seta opcional e contorno dourado/verde. Prévia de próxima mão ou auto; comprar/jogar/restaurar. Tab oculta painel. Salvar um novo conjunto pelo fluxo existente inclui `turno_visual`, com desfazer/refazer; conjuntos antigos desativam os novos efeitos.
+
+Arte antiga copiada intacta de `fa76700^` para `images/ambiente/ornamento_mesa.png`. Giro é na amostragem do plano antes da homografia, conservando quad/encaixe. Borda usa alfa da captura composta das cartas e as inversas reais da projeção, ignorando sombras translúcidas e sem linhas internas/modulação da face. Helper `scripts/main/componentes/indicadores_turno.gd` e shaders reutilizáveis, **ligados somente ao laboratório nesta etapa**. Cena inicial/menu e partida real permanecem no estado aprovado, até o ajuste do teste.
+
+Verificação estática por referências/diff, arte e snapshot, **sem executar Godot/testes/capturas**. Usuário valida o encaixe e a aparência. Sem commit solicitado; não regravar automaticamente bibliotecas locais. Futuro: aplicar conjunto escolhido ao jogo, mapear turno/sentido reais e então reduzir labels.
+
 ## Acabamento provisório da UI da partida — 06/10/2026
 
 **Checkpoint solicitado:** usuário pediu commitar menu/sala/ambientação renomeada, abertura/Música Fundo 3/volume e UI provisória da partida. Ele mudou a cena inicial para `menu_principal.tscn` durante essa etapa; preservar e incluir essa edição no checkpoint. As referências ao laboratório como inicial abaixo são históricas. Sem execução de Godot/testes/capturas pelo agente.

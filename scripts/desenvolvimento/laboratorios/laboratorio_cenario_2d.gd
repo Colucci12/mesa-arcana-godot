@@ -8,6 +8,9 @@ const HALOS = preload("res://scripts/desenvolvimento/laboratorios/halos_cenario_
 const CHAMAS = preload("res://scripts/desenvolvimento/laboratorios/interno/chamas_cenario_2d.gd")
 const AUDIO = preload("res://scripts/main/componentes/audio_cenario.gd")
 const PAINEL_AUDIO = preload("res://scripts/desenvolvimento/laboratorios/interno/painel_audio_cenario.gd")
+const INDICADORES_TURNO = preload("res://scripts/main/componentes/indicadores_turno.gd")
+const PAINEL_TURNO = preload("res://scripts/desenvolvimento/laboratorios/interno/painel_turno_cenario.gd")
+const REFERENCIA_TURNO := "res://scripts/desenvolvimento/laboratorios/presets/turno_visual_v1.json"
 const TEMA = preload("res://scenes/desenvolvimento/laboratorios/painel_laboratorio.tres")
 const ARQUIVO := "user://laboratorio_cenario_2d.json"
 const REFERENCIA := Vector2(1280, 720)
@@ -71,6 +74,9 @@ var _lista_chamas: OptionButton
 var _chama_selecionada := -1
 var _editar_corte_chama := false
 var _audio: AUDIO
+var _turno_visual := INDICADORES_TURNO.padrao()
+var _indicadores_turno: INDICADORES_TURNO
+var _painel_turno: PAINEL_TURNO
 
 
 func _ready() -> void:
@@ -79,6 +85,7 @@ func _ready() -> void:
 	_proximo_id = _pecas.size() + 1
 	_selecionada = 3
 	_ler_biblioteca()
+	_adicionar_referencia_turno()
 	if _biblioteca.get("ultima") is Dictionary:
 		_aplicar_estado(_biblioteca["ultima"])
 	_referencia_cartas = CARTAS.new()
@@ -133,7 +140,7 @@ func _montar_painel() -> void:
 	var navegacao := GridContainer.new()
 	navegacao.columns = 2
 	coluna.add_child(navegacao)
-	for titulo in ["Peças", "Encaixe", "Recorte", "Cartas", "Interação", "Áudio", "Luz", "Chamas", "Conjuntos"]:
+	for titulo in ["Peças", "Encaixe", "Recorte", "Cartas", "Interação", "Turno", "Áudio", "Luz", "Chamas", "Conjuntos"]:
 		var botao := Button.new()
 		botao.text = titulo
 		botao.toggle_mode = true
@@ -158,6 +165,14 @@ func _montar_painel() -> void:
 	_montar_recorte(_categorias["Recorte"])
 	_montar_cartas(_categorias["Cartas"])
 	_montar_interacao(_categorias["Interação"])
+	_painel_turno = PAINEL_TURNO.new()
+	_categorias["Turno"].add_child(_painel_turno)
+	_painel_turno.montar(_turno_visual)
+	_painel_turno.configuracao_alterada.connect(_alterar_turno_visual)
+	_painel_turno.referencia_solicitada.connect(_carregar_referencia_turno)
+	_painel_turno.compra_solicitada.connect(func(mao: int): _referencia_cartas.comprar(mao))
+	_painel_turno.jogada_solicitada.connect(func(mao: int): _referencia_cartas.jogar(mao, 1))
+	_painel_turno.restauracao_solicitada.connect(_restaurar_cartas)
 	var painel_audio := PAINEL_AUDIO.new()
 	_categorias["Áudio"].add_child(painel_audio)
 	painel_audio.montar(_audio, _comprar_carta, _jogar_carta, _restaurar_cartas)
@@ -753,7 +768,22 @@ func _sincronizar_luz() -> void:
 		check.set_pressed_no_signal(not fonte.is_empty() and (bool(fonte["todas"]) or fonte["alvos"].has(int(peca["id"]))))
 		_alvos_fontes.add_child(check)
 		check.toggled.connect(_alternar_alvo.bind(int(peca["id"])))
+	var ornamento := CheckBox.new()
+	ornamento.text = "Ornamento da mesa"
+	ornamento.disabled = fonte.is_empty() or bool(fonte.get("todas", true))
+	ornamento.set_pressed_no_signal(not fonte.is_empty() and (bool(fonte["todas"]) or bool(fonte.get("ornamento", false))))
+	_alvos_fontes.add_child(ornamento)
+	ornamento.toggled.connect(_alternar_ornamento_luz)
 	_atualizando_ui = false
+
+
+func _alternar_ornamento_luz(ativa: bool) -> void:
+	var fonte := _dados_luz("fonte")
+	if _atualizando_ui or fonte.is_empty():
+		return
+	_registrar()
+	fonte["ornamento"] = ativa
+	_atualizar_cena()
 
 
 func _alternar_alvo(ativa: bool, id: int) -> void:
@@ -886,7 +916,7 @@ func _categoria(titulo: String) -> void:
 
 
 func _interacao_habilitada() -> bool:
-	return _categoria_ativa in ["Interação", "Áudio"]
+	return _categoria_ativa in ["Interação", "Turno", "Áudio"]
 
 
 func _sincronizar_ui() -> void:
@@ -918,6 +948,7 @@ func _sincronizar_ui() -> void:
 	_atualizando_ui = false
 	_sincronizar_cartas()
 	_sincronizar_luz()
+	_painel_turno.sincronizar(_turno_visual)
 
 
 func _valor_campo(chave: String) -> float:
@@ -977,6 +1008,13 @@ func _atualizar_cena() -> void:
 			_nos.erase(id)
 	if is_instance_valid(_referencia_cartas):
 		_referencia_cartas.atualizar(_cartas, _luz)
+		if not is_instance_valid(_indicadores_turno):
+			var apresentacao := _referencia_cartas.obter_apresentacao()
+			_indicadores_turno = INDICADORES_TURNO.new()
+			apresentacao._composicao.add_child(_indicadores_turno)
+			_indicadores_turno.preparar(apresentacao)
+		_indicadores_turno.configurar(_turno_visual)
+		_indicadores_turno.aplicar_luz(_luz)
 		for peca in _pecas:
 			var asset: ASSET = _nos[int(peca["id"])]
 			asset.aplicar_luz(_luz, _referencia_cartas)
@@ -1395,7 +1433,8 @@ func _arrastar(mouse: Vector2) -> void:
 
 func _estado() -> Dictionary:
 	return {"pecas": _pecas.duplicate(true), "zoom": _zoom, "pan": [_pan.x, _pan.y],
-		"cartas": _cartas.duplicate(true), "luz": _luz.duplicate(true)}
+		"cartas": _cartas.duplicate(true), "luz": _luz.duplicate(true),
+		"turno_visual": _turno_visual.duplicate(true)}
 
 
 func _aplicar_estado(dados: Dictionary) -> void:
@@ -1403,6 +1442,7 @@ func _aplicar_estado(dados: Dictionary) -> void:
 		return
 	_cartas = CARTAS.validar(dados.get("cartas"))
 	_luz = LUZ.validar(dados.get("luz"))
+	_turno_visual = INDICADORES_TURNO.validar(dados.get("turno_visual"))
 	var novas: Array[Dictionary] = []
 	var id := 1
 	var usados: Dictionary = {}
@@ -1436,6 +1476,41 @@ func _aplicar_estado(dados: Dictionary) -> void:
 		if (pan[0] is float or pan[0] is int) and (pan[1] is float or pan[1] is int):
 			if is_finite(float(pan[0])) and is_finite(float(pan[1])):
 				_pan = Vector2(float(pan[0]), float(pan[1])).clamp(Vector2(-5000, -5000), Vector2(5000, 5000))
+
+
+func _alterar_turno_visual(dados: Dictionary) -> void:
+	_registrar()
+	var novos := INDICADORES_TURNO.validar(dados)
+	if _turno_visual["girar"] and not novos["girar"] and is_instance_valid(_indicadores_turno):
+		novos["giro"] = _indicadores_turno.obter_giro()
+	_turno_visual = novos
+	_atualizar_cena()
+	_painel_turno.sincronizar(_turno_visual)
+
+
+func _adicionar_referencia_turno() -> void:
+	var snapshot: Variant = JSON.parse_string(FileAccess.get_file_as_string(REFERENCIA_TURNO))
+	if not snapshot is Dictionary or not snapshot.get("composicao") is Dictionary:
+		return
+	if not _biblioteca.get("conjuntos") is Dictionary:
+		_biblioteca["conjuntos"] = {}
+	if not _biblioteca["conjuntos"].has("Turno visual v1"):
+		_biblioteca["conjuntos"]["Turno visual v1"] = snapshot["composicao"].duplicate(true)
+
+
+func _carregar_referencia_turno() -> void:
+	var snapshot: Variant = JSON.parse_string(FileAccess.get_file_as_string(REFERENCIA_TURNO))
+	if not snapshot is Dictionary or not snapshot.get("composicao") is Dictionary:
+		_mensagem.text = "Não foi possível ler a referência do turno."
+		return
+	_registrar()
+	_aplicar_estado(snapshot["composicao"])
+	_atualizar_cena()
+	_sincronizar_ui()
+	_ajustar_enquadramento()
+	_nome_conjunto.text = "Turno visual v1"
+	_categoria("Turno")
+	_mensagem.text = "Referência de teste carregada. Salve com outro nome para guardar seus ajustes."
 
 
 func _registrar() -> void:
